@@ -56,6 +56,7 @@ namespace Nethermind.AuRa.Validators
         private readonly IReceiptStorage _receiptStorage;
         private Address[] _validators;
         private bool _isProducing;
+        private readonly bool _finalizableTransitions;
 
         protected Address ContractAddress { get; }
         protected IAbiEncoder AbiEncoder { get; }
@@ -73,6 +74,7 @@ namespace Nethermind.AuRa.Validators
 
         public ContractValidator(
             AuRaParameters.Validator validator,
+            AuRaParameters parameters,
             IDb stateDb,
             IStateProvider stateProvider,
             IAbiEncoder abiEncoder,
@@ -82,6 +84,7 @@ namespace Nethermind.AuRa.Validators
             ILogManager logManager,
             long startBlockNumber) : base(validator, logManager)
         {
+            _finalizableTransitions = !(parameters ?? throw new ArgumentNullException(nameof(parameters))).ImmediateTransitions;
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             ContractAddress = validator.Addresses?.FirstOrDefault() ?? throw new ArgumentException("Missing contract address for AuRa validator.", nameof(validator.Addresses));
             _stateDb = stateDb ?? throw new ArgumentNullException(nameof(stateDb));
@@ -106,7 +109,7 @@ namespace Nethermind.AuRa.Validators
             _blockFinalizationManager = finalizationManager;
             _isProducing = forProducing;
             
-            if (!forProducing && _blockFinalizationManager != null)
+            if (_finalizableTransitions && !forProducing && _blockFinalizationManager != null)
             {
                 _blockFinalizationManager.BlocksFinalized += OnBlocksFinalized;
             }
@@ -122,38 +125,44 @@ namespace Nethermind.AuRa.Validators
                 Validators = LoadValidatorsFromContract(block.Header);
             }
 
-            if (InitBlockNumber == block.Number)
+            if (_finalizableTransitions)
             {
-                InitiateChange(block, Validators.ToArray(), isProcessingBlock, true);
-            }
-            else
-            {
-                if (isProcessingBlock)
+                if (InitBlockNumber == block.Number)
                 {
-                    bool reorganisationHappened = block.Number <= _lastProcessedBlockNumber;
-                    if (reorganisationHappened)
-                    {
-                        var reorganisationToBlockBeforePendingValidatorsInitChange = block.Number <= CurrentPendingValidators?.BlockNumber;
-                        var pendingValidators = reorganisationToBlockBeforePendingValidatorsInitChange ? null : LoadPendingValidators();
-                        SetPendingValidators(pendingValidators);
-                    }
-                    else if (block.Number > _lastProcessedBlockNumber + 1) // blocks skipped, like fast sync
-                    {
-                        SetPendingValidators(TryGetInitChangeFromPastBlocks(block.ParentHash), true);
-                    }
+                    InitiateChange(block, Validators.ToArray(), isProcessingBlock, true);
                 }
                 else
                 {
-                    // if we are not processing blocks we are not on consecutive blocks.
-                    // We need to initialize pending validators from db on each block being produced.  
-                    SetPendingValidators(LoadPendingValidators());
+                    if (isProcessingBlock)
+                    {
+                        bool reorganisationHappened = block.Number <= _lastProcessedBlockNumber;
+                        if (reorganisationHappened)
+                        {
+                            var reorganisationToBlockBeforePendingValidatorsInitChange = block.Number <= CurrentPendingValidators?.BlockNumber;
+                            var pendingValidators = reorganisationToBlockBeforePendingValidatorsInitChange ? null : LoadPendingValidators();
+                            SetPendingValidators(pendingValidators);
+                        }
+                        else if (block.Number > _lastProcessedBlockNumber + 1) // blocks skipped, like fast sync
+                        {
+                            SetPendingValidators(TryGetInitChangeFromPastBlocks(block.ParentHash), true);
+                        }
+                    }
+                    else
+                    {
+                        // if we are not processing blocks we are not on consecutive blocks.
+                        // We need to initialize pending validators from db on each block being produced.  
+                        SetPendingValidators(LoadPendingValidators());
+                    }
                 }
             }
             
             base.PreProcess(block, options);
-            
-            FinalizePendingValidatorsIfNeeded(block.Header, isProcessingBlock);
-            
+
+            if (_finalizableTransitions)
+            {
+                FinalizePendingValidatorsIfNeeded(block.Header, isProcessingBlock);
+            }
+
             _lastProcessedBlockNumber = block.Number;
         }
 
@@ -188,8 +197,16 @@ namespace Nethermind.AuRa.Validators
             if (ValidatorContract.CheckInitiateChangeEvent(ContractAddress, block.Header, receipts, out var potentialValidators))
             {
                 var isProcessingBlock = !options.IsProducingBlock();
-                InitiateChange(block, potentialValidators, isProcessingBlock, Validators.Length == 1);
-                if (_logger.IsInfo && isProcessingBlock) _logger.Info($"Signal for transition within contract at block {block.ToString(Block.Format.Short)}. New list of {potentialValidators.Length} : [{string.Join<Address>(", ", potentialValidators)}].");
+                if (_finalizableTransitions)
+                {
+                    InitiateChange(block, potentialValidators, isProcessingBlock, Validators.Length == 1);
+                    if (_logger.IsInfo && isProcessingBlock) _logger.Info($"Signal for transition within contract at block {block.ToString(Block.Format.Short)}. New list of {potentialValidators.Length} : [{string.Join<Address>(", ", potentialValidators)}].");
+                }
+                else
+                {
+                    Validators = potentialValidators;
+                    if (_logger.IsInfo && isProcessingBlock) _logger.Info($"Immediate transition within contract after block {block.ToString(Block.Format.Short)}. New list of {potentialValidators.Length} : [{string.Join<Address>(", ", potentialValidators)}].");
+                }
             }
         }
 
@@ -269,21 +286,32 @@ namespace Nethermind.AuRa.Validators
 
         private PendingValidators LoadPendingValidators()
         {
-            var rlpStream = new RlpStream(_stateDb.Get(PendingValidatorsKey) ?? Rlp.OfEmptySequence.Bytes);
-            return _pendingValidatorsDecoder.Decode(rlpStream);
+            if (_finalizableTransitions)
+            {
+                var rlpStream = new RlpStream(_stateDb.Get(PendingValidatorsKey) ?? Rlp.OfEmptySequence.Bytes);
+                return _pendingValidatorsDecoder.Decode(rlpStream);
+            }
+            else
+            {
+                return null;
+            }
         }
 
         private void SetPendingValidators(PendingValidators validators, bool canSave = false)
         {
-            _currentPendingValidators = validators;
-            
-            // We don't want to save to db when:
-            // * We are producing block
-            // * We will save later on processing same block (stateDb ignores consecutive calls with same key!)
-            // * We are loading validators from db.
-            if (canSave)
+            if (_finalizableTransitions)
             {
-                _stateDb.Set(PendingValidatorsKey, _pendingValidatorsDecoder.Encode(CurrentPendingValidators).Bytes);
+                _currentPendingValidators = validators;
+
+                // We don't want to save to db when:
+                // * We are producing block
+                // * We will save later on processing same block (stateDb ignores consecutive calls with same key!)
+                // * We are loading validators from db.
+                if (canSave)
+                {
+                    _stateDb.Set(PendingValidatorsKey,
+                        _pendingValidatorsDecoder.Encode(CurrentPendingValidators).Bytes);
+                }
             }
         }
 

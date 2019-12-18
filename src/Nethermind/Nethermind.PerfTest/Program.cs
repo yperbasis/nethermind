@@ -285,7 +285,7 @@ namespace Nethermind.PerfTest
             else if (chainSpec.SealEngineType == SealEngineType.AuRa)
             {
                 var abiEncoder = new AbiEncoder();
-                var validatorProcessor = new AuRaAdditionalBlockProcessorFactory(dbProvider.StateDb, stateProvider, abiEncoder, processor, blockTree, receiptStorage, _logManager)
+                var validatorProcessor = new AuRaAdditionalBlockProcessorFactory(chainSpec.AuRa, dbProvider.StateDb, stateProvider, abiEncoder, processor, blockTree, receiptStorage, _logManager)
                     .CreateValidatorProcessor(chainSpec.AuRa.Validators);
                     
                 sealValidator = new AuRaSealValidator(chainSpec.AuRa, new AuRaStepCalculator(chainSpec.AuRa.StepDuration, new Timestamper()), validatorProcessor, ethereumSigner, _logManager);

@@ -34,11 +34,13 @@ namespace Nethermind.AuRa.Validators
         private IAuRaValidatorProcessor _currentValidator;
         private bool _isProducing;
         private long _lastProcessedBlock = 0;
+        private bool _immediateTransitions;
 
-        public MultiValidator(AuRaParameters.Validator validator, IAuRaAdditionalBlockProcessorFactory validatorFactory, IBlockTree blockTree, ILogManager logManager)
+        public MultiValidator(AuRaParameters.Validator validator, AuRaParameters parameters, IAuRaAdditionalBlockProcessorFactory validatorFactory, IBlockTree blockTree, ILogManager logManager)
         {
             if (validator == null) throw new ArgumentNullException(nameof(validator));
             if (validator.ValidatorType != AuRaParameters.ValidatorType.Multi) throw new ArgumentException("Wrong validator type.", nameof(validator));
+            _immediateTransitions = (parameters ?? throw new ArgumentNullException(nameof(parameters))).ImmediateTransitions;
             _validatorFactory = validatorFactory ?? throw new ArgumentNullException(nameof(validatorFactory));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
@@ -67,7 +69,7 @@ namespace Nethermind.AuRa.Validators
             
             foreach (var kvp in _validators)
             {
-                if (kvp.Key <= blockNum || kvp.Key <= headNumber && kvp.Value.ValidatorType.CanChangeImmediately())
+                if (kvp.Key <= blockNum || kvp.Key <= headNumber && CanChangeValidatorImmediately(kvp.Value))
                 {
                     val = kvp;
                     found = true;
@@ -82,7 +84,7 @@ namespace Nethermind.AuRa.Validators
             for (int i = 0; i < e.FinalizedBlocks.Count; i++)
             {
                 var finalizedBlockHeader = e.FinalizedBlocks[i];
-                if (TryGetValidator(finalizedBlockHeader.Number, out var validator) && !validator.ValidatorType.CanChangeImmediately())
+                if (TryGetValidator(finalizedBlockHeader.Number, out var validator) && !CanChangeValidatorImmediately(validator))
                 {
                     SetCurrentValidator(e.FinalizingBlock.Number, validator);
                     if (_logger.IsInfo && !_isProducing) _logger.Info($"Applying chainspec validator change signalled at block {finalizedBlockHeader.ToString(BlockHeader.Format.Short)} at block {e.FinalizingBlock.ToString(BlockHeader.Format.Short)}.");
@@ -100,7 +102,7 @@ namespace Nethermind.AuRa.Validators
             {
                 if (TryGetLastValidator(previousBlockNumber, out var validatorInfo))
                 {
-                    if (validatorInfo.Value.ValidatorType.CanChangeImmediately())
+                    if (CanChangeValidatorImmediately(validatorInfo.Value))
                     {
                         SetCurrentValidator(validatorInfo);
                     }
@@ -126,6 +128,8 @@ namespace Nethermind.AuRa.Validators
             _currentValidator?.PreProcess(block, options);
         }
 
+        private bool CanChangeValidatorImmediately(AuRaParameters.Validator validator) => _immediateTransitions || validator.ValidatorType.CanChangeImmediately();
+
         private bool TryGetValidator(long blockNumber, out AuRaParameters.Validator validator) => _validators.TryGetValue(blockNumber, out validator);
         
         public void PostProcess(Block block, TxReceipt[] receipts, ProcessingOptions options = ProcessingOptions.None)
@@ -136,7 +140,7 @@ namespace Nethermind.AuRa.Validators
 
             if (TryGetValidator(block.Number, out var validator))
             {
-                if (validator.ValidatorType.CanChangeImmediately())
+                if (CanChangeValidatorImmediately(validator))
                 {
                     SetCurrentValidator(block.Number, validator);
                     if (_logger.IsInfo && notProducing) _logger.Info($"Immediately applying chainspec validator change signalled at block at block {block.ToString(Block.Format.Short)} to {validator.ValidatorType}.");

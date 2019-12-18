@@ -27,6 +27,7 @@ namespace Nethermind.AuRa.Validators
     public class ReportingContractValidator : ContractValidator
     {
         public ReportingContractValidator(AuRaParameters.Validator validator,
+            AuRaParameters parameters,
             IDb stateDb,
             IStateProvider stateProvider,
             IAbiEncoder abiEncoder,
@@ -35,7 +36,7 @@ namespace Nethermind.AuRa.Validators
             IReceiptStorage receiptStorage,
             ILogManager logManager,
             long startBlockNumber) 
-            : base(validator, stateDb, stateProvider, abiEncoder, transactionProcessor, blockTree, receiptStorage, logManager, startBlockNumber)
+            : base(validator, parameters, stateDb, stateProvider, abiEncoder, transactionProcessor, blockTree, receiptStorage, logManager, startBlockNumber)
         {
         }
     }

@@ -60,11 +60,13 @@ namespace Nethermind.AuRa.Test.Validators
         private Address[] _initialValidators;
         private IBlockTree _blockTree;
         private IReceiptStorage _receiptsStorage;
+        private AuRaParameters _parameters;
 
 
         [SetUp]
         public void SetUp()
         {
+            _parameters = new AuRaParameters();
             _db = Substitute.For<IDb>();
             _db[ContractValidator.PendingValidatorsKey.Bytes].Returns((byte[]) null);
             _stateProvider = Substitute.For<IStateProvider>();
@@ -95,49 +97,49 @@ namespace Nethermind.AuRa.Test.Validators
         [Test]
         public void throws_ArgumentNullException_on_empty_validator()
         {
-            Action act = () => new ContractValidator(null, _db, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
+            Action act = () => new ContractValidator(null, _parameters, _db, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
             act.Should().Throw<ArgumentNullException>();
         }
         
         [Test]
         public void throws_ArgumentNullException_on_empty_stateDb()
         {
-            Action act = () => new ContractValidator(_validator, null, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
+            Action act = () => new ContractValidator(_validator, _parameters, null, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
             act.Should().Throw<ArgumentNullException>();
         }
         
         [Test]
         public void throws_ArgumentNullException_on_empty_stateProvider()
         {
-            Action act = () => new ContractValidator(_validator, _db, null, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
+            Action act = () => new ContractValidator(_validator, _parameters, _db, null, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
             act.Should().Throw<ArgumentNullException>();
         }
         
         [Test]
         public void throws_ArgumentNullException_on_empty_abiEncoder()
         {
-            Action act = () => new ContractValidator(_validator, _db, _stateProvider, null, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
+            Action act = () => new ContractValidator(_validator, _parameters, _db, _stateProvider, null, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
             act.Should().Throw<ArgumentNullException>();
         }
 
         [Test]
         public void throws_ArgumentNullException_on_empty_transactionProcessor()
         {
-            Action act = () => new ContractValidator(_validator, _db, _stateProvider, _abiEncoder, null, _blockTree, _receiptsStorage, _logManager, 1);
+            Action act = () => new ContractValidator(_validator, _parameters, _db, _stateProvider, _abiEncoder, null, _blockTree, _receiptsStorage, _logManager, 1);
             act.Should().Throw<ArgumentNullException>();
         }
         
         [Test]
         public void throws_ArgumentNullException_on_empty_blockTree()
         {
-            Action act = () => new ContractValidator(_validator, _db, _stateProvider, _abiEncoder, _transactionProcessor, null, _receiptsStorage, _logManager, 1);
+            Action act = () => new ContractValidator(_validator, _parameters, _db, _stateProvider, _abiEncoder, _transactionProcessor, null, _receiptsStorage, _logManager, 1);
             act.Should().Throw<ArgumentNullException>();
         }
         
         [Test]
         public void throws_ArgumentNullException_on_empty_logManager()
         {
-            Action act = () => new ContractValidator(_validator, _db, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, null, 1);
+            Action act = () => new ContractValidator(_validator, _parameters, _db, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, null, 1);
             act.Should().Throw<ArgumentNullException>();
         }
 
@@ -145,7 +147,7 @@ namespace Nethermind.AuRa.Test.Validators
         public void throws_ArgumentNullException_on_empty_contractAddress()
         {
             _validator.Addresses = new Address[0];
-            Action act = () => new ContractValidator(_validator, _db, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
+            Action act = () => new ContractValidator(_validator, _parameters, _db, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
             act.Should().Throw<ArgumentException>();
         }
 
@@ -155,7 +157,7 @@ namespace Nethermind.AuRa.Test.Validators
             var initialValidator = Address.FromNumber(2000);
             SetupInitialValidators(initialValidator);
             _block.Beneficiary = initialValidator;
-            var validator = new ContractValidator(_validator, _db, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
+            var validator = new ContractValidator(_validator, _parameters, _db, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
             
             validator.PreProcess(_block);
             
@@ -173,7 +175,7 @@ namespace Nethermind.AuRa.Test.Validators
             var rlp = Rlp.Encode(pendingValidators);
             _db[ContractValidator.PendingValidatorsKey.Bytes].Returns(rlp.Bytes);
             
-            IAuRaValidatorProcessor validator = new ContractValidator(_validator, _db, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
+            IAuRaValidatorProcessor validator = new ContractValidator(_validator, _parameters, _db, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
             
             validator.SetFinalizationManager(_blockFinalizationManager);
             _blockFinalizationManager.BlocksFinalized +=
@@ -191,7 +193,7 @@ namespace Nethermind.AuRa.Test.Validators
             var initialValidator = TestItem.AddressA;
             SetupInitialValidators(initialValidator);
             var startBlockNumber = 1;
-            IAuRaValidatorProcessor validator = new ContractValidator(_validator, new MemDb(), _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, startBlockNumber);
+            IAuRaValidatorProcessor validator = new ContractValidator(_validator, _parameters, new MemDb(), _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, startBlockNumber);
 
             _block.Number = blockNumber;
             _block.Beneficiary = initialValidator;
@@ -220,7 +222,7 @@ namespace Nethermind.AuRa.Test.Validators
         [Test]
         public void loads_initial_validators_from_contract_on_demand()
         {
-            var validator = new ContractValidator(_validator, _db, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
+            var validator = new ContractValidator(_validator, _parameters, _db, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, 1);
             var initialValidator = TestItem.AddressA;
             SetupInitialValidators(initialValidator);
             _block.Number = 3;
@@ -512,16 +514,77 @@ namespace Nethermind.AuRa.Test.Validators
                 {
                     TestName = "consecutive_initiate_change_reorganisation_finalizes_not_reorganised_initiate_change",
                 };
+                
+                yield return new TestCaseData(new ConsecutiveInitiateChangeTestParameters
+                {
+                    ImmediateTransitions = true,
+                    StartBlockNumber = 1,
+                    Reorganisations = new Dictionary<long, ConsecutiveInitiateChangeTestParameters.ChainInfo>()
+                    {
+                        {
+                            1, new ConsecutiveInitiateChangeTestParameters.ChainInfo()
+                            {
+                                BlockNumber = 1,
+                                ExpectedFinalizationCount = 0,
+                                NumberOfSteps = 30,
+                                Validators = new List<ConsecutiveInitiateChangeTestParameters.ValidatorsInfo>()
+                                {
+                                    new ConsecutiveInitiateChangeTestParameters.ValidatorsInfo()
+                                    {
+                                        Addresses = GenerateValidators(1),
+                                        InitializeBlock = 0,
+                                        FinalizeBlock = 0
+                                    },
+                                    new ConsecutiveInitiateChangeTestParameters.ValidatorsInfo()
+                                    {
+                                        Addresses = GenerateValidators(2),
+                                        InitializeBlock = 3,
+                                        FinalizeBlock = 3
+                                    },
+                                    new ConsecutiveInitiateChangeTestParameters.ValidatorsInfo()
+                                    {
+                                        Addresses = GenerateValidators(3),
+                                        InitializeBlock = 6,
+                                        FinalizeBlock = 6
+                                    },
+                                    new ConsecutiveInitiateChangeTestParameters.ValidatorsInfo()
+                                    {
+                                        Addresses = GenerateValidators(4),
+                                        InitializeBlock = 10,
+                                        FinalizeBlock = 10
+                                    },
+                                    new ConsecutiveInitiateChangeTestParameters.ValidatorsInfo()
+                                    {
+                                        Addresses = GenerateValidators(10),
+                                        InitializeBlock = 15,
+                                        FinalizeBlock = 15
+                                    },
+                                    new ConsecutiveInitiateChangeTestParameters.ValidatorsInfo()
+                                    {
+                                        Addresses = GenerateValidators(5),
+                                        InitializeBlock = 20,
+                                        FinalizeBlock = 20
+                                    },
+                                }
+                            }
+                        }
+                    },
+                    TestName = "consecutive_immediate_transitions_switch_validators"
+                })
+                {
+                    TestName = "consecutive_immediate_transitions_switch_validators"
+                };
             }
         }
 
         [TestCaseSource(nameof(ConsecutiveInitiateChangeData))]
         public void consecutive_initiate_change_gets_finalized_and_switch_validators(ConsecutiveInitiateChangeTestParameters test)
         {
+            _parameters.ImmediateTransitions = test.ImmediateTransitions;
             var currentValidators = GenerateValidators(1);
             SetupInitialValidators(currentValidators);
             
-            IAuRaValidatorProcessor validator = new ContractValidator(_validator, new MemDb(), _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, test.StartBlockNumber);
+            IAuRaValidatorProcessor validator = new ContractValidator(_validator, _parameters, new MemDb(), _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptsStorage, _logManager, test.StartBlockNumber);
             validator.SetFinalizationManager(_blockFinalizationManager);
             
             test.TryDoReorganisations(test.StartBlockNumber, out _);
@@ -599,7 +662,7 @@ namespace Nethermind.AuRa.Test.Validators
             
             var blockTree = blockTreeBuilder.TestObject;
             SetupInitialValidators(blockTree.Head, validators);
-            IAuRaValidatorProcessor validator = new ContractValidator(_validator, _db, _stateProvider, _abiEncoder, _transactionProcessor, blockTree, inMemoryReceiptStorage, _logManager, 1);
+            IAuRaValidatorProcessor validator = new ContractValidator(_validator, _parameters, _db, _stateProvider, _abiEncoder, _transactionProcessor, blockTree, inMemoryReceiptStorage, _logManager, 1);
             validator.SetFinalizationManager(_blockFinalizationManager);
 
             _abiEncoder.Decode(ValidatorContract.Definition.addressArrayResult, Arg.Any<byte[]>())
@@ -687,6 +750,8 @@ namespace Nethermind.AuRa.Test.Validators
             public IDictionary<long, ChainInfo> Reorganisations { get; set; }
             
             public string TestName { get; set; }
+            
+            public bool ImmediateTransitions { get; set; }
 
             public override string ToString() => JsonConvert.SerializeObject(this);
 

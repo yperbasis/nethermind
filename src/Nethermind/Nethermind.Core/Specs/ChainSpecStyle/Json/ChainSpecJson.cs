@@ -92,7 +92,7 @@ namespace Nethermind.Core.Specs.ChainSpecStyle.Json
             
             public Address BlockRewardContractAddress { get; set; }
             
-            public long BlockRewardContractTransition { get; set; }
+            public long? BlockRewardContractTransition { get; set; }
             
             public AuRaValidatorJson Validators { get; set; }
         }
@@ -141,7 +141,7 @@ namespace Nethermind.Core.Specs.ChainSpecStyle.Json
             
             public Address BlockRewardContractAddress => Params.BlockRewardContractAddress;
             
-            public long BlockRewardContractTransition => Params.BlockRewardContractTransition;
+            public long? BlockRewardContractTransition => Params.BlockRewardContractTransition;
             
             public AuRaValidatorJson Validator => Params.Validators;
             
