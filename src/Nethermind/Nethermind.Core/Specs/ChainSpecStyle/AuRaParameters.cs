@@ -59,7 +59,9 @@ namespace Nethermind.Core.Specs.ChainSpecStyle
         
         public long ValidateScoreTransition { get; set; }
         
-        public bool ImmediateTransitions { get; set; }
+        public long ValidateStepTransition { get; set; }
+		
+        public bool ImmediateTransitions { get; set; }		
 
         public Validator Validators { get; set; }
         
