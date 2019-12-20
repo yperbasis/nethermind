@@ -23,7 +23,7 @@
             }
           }
         },
-        "immediateTransitions" : true
+        "immediateTransitions" : false
       }
     }
   },

@@ -120,7 +120,7 @@ namespace Nethermind.AuRa.Validators
             var isProducingBlock = options.IsProducingBlock();
             var isProcessingBlock = !isProducingBlock;
             
-            if (_validators == null || isProducingBlock)
+            if (_validators == null || isProducingBlock || !_finalizableTransitions)
             {
                 Validators = LoadValidatorsFromContract(block.Header);
             }
@@ -194,19 +194,11 @@ namespace Nethermind.AuRa.Validators
         {
             base.PostProcess(block, receipts, options);
             
-            if (ValidatorContract.CheckInitiateChangeEvent(ContractAddress, block.Header, receipts, out var potentialValidators))
+            if (_finalizableTransitions && ValidatorContract.CheckInitiateChangeEvent(ContractAddress, block.Header, receipts, out var potentialValidators))
             {
                 var isProcessingBlock = !options.IsProducingBlock();
-                if (_finalizableTransitions)
-                {
-                    InitiateChange(block, potentialValidators, isProcessingBlock, Validators.Length == 1);
-                    if (_logger.IsInfo && isProcessingBlock) _logger.Info($"Signal for transition within contract at block {block.ToString(Block.Format.Short)}. New list of {potentialValidators.Length} : [{string.Join<Address>(", ", potentialValidators)}].");
-                }
-                else
-                {
-                    Validators = potentialValidators;
-                    if (_logger.IsInfo && isProcessingBlock) _logger.Info($"Immediate transition within contract after block {block.ToString(Block.Format.Short)}. New list of {potentialValidators.Length} : [{string.Join<Address>(", ", potentialValidators)}].");
-                }
+                InitiateChange(block, potentialValidators, isProcessingBlock, Validators.Length == 1);
+                if (_logger.IsInfo && isProcessingBlock) _logger.Info($"Signal for transition within contract at block {block.ToString(Block.Format.Short)}. New list of {potentialValidators.Length} : [{string.Join<Address>(", ", potentialValidators)}].");
             }
         }
 
@@ -217,6 +209,7 @@ namespace Nethermind.AuRa.Validators
                 if (_logger.IsInfo && isProcessingBlock) _logger.Info($"Applying validator set change signalled at block {CurrentPendingValidators.BlockNumber} before block {block.ToString(BlockHeader.Format.Short)}.");
                 if (block.Number == InitBlockNumber)
                 {
+                    ValidatorContract.EnsureSystemAccount(_stateProvider);
                     ValidatorContract.TryInvokeTransaction(block, _transactionProcessor, ValidatorContract.FinalizeChange(), Output);
                 }
                 else
@@ -244,7 +237,6 @@ namespace Nethermind.AuRa.Validators
 
         private Address[] LoadValidatorsFromContract(BlockHeader blockHeader)
         {
-            ValidatorContract.EnsureSystemAccount(_stateProvider);
             ValidatorContract.InvokeTransaction(blockHeader, _transactionProcessor, ValidatorContract.GetValidators(), Output);
 
             if (Output.ReturnValue.Length == 0)
@@ -258,7 +250,7 @@ namespace Nethermind.AuRa.Validators
                 throw new AuRaException("Failed to initialize validators list.");
             }
             
-            if(_logger.IsInfo && !_isProducing) _logger.Info($"Initial contract {validators.Length} validators: [{string.Join<Address>(", ", validators)}].");
+            if(_logger.IsInfo && !_isProducing && _finalizableTransitions) _logger.Info($"Initial contract {validators.Length} validators: [{string.Join<Address>(", ", validators)}].");
            
             return validators;
         }
