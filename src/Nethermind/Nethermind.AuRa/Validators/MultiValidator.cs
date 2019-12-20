@@ -34,7 +34,8 @@ namespace Nethermind.AuRa.Validators
         private IAuRaValidatorProcessor _currentValidator;
         private bool _isProducing;
         private long _lastProcessedBlock = 0;
-        private bool _immediateTransitions;
+        private readonly bool _immediateTransitions;
+        private AuRaParameters.Validator _currentValidatorInfo;
 
         public MultiValidator(AuRaParameters.Validator validator, AuRaParameters parameters, IAuRaAdditionalBlockProcessorFactory validatorFactory, IBlockTree blockTree, ILogManager logManager)
         {
@@ -52,26 +53,22 @@ namespace Nethermind.AuRa.Validators
 
         private void InitCurrentValidator(long blockNumber)
         {
-            if (TryGetLastValidator(blockNumber, out var validatorInfo))
-            {
-                SetCurrentValidator(validatorInfo);
-            }
-            
+            EnsureCorrectValidatorsForBlock(blockNumber, out _, true);
             _lastProcessedBlock = blockNumber;
         }
 
-        private bool TryGetLastValidator(long blockNum, out KeyValuePair<long, AuRaParameters.Validator> val)
+        private bool TryGetLastValidator(long blockNum, out KeyValuePair<long, AuRaParameters.Validator> validator)
         {
             var headNumber = _blockTree.Head?.Number ?? 0;
             
-            val = default;
+            validator = default;
             bool found = false;
             
             foreach (var kvp in _validators)
             {
                 if (kvp.Key <= blockNum || kvp.Key <= headNumber && CanChangeValidatorImmediately(kvp.Value))
                 {
-                    val = kvp;
+                    validator = kvp;
                     found = true;
                 }
             }
@@ -91,37 +88,50 @@ namespace Nethermind.AuRa.Validators
                 }
             }
         }
+
+        public void EnsureCorrectValidatorsForBlock(long blockNumber)
+        {
+            EnsureCorrectValidatorsForBlock(blockNumber, out _);
+        }
+
+        private bool EnsureCorrectValidatorsForBlock(long blockNumber, out KeyValuePair<long, AuRaParameters.Validator> validatorInfo, bool forceChange = false)
+        {
+            if (TryGetLastValidator(blockNumber, out validatorInfo))
+            {
+                if (CanChangeValidatorImmediately(validatorInfo.Value))
+                {
+                    SetCurrentValidator(validatorInfo);
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
         
         public void PreProcess(Block block, ProcessingOptions options = ProcessingOptions.None)
         {
-            bool isProducingBlock = options.IsProducingBlock();
+            var notProducing = !options.IsProducingBlock();
             long previousBlockNumber = block.Number - 1;
             bool isNotConsecutive = previousBlockNumber != _lastProcessedBlock;
 
-            if (isProducingBlock || isNotConsecutive)
+            if (isNotConsecutive && notProducing && !EnsureCorrectValidatorsForBlock(previousBlockNumber, out var validatorInfo))
             {
-                if (TryGetLastValidator(previousBlockNumber, out var validatorInfo))
+                bool canSetValidatorAsCurrent = !TryGetLastValidator(validatorInfo.Key - 1, out var previousValidatorInfo);
+                long? finalizedAtBlockNumber = null;
+                if (!canSetValidatorAsCurrent)
                 {
-                    if (CanChangeValidatorImmediately(validatorInfo.Value))
-                    {
-                        SetCurrentValidator(validatorInfo);
-                    }
-                    else if (!isProducingBlock)
-                    {
-                        bool canSetValidatorAsCurrent = !TryGetLastValidator(validatorInfo.Key - 1, out var previousValidatorInfo);
-                        long? finalizedAtBlockNumber = null;
-                        if (!canSetValidatorAsCurrent)
-                        {
-                            SetCurrentValidator(previousValidatorInfo);
-                            finalizedAtBlockNumber = _blockFinalizationManager.GetFinalizedLevel(validatorInfo.Key);
-                            canSetValidatorAsCurrent = finalizedAtBlockNumber != null;
-                        }
-                    
-                        if (canSetValidatorAsCurrent)
-                        {
-                            SetCurrentValidator(finalizedAtBlockNumber ?? validatorInfo.Key, validatorInfo.Value);
-                        }
-                    }
+                    SetCurrentValidator(previousValidatorInfo);
+                    finalizedAtBlockNumber = _blockFinalizationManager.GetFinalizedLevel(validatorInfo.Key);
+                    canSetValidatorAsCurrent = finalizedAtBlockNumber != null;
+                }
+                
+                if (canSetValidatorAsCurrent)
+                {
+                    SetCurrentValidator(finalizedAtBlockNumber ?? validatorInfo.Key, validatorInfo.Value);
                 }
             }
 
@@ -182,9 +192,13 @@ namespace Nethermind.AuRa.Validators
         
         private void SetCurrentValidator(long finalizedAtBlockNumber, AuRaParameters.Validator validator)
         {
-            _currentValidator?.SetFinalizationManager(null);
-            _currentValidator = CreateValidator(finalizedAtBlockNumber, validator);
-            _currentValidator.SetFinalizationManager(_blockFinalizationManager, _isProducing);
+            if (_currentValidatorInfo != validator)
+            {
+                _currentValidator?.SetFinalizationManager(null);
+                _currentValidator = CreateValidator(finalizedAtBlockNumber, validator);
+                _currentValidator.SetFinalizationManager(_blockFinalizationManager, _isProducing);
+                _currentValidatorInfo = validator;
+            }
         }
 
         private IAuRaValidatorProcessor CreateValidator(long finalizedAtBlockNumber, AuRaParameters.Validator validator)

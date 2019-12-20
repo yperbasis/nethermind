@@ -36,7 +36,7 @@ namespace Nethermind.AuRa
         private readonly Address _nodeAddress;
         private readonly IBasicWallet _wallet;
         private readonly ILogger _logger;
-
+        
         public AuRaSealer(
             IBlockTree blockTree,
             IAuRaValidator validator,
@@ -86,11 +86,15 @@ namespace Nethermind.AuRa
                 ? throw new InvalidOperationException("Head block doesn't have AuRaStep specified.'")
                 : _blockTree.Head.AuRaStep.Value < step;
 
-            bool IsThisNodeTurn(long step) => _validator.IsValidSealer(_nodeAddress, step);
-            
+            bool IsThisNodeTurn(long blockLevel, long step)
+            {
+                _validator.EnsureCorrectValidatorsForBlock(blockLevel);
+                return _validator.IsValidSealer(_nodeAddress, step);
+            }
+
             var currentStep = _auRaStepCalculator.CurrentStep;
             var stepNotYetProduced = StepNotYetProduced(currentStep);
-            var isThisNodeTurn = IsThisNodeTurn(currentStep);
+            var isThisNodeTurn = IsThisNodeTurn(blockNumber, currentStep);
             if (isThisNodeTurn)
             {
                 if (_logger.IsWarn && !stepNotYetProduced) _logger.Warn($"Cannot seal block {blockNumber}: AuRa step {currentStep} already produced.");
