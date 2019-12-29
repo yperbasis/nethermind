@@ -54,9 +54,9 @@ namespace Nethermind.AuRa.Test.Validators
         private Block _block;
         private ITransactionProcessor _transactionProcessor;
         private IBlockFinalizationManager _blockFinalizationManager;
-        private Address _contractAddress = Address.FromNumber(1000);
-        private byte[] _getValidatorsData = new byte[] {0, 1, 2};
-        private byte[] _finalizeChangeData= new byte[] {3, 4, 5};
+        private static Address _contractAddress = Address.FromNumber(1000);
+        private (Address Sender, byte[] TransactionData) _getValidatorsData = (_contractAddress, new byte[] {0, 1, 2});
+        private (Address Sender, byte[] TransactionData) _finalizeChangeData = (Address.SystemUser, new byte[] {3, 4, 5});
         private Address[] _initialValidators;
         private IBlockTree _blockTree;
         private IReceiptStorage _receiptsStorage;
@@ -87,11 +87,11 @@ namespace Nethermind.AuRa.Test.Validators
             
             _abiEncoder
                 .Encode(AbiEncodingStyle.IncludeSignature, Arg.Is<AbiSignature>(s => s.Name == "getValidators"), Arg.Any<object[]>())
-                .Returns(_getValidatorsData);
+                .Returns(_getValidatorsData.TransactionData);
             
             _abiEncoder
                 .Encode(AbiEncodingStyle.IncludeSignature, Arg.Is<AbiSignature>(s => s.Name == "finalizeChange"), Arg.Any<object[]>())
-                .Returns(_finalizeChangeData);
+                .Returns(_finalizeChangeData.TransactionData);
         }
 
         [Test]
@@ -514,66 +514,6 @@ namespace Nethermind.AuRa.Test.Validators
                 {
                     TestName = "consecutive_initiate_change_reorganisation_finalizes_not_reorganised_initiate_change",
                 };
-                
-                yield return new TestCaseData(new ConsecutiveInitiateChangeTestParameters
-                {
-                    ImmediateTransitions = true,
-                    StartBlockNumber = 1,
-                    Reorganisations = new Dictionary<long, ConsecutiveInitiateChangeTestParameters.ChainInfo>()
-                    {
-                        {
-                            1, new ConsecutiveInitiateChangeTestParameters.ChainInfo()
-                            {
-                                BlockNumber = 1,
-                                ExpectedFinalizationCount = 0,
-                                NumberOfSteps = 30,
-                                Validators = new List<ConsecutiveInitiateChangeTestParameters.ValidatorsInfo>()
-                                {
-                                    new ConsecutiveInitiateChangeTestParameters.ValidatorsInfo()
-                                    {
-                                        Addresses = GenerateValidators(1),
-                                        InitializeBlock = 0,
-                                        FinalizeBlock = 0
-                                    },
-                                    new ConsecutiveInitiateChangeTestParameters.ValidatorsInfo()
-                                    {
-                                        Addresses = GenerateValidators(2),
-                                        InitializeBlock = 3,
-                                        FinalizeBlock = 3
-                                    },
-                                    new ConsecutiveInitiateChangeTestParameters.ValidatorsInfo()
-                                    {
-                                        Addresses = GenerateValidators(3),
-                                        InitializeBlock = 6,
-                                        FinalizeBlock = 6
-                                    },
-                                    new ConsecutiveInitiateChangeTestParameters.ValidatorsInfo()
-                                    {
-                                        Addresses = GenerateValidators(4),
-                                        InitializeBlock = 10,
-                                        FinalizeBlock = 10
-                                    },
-                                    new ConsecutiveInitiateChangeTestParameters.ValidatorsInfo()
-                                    {
-                                        Addresses = GenerateValidators(10),
-                                        InitializeBlock = 15,
-                                        FinalizeBlock = 15
-                                    },
-                                    new ConsecutiveInitiateChangeTestParameters.ValidatorsInfo()
-                                    {
-                                        Addresses = GenerateValidators(5),
-                                        InitializeBlock = 20,
-                                        FinalizeBlock = 20
-                                    },
-                                }
-                            }
-                        }
-                    },
-                    TestName = "consecutive_immediate_transitions_switch_validators"
-                })
-                {
-                    TestName = "consecutive_immediate_transitions_switch_validators"
-                };
             }
         }
 
@@ -616,7 +556,7 @@ namespace Nethermind.AuRa.Test.Validators
                 
                 currentValidators = test.GetCurrentValidators(blockNumber);
                 var nextValidators = test.GetNextValidators(blockNumber);
-                currentValidators.Select((a, index) => validator.IsValidSealer(a, index)).Should().AllBeEquivalentTo(true, $"Validator address is not recognized in block {blockNumber}");
+                currentValidators.Select((a, index) => validator.IsValidSealer(a, index)).Should().AllBeEquivalentTo(true, $"Validator address should be recognized in block {blockNumber}");
                 nextValidators?.Except(currentValidators).Select((a, index) => validator.IsValidSealer(a, index)).Should().AllBeEquivalentTo(false);
             }
             
@@ -734,9 +674,9 @@ namespace Nethermind.AuRa.Test.Validators
             return data;
         }
         
-        private bool CheckTransaction(Transaction t, byte[] transactionData)
+        private bool CheckTransaction(Transaction t, (Address Sender, byte[] TransactionData) transactionInfo)
         {
-            return t.SenderAddress == Address.SystemUser && t.To == _contractAddress && t.Data == transactionData;
+            return t.SenderAddress == transactionInfo.Sender && t.To == _contractAddress && t.Data == transactionInfo.TransactionData;
         }
         
         public class ConsecutiveInitiateChangeTestParameters

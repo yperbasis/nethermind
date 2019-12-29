@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices.WindowsRuntime;
 using FluentAssertions;
 using Nethermind.AuRa.Validators;
 using Nethermind.Blockchain;
@@ -129,6 +130,12 @@ namespace Nethermind.AuRa.Test.Validators
         [TestCase(AuRaParameters.ValidatorType.ReportingContract, true, 0)]
         public void correctly_consecutively_calls_inner_validators(AuRaParameters.ValidatorType validatorType, bool immediateTransitions, int blocksToFinalization)
         {
+            Dictionary<AuRaParameters.Validator, long> GetInnerValidatorsFirstBlockCalls(AuRaParameters.Validator v)
+            {
+                int offset = immediateTransitions || v.ValidatorType.CanChangeImmediately() ? 0 : 1;
+                return v.Validators.ToDictionary(x => x.Value, x => Math.Max(x.Key + offset, 1));
+            }
+            
             // Arrange
             _parameters.ImmediateTransitions = immediateTransitions;
             _validator = GetValidator(validatorType);
@@ -142,16 +149,19 @@ namespace Nethermind.AuRa.Test.Validators
 
             // Assert
             var callCountPerValidator = innerValidatorsFirstBlockCalls.Zip(
-                innerValidatorsFirstBlockCalls.Values.Skip(1).Union(new[] {maxCalls}), (b0, b1) => (int)(b1 - b0.Value))
+                innerValidatorsFirstBlockCalls.Values.Skip(1).Union(new[] {maxCalls}), (b0, b1) => (int)(b1 - Math.Max(b0.Value, 1)))
                 .ToArray();
 
-            callCountPerValidator[0] += blocksToFinalization;
-            callCountPerValidator[^1] -= blocksToFinalization;
+            if (blocksToFinalization != 0)
+            {
+                callCountPerValidator[0] += blocksToFinalization + 1;
+                callCountPerValidator[^1] -= blocksToFinalization + 1;
+            }
 
             long GetFinalizedIndex(int j)
             {
                 var finalizedIndex = innerValidatorsFirstBlockCalls.Values.ElementAt(j);
-                return finalizedIndex == 1 ? finalizedIndex : finalizedIndex + blocksToFinalization;
+                return finalizedIndex == 1 || blocksToFinalization == 0 ? finalizedIndex : finalizedIndex + blocksToFinalization + 1;
             }
 
             EnsureInnerValidatorsCalled(i => (_innerValidators[GetFinalizedIndex(i)], callCountPerValidator[i]));
@@ -171,31 +181,32 @@ namespace Nethermind.AuRa.Test.Validators
             EnsureInnerValidatorsCalled(i => (_innerValidators.ElementAt(i).Value, 0));
         }
         
-        [TestCase(16L, ExpectedResult = 11)]
-        [TestCase(21L, ExpectedResult = 21)]
-        public long initializes_validator_when_producing_block(long blockNumber)
+        [TestCase(16L, ExpectedResult = 10)]
+        [TestCase(16L, ExpectedResult = 10)]
+        public long initializes_validator_explicitly_when_producing_block(long blockNumber)
         {
             IAuRaValidatorProcessor validator = new MultiValidator(_validator, _parameters, _factory, _blockTree, _logManager);
             _block.Number = blockNumber;
+            validator.EnsureCorrectValidatorsForBlock(blockNumber);
             validator.PreProcess(_block, ProcessingOptions.ProducingBlock);
             _innerValidators.Count.Should().Be(1);
             return _innerValidators.Keys.First();
         }
         
-        [TestCase(16L, AuRaParameters.ValidatorType.List, true, false, ExpectedResult = 11)]
-        [TestCase(21L, AuRaParameters.ValidatorType.List, false, false, ExpectedResult = 21)]
-        [TestCase(16L, AuRaParameters.ValidatorType.List, true, true, ExpectedResult = 11)]
-        [TestCase(21L, AuRaParameters.ValidatorType.List, false, true, ExpectedResult = 21)]
+        [TestCase(16L, AuRaParameters.ValidatorType.List, true, false, ExpectedResult = 10)]
+        [TestCase(21L, AuRaParameters.ValidatorType.List, false, false, ExpectedResult = 20)]
+        [TestCase(16L, AuRaParameters.ValidatorType.List, true, true, ExpectedResult = 10)]
+        [TestCase(21L, AuRaParameters.ValidatorType.List, false, true, ExpectedResult = 20)]
 
         [TestCase(16L, AuRaParameters.ValidatorType.Contract, true, false, ExpectedResult = 15)]
         [TestCase(23L, AuRaParameters.ValidatorType.Contract, true, false, ExpectedResult = 22)]
         [TestCase(16L, AuRaParameters.ValidatorType.Contract, false, false, ExpectedResult = 1)]
         [TestCase(21L, AuRaParameters.ValidatorType.Contract, false, false, ExpectedResult = 11)]
         
-        [TestCase(16L, AuRaParameters.ValidatorType.Contract, true, true, ExpectedResult = 11)]
-        [TestCase(23L, AuRaParameters.ValidatorType.Contract, true, true, ExpectedResult = 21)]
-        [TestCase(16L, AuRaParameters.ValidatorType.Contract, false, true, ExpectedResult = 11)]
-        [TestCase(21L, AuRaParameters.ValidatorType.Contract, false, true, ExpectedResult = 21)]
+        [TestCase(16L, AuRaParameters.ValidatorType.Contract, true, true, ExpectedResult = 10)]
+        [TestCase(23L, AuRaParameters.ValidatorType.Contract, true, true, ExpectedResult = 20)]
+        [TestCase(16L, AuRaParameters.ValidatorType.Contract, false, true, ExpectedResult = 10)]
+        [TestCase(21L, AuRaParameters.ValidatorType.Contract, false, true, ExpectedResult = 20)]
         public long initializes_validator_when_on_nonconsecutive_block(long blockNumber, AuRaParameters.ValidatorType validatorType, bool finalizedLastValidatorBlockLevel, bool immediateTransitions)
         {
             _parameters.ImmediateTransitions = immediateTransitions;
@@ -251,12 +262,7 @@ namespace Nethermind.AuRa.Test.Validators
                 }
             }
         }
-        
-        private Dictionary<AuRaParameters.Validator, long> GetInnerValidatorsFirstBlockCalls(AuRaParameters.Validator validator)
-        {
-            return validator.Validators.ToDictionary(x => x.Value, x => Math.Max(x.Key + 1, 1));
-        }
-        
+
         private static AuRaParameters.Validator GetValidator(AuRaParameters.ValidatorType validatorType)
         {
             return new AuRaParameters.Validator()

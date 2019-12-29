@@ -211,7 +211,8 @@ namespace Nethermind.AuRa.Validators
 
         private IAuRaValidatorProcessor CreateValidator(long finalizedAtBlockNumber, AuRaParameters.Validator validator)
         {
-            return _validatorFactory.CreateValidatorProcessor(validator, finalizedAtBlockNumber + (_immediateTransitions ? 0 : 1));
+            var startBlockNumber = CanChangeValidatorImmediately(validator) ? Math.Max(finalizedAtBlockNumber, 1) : finalizedAtBlockNumber + 1; 
+            return _validatorFactory.CreateValidatorProcessor(validator, startBlockNumber);
         }
     }
 }
