@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2018 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -19,6 +19,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Core;
@@ -34,7 +35,7 @@ namespace Nethermind.Blockchain.Synchronization
     {
         private const decimal _minDiffPercentageForSpeedSwitch = 0.10m;
         private const int _minDiffForSpeedSwitch = 10;
-        
+
         private readonly ILogger _logger;
         private readonly IBlockTree _blockTree;
         private readonly INodeStatsManager _stats;
@@ -55,14 +56,14 @@ namespace Nethermind.Blockchain.Synchronization
         {
             ReportNoSyncProgress(allocation?.Current);
         }
-        
+
         public void ReportNoSyncProgress(PeerInfo peerInfo)
         {
             if (peerInfo == null)
             {
                 return;
             }
-            
+
             if (_logger.IsDebug) _logger.Debug($"No sync progress reported with {peerInfo}");
             peerInfo.SleepingSince = DateTime.UtcNow;
         }
@@ -71,7 +72,7 @@ namespace Nethermind.Blockchain.Synchronization
         {
             ReportInvalid(allocation?.Current);
         }
-        
+
         public void ReportInvalid(PeerInfo peerInfo)
         {
             if (peerInfo != null)
@@ -99,54 +100,50 @@ namespace Nethermind.Blockchain.Synchronization
         {
             foreach (PeerInfo peerInfo in _peerRefreshQueue.GetConsumingEnumerable(_refreshLoopCancellation.Token))
             {
-                try
+                if (_logger.IsDebug) _logger.Debug($"Refreshing info for {peerInfo}.");
+                CancellationTokenSource initCancelSource = _refreshCancelTokens[peerInfo.SyncPeer.Node.Id] = new CancellationTokenSource();
+                CancellationTokenSource linkedSource = CancellationTokenSource.CreateLinkedTokenSource(initCancelSource.Token, _refreshLoopCancellation.Token);
+#pragma warning disable 4014
+                RefreshPeerInfo(peerInfo, linkedSource.Token).ContinueWith(t =>
+#pragma warning restore 4014
                 {
-                    if (_logger.IsDebug) _logger.Debug($"Refreshing info for {peerInfo}.");
-                    var initCancelSource = _refreshCancelTokens[peerInfo.SyncPeer.Node.Id] = new CancellationTokenSource();
-                    var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(initCancelSource.Token, _refreshLoopCancellation.Token);
-                    await RefreshPeerInfo(peerInfo, linkedSource.Token).ContinueWith(t =>
+                    _refreshCancelTokens.TryRemove(peerInfo.SyncPeer.Node.Id, out _);
+                    if (t.IsFaulted)
                     {
-                        _refreshCancelTokens.TryRemove(peerInfo.SyncPeer.Node.Id, out _);
-                        if (t.IsFaulted)
+                        if (t.Exception != null && t.Exception.InnerExceptions.Any(x => x.InnerException is TimeoutException))
                         {
-                            if (t.Exception != null && t.Exception.InnerExceptions.Any(x => x.InnerException is TimeoutException))
-                            {
-                                if (_logger.IsTrace) _logger.Trace($"Refreshing info for {peerInfo} failed due to timeout: {t.Exception.Message}");
-                            }
-                            else if (_logger.IsDebug) _logger.Debug($"Refreshing info for {peerInfo} failed {t.Exception}");
+                            if (_logger.IsTrace) _logger.Trace($"Refreshing info for {peerInfo} failed due to timeout: {t.Exception.Message}");
                         }
-                        else if (t.IsCanceled)
+                        else if (_logger.IsDebug) _logger.Debug($"Refreshing info for {peerInfo} failed {t.Exception}");
+                    }
+                    else if (t.IsCanceled)
+                    {
+                        if (_logger.IsTrace) _logger.Trace($"Refresh peer info canceled: {peerInfo.SyncPeer.Node:s}");
+                    }
+                    else
+                    {
+                        UpdateAllocations("REFRESH");
+                        // cases when we want other nodes to resolve the impasse (check Goerli discussion on 5 out of 9 validators)
+                        if (peerInfo.TotalDifficulty == _blockTree.BestSuggestedHeader?.TotalDifficulty && peerInfo.HeadHash != _blockTree.BestSuggestedHeader?.Hash)
                         {
-                            if (_logger.IsTrace) _logger.Trace($"Refresh peer info canceled: {peerInfo.SyncPeer.Node:s}");
-                        }
-                        else
-                        {
-                            UpdateAllocations("REFRESH");
-                            // cases when we want other nodes to resolve the impasse (check Goerli discussion on 5 out of 9 validators)
-                            if (peerInfo.TotalDifficulty == _blockTree.BestSuggestedHeader?.TotalDifficulty && peerInfo.HeadHash != _blockTree.BestSuggestedHeader?.Hash)
+                            Block block = _blockTree.FindBlock(_blockTree.BestSuggestedHeader.Hash, BlockTreeLookupOptions.None);
+                            if (block != null) // can be null if fast syncing headers only
                             {
-                                Block block = _blockTree.FindBlock(_blockTree.BestSuggestedHeader.Hash, BlockTreeLookupOptions.None);
-                                if (block != null) // can be null if fast syncing headers only
-                                {
-                                    peerInfo.SyncPeer.SendNewBlock(block);
-                                    if (_logger.IsDebug) _logger.Debug($"Sending my best block {block} to {peerInfo}");
-                                }
+                                peerInfo.SyncPeer.SendNewBlock(block);
+                                if (_logger.IsDebug) _logger.Debug($"Sending my best block {block} to {peerInfo}");
                             }
                         }
+                    }
 
-                        if (_logger.IsDebug) _logger.Debug($"Refreshed peer info for {peerInfo}.");
+                    if (_logger.IsDebug) _logger.Debug($"Refreshed peer info for {peerInfo}.");
 
-                        initCancelSource.Dispose();
-                        linkedSource.Dispose();
-                    });
-                }
-                catch (Exception e)
-                {
-                    if (_logger.IsDebug) _logger.Debug($"Failed to refresh {peerInfo} {e}");
-                }
+                    initCancelSource.Dispose();
+                    linkedSource.Dispose();
+                });
             }
 
             if (_logger.IsInfo) _logger.Info($"Exiting sync peer refresh loop");
+            await Task.CompletedTask;
         }
 
         private bool _isStarted;
@@ -233,7 +230,7 @@ namespace Nethermind.Blockchain.Synchronization
                 return;
             }
 
-            if(_logger.IsTrace) _logger.Trace($"Reviewing {PeerCount} peer usefulness");
+            if (_logger.IsTrace) _logger.Trace($"Reviewing {PeerCount} peer usefulness");
 
             int peersDropped = 0;
             _lastUselessDrop = DateTime.UtcNow;
@@ -247,7 +244,7 @@ namespace Nethermind.Blockchain.Synchronization
                     // as long as we are behind we can use the stuck peers
                     continue;
                 }
-                
+
                 if (peerInfo.HeadNumber == 0
                     && ourNumber != 0
                     && !peerInfo.SyncPeer.ClientId.Contains("Nethermind"))
@@ -291,7 +288,7 @@ namespace Nethermind.Blockchain.Synchronization
                 worstPeer?.SyncPeer.Disconnect(DisconnectReason.TooManyPeers, "PEER REVIEW / LATENCY");
             }
 
-            if(_logger.IsDebug) _logger.Debug($"Dropped {peersDropped} useless peers");
+            if (_logger.IsDebug) _logger.Debug($"Dropped {peersDropped} useless peers");
         }
 
         public async Task StopAsync()
@@ -322,6 +319,22 @@ namespace Nethermind.Blockchain.Synchronization
                 // so we let them deliver fast and only disconnect them when they really misbehave
                 batchAssignedPeer.Current.SyncPeer.Disconnect(DisconnectReason.BreachOfProtocol, "bad node data");
             }
+        }
+
+        private void WakeUpPeer(PeerInfo info)
+        {
+            info.SleepingSince = null;
+            _signals.Set();
+        }
+
+        public void WakeUpAll()
+        {
+            foreach (var peer in _peers)
+            {
+                WakeUpPeer(peer.Value);
+            }
+
+            _signals.Set();
         }
 
         private static int InitTimeout = 10000;
@@ -390,6 +403,8 @@ namespace Nethermind.Blockchain.Synchronization
                                     allocation.Refresh();
                                 }
                             }
+
+                            _signals.Set();
                         }
                     }
                     finally
@@ -515,6 +530,7 @@ namespace Nethermind.Blockchain.Synchronization
             }
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         private PeerInfo SelectBestPeerForAllocation(SyncPeerAllocation allocation, string reason, bool isLowPriority)
         {
             if (_logger.IsTrace) _logger.Trace($"[{reason}] Selecting best peer for {allocation}");
@@ -543,7 +559,7 @@ namespace Nethermind.Blockchain.Synchronization
                         continue;
                     }
 
-                    info.SleepingSince = null;
+                    WakeUpPeer(info);
                 }
 
                 if (info.TotalDifficulty - (_blockTree.BestSuggestedHeader?.TotalDifficulty ?? UInt256.Zero) <= 2 && info.SyncPeer.ClientId.Contains("Parity"))
@@ -639,9 +655,49 @@ namespace Nethermind.Blockchain.Synchronization
             return _peers.TryGetValue(nodeId, out peerInfo);
         }
 
-        public SyncPeerAllocation Borrow(string description)
+        public async Task<SyncPeerAllocation> BorrowAsync(BorrowOptions borrowOptions, string description, long? minNumber = null, int timeoutMilliseconds = 0)
         {
-            return Borrow(BorrowOptions.None, description);
+            int tryCount = 1;
+            ulong startTime = Timestamper.Default.EpochMilliseconds;
+            SyncPeerAllocation allocation = new SyncPeerAllocation(description);
+            allocation.MinBlocksAhead = minNumber - _blockTree.BestSuggestedHeader?.Number;
+
+            if ((borrowOptions & BorrowOptions.DoNotReplace) == BorrowOptions.DoNotReplace)
+            {
+                allocation.CanBeReplaced = false;
+            }
+
+            while (true)
+            {
+                PeerInfo bestPeer = SelectBestPeerForAllocation(allocation, "BORROW", (borrowOptions & BorrowOptions.LowPriority) == BorrowOptions.LowPriority);
+                if (bestPeer != null)
+                {
+                    allocation.ReplaceCurrent(bestPeer);
+                    return allocation;
+                }
+                else
+                {
+                    if (timeoutMilliseconds == 0)
+                    {
+                        return allocation;
+                    }
+
+                    ulong now = Timestamper.Default.EpochMilliseconds;
+                    if (now - startTime > (ulong) timeoutMilliseconds)
+                    {
+                        return allocation;
+                    }
+
+                    await _signals.WaitOneAsync(10 * tryCount, CancellationToken.None);
+                }
+            }
+        }
+
+        private ManualResetEvent _signals = new ManualResetEvent(true);
+
+        public SyncPeerAllocation Borrow(string description = "")
+        {
+            return Borrow(BorrowOptions.None, description, null);
         }
 
         public SyncPeerAllocation Borrow(BorrowOptions borrowOptions, string description, long? minNumber = null)
@@ -681,6 +737,8 @@ namespace Nethermind.Blockchain.Synchronization
             {
                 _logger.Warn($"Peer allocations leakage - {_allocations.Count}");
             }
+
+            _signals.Set();
         }
     }
 }
