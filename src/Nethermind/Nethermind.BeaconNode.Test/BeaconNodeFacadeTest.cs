@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -57,7 +58,7 @@ namespace Nethermind.BeaconNode.Tests
             IBeaconNodeApi beaconNode = testServiceProvider.GetService<IBeaconNodeApi>();
             beaconNode.ShouldBeOfType(typeof(BeaconNodeFacade));
 
-            Core2.Containers.Fork fork = await beaconNode.GetNodeForkAsync();
+            Core2.Containers.Fork fork = await beaconNode.GetNodeForkAsync(CancellationToken.None);
 
             // Assert
             fork.Epoch.ShouldBe(Epoch.Zero);
@@ -91,17 +92,19 @@ namespace Nethermind.BeaconNode.Tests
             
             // Act
             Epoch targetEpoch = new Epoch(0);
-            var validatorPublicKeys = publicKeys.Take(numberOfValidators);
+            IEnumerable<BlsPublicKey> validatorPublicKeys = publicKeys.Take(numberOfValidators);
             IBeaconNodeApi beaconNode = testServiceProvider.GetService<IBeaconNodeApi>();
             beaconNode.ShouldBeOfType(typeof(BeaconNodeFacade));
-            var validatorDuties = await beaconNode.ValidatorDutiesAsync(validatorPublicKeys, targetEpoch);
 
-            for (var index = 0; index < validatorDuties.Count; index++)
+            int validatorDutyIndex = 0;
+            List<ValidatorDuty> validatorDuties = new List<ValidatorDuty>();
+            await foreach (ValidatorDuty validatorDuty in beaconNode.ValidatorDutiesAsync(validatorPublicKeys, targetEpoch, CancellationToken.None))
             {
-                ValidatorDuty validatorDuty = validatorDuties[index];
+                validatorDuties.Add(validatorDuty);
                 Console.WriteLine("Index [{0}], Epoch {1}, Validator {2}, : attestation slot {3}, shard {4}, proposal slot {5}",
-                    index, targetEpoch, validatorDuty.ValidatorPublicKey, validatorDuty.AttestationSlot,
+                    validatorDutyIndex, targetEpoch, validatorDuty.ValidatorPublicKey, validatorDuty.AttestationSlot,
                     (ulong) validatorDuty.AttestationShard, validatorDuty.BlockProposalSlot);
+                validatorDutyIndex++;
             }
             
             // Assert
@@ -140,17 +143,19 @@ namespace Nethermind.BeaconNode.Tests
             
             // Act
             Epoch targetEpoch = new Epoch(1);
-            var validatorPublicKeys = publicKeys.Take(numberOfValidators);
+            IEnumerable<BlsPublicKey> validatorPublicKeys = publicKeys.Take(numberOfValidators);
             IBeaconNodeApi beaconNode = testServiceProvider.GetService<IBeaconNodeApi>();
             beaconNode.ShouldBeOfType(typeof(BeaconNodeFacade));
-            var validatorDuties = await beaconNode.ValidatorDutiesAsync(validatorPublicKeys, targetEpoch);
-
-            for (var index = 0; index < validatorDuties.Count; index++)
+            
+            int validatorDutyIndex = 0;
+            List<ValidatorDuty> validatorDuties = new List<ValidatorDuty>();
+            await foreach (ValidatorDuty validatorDuty in beaconNode.ValidatorDutiesAsync(validatorPublicKeys, targetEpoch, CancellationToken.None))
             {
-                ValidatorDuty validatorDuty = validatorDuties[index];
+                validatorDuties.Add(validatorDuty);
                 Console.WriteLine("Index [{0}], Epoch {1}, Validator {2}, : attestation slot {3}, shard {4}, proposal slot {5}",
-                    index, targetEpoch, validatorDuty.ValidatorPublicKey, validatorDuty.AttestationSlot,
+                    validatorDutyIndex, targetEpoch, validatorDuty.ValidatorPublicKey, validatorDuty.AttestationSlot,
                     (ulong) validatorDuty.AttestationShard, validatorDuty.BlockProposalSlot);
+                validatorDutyIndex++;
             }
             
             // Assert
@@ -182,7 +187,7 @@ namespace Nethermind.BeaconNode.Tests
                     ["QuickStart:GenesisTime"] = $"{genesisTime}"
                 })
                 .Build();
-            testServiceCollection.AddQuickStart(configuration);
+            testServiceCollection.AddBeaconNodeQuickStart(configuration);
             testServiceCollection.AddSingleton<IHostEnvironment>(Substitute.For<IHostEnvironment>());
             ServiceProvider testServiceProvider = testServiceCollection.BuildServiceProvider();
             
@@ -191,21 +196,23 @@ namespace Nethermind.BeaconNode.Tests
 
             IStoreProvider storeProvider = testServiceProvider.GetService<IStoreProvider>();
             storeProvider.TryGetStore(out IStore? store).ShouldBeTrue();
-            store!.TryGetBlockState(store.FinalizedCheckpoint.Root, out BeaconState? state).ShouldBeTrue();
+            BeaconState state = await store!.GetBlockStateAsync(store!.FinalizedCheckpoint.Root);
             
             // Act
             Epoch targetEpoch = new Epoch(0);
-            var validatorPublicKeys = state!.Validators.Select(x => x.PublicKey);
+            IEnumerable<BlsPublicKey> validatorPublicKeys = state!.Validators.Select(x => x.PublicKey);
             IBeaconNodeApi beaconNode = testServiceProvider.GetService<IBeaconNodeApi>();
             beaconNode.ShouldBeOfType(typeof(BeaconNodeFacade));
-            var validatorDuties = await beaconNode.ValidatorDutiesAsync(validatorPublicKeys, targetEpoch);
-
-            for (var index = 0; index < validatorDuties.Count; index++)
+            
+            int validatorDutyIndex = 0;
+            List<ValidatorDuty> validatorDuties = new List<ValidatorDuty>();
+            await foreach (ValidatorDuty validatorDuty in beaconNode.ValidatorDutiesAsync(validatorPublicKeys, targetEpoch, CancellationToken.None))
             {
-                ValidatorDuty validatorDuty = validatorDuties[index];
+                validatorDuties.Add(validatorDuty);
                 Console.WriteLine("Index [{0}], Epoch {1}, Validator {2}, : attestation slot {3}, shard {4}, proposal slot {5}",
-                    index, targetEpoch, validatorDuty.ValidatorPublicKey, validatorDuty.AttestationSlot,
+                    validatorDutyIndex, targetEpoch, validatorDuty.ValidatorPublicKey, validatorDuty.AttestationSlot,
                     (ulong) validatorDuty.AttestationShard, validatorDuty.BlockProposalSlot);
+                validatorDutyIndex++;
             }
             
             // Assert
