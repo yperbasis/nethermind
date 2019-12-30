@@ -131,28 +131,28 @@ namespace Nethermind.AuRa.Validators
                 {
                     InitiateChange(block, Validators.ToArray(), isProcessingBlock, true);
                 }
+                else if (isProcessingBlock)
+                {
+                    bool reorganisationHappened = block.Number <= _lastProcessedBlockNumber;
+                    if (reorganisationHappened)
+                    {
+                        var reorganisationToBlockBeforePendingValidatorsInitChange =
+                            block.Number <= CurrentPendingValidators?.BlockNumber;
+                        var pendingValidators = reorganisationToBlockBeforePendingValidatorsInitChange
+                            ? null
+                            : LoadPendingValidators();
+                        SetPendingValidators(pendingValidators);
+                    }
+                    else if (block.Number > _lastProcessedBlockNumber + 1) // blocks skipped, like fast sync
+                    {
+                        SetPendingValidators(TryGetInitChangeFromPastBlocks(block.ParentHash), true);
+                    }
+                }
                 else
                 {
-                    if (isProcessingBlock)
-                    {
-                        bool reorganisationHappened = block.Number <= _lastProcessedBlockNumber;
-                        if (reorganisationHappened)
-                        {
-                            var reorganisationToBlockBeforePendingValidatorsInitChange = block.Number <= CurrentPendingValidators?.BlockNumber;
-                            var pendingValidators = reorganisationToBlockBeforePendingValidatorsInitChange ? null : LoadPendingValidators();
-                            SetPendingValidators(pendingValidators);
-                        }
-                        else if (block.Number > _lastProcessedBlockNumber + 1) // blocks skipped, like fast sync
-                        {
-                            SetPendingValidators(TryGetInitChangeFromPastBlocks(block.ParentHash), true);
-                        }
-                    }
-                    else
-                    {
-                        // if we are not processing blocks we are not on consecutive blocks.
-                        // We need to initialize pending validators from db on each block being produced.  
-                        SetPendingValidators(LoadPendingValidators());
-                    }
+                    // if we are not processing blocks we are not on consecutive blocks.
+                    // We need to initialize pending validators from db on each block being produced.  
+                    SetPendingValidators(LoadPendingValidators());
                 }
             }
             
@@ -301,8 +301,7 @@ namespace Nethermind.AuRa.Validators
                 // * We are loading validators from db.
                 if (canSave)
                 {
-                    _stateDb.Set(PendingValidatorsKey,
-                        _pendingValidatorsDecoder.Encode(CurrentPendingValidators).Bytes);
+                    _stateDb.Set(PendingValidatorsKey,  _pendingValidatorsDecoder.Encode(CurrentPendingValidators).Bytes);
                 }
             }
         }
