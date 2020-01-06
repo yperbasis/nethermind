@@ -288,7 +288,8 @@ namespace Nethermind.Blockchain.Test.Synchronization
             var devTxProcessor = new TransactionProcessor(specProvider, devState, devStorage, devEvm, logManager);
             var devBlockProcessor = new BlockProcessor(specProvider, blockValidator, rewardCalculator, devTxProcessor, stateDb, codeDb, traceDb, devState, devStorage, txPool, receiptStorage, logManager);
             var devChainProcessor = new BlockchainProcessor(tree, devBlockProcessor, step, logManager, false, false);
-            var producer = new DevBlockProducer(txPool, devChainProcessor, tree, new Timestamper(), logManager);
+            var transactionSelector = new PendingTransactionSelector(txPool, stateProvider, logManager);
+            var producer = new DevBlockProducer(transactionSelector, devChainProcessor, tree, stateProvider, new Timestamper(), logManager, txPool);
 
             NodeDataFeed feed = new NodeDataFeed(codeDb, stateDb, logManager);
             NodeDataDownloader downloader = new NodeDataDownloader(syncPeerPool, feed, NullDataConsumer.Instance,  logManager);
@@ -299,7 +300,7 @@ namespace Nethermind.Blockchain.Test.Synchronization
                 blockValidator,
                 sealValidator,
                 syncPeerPool, syncConfig, downloader, nodeStatsManager, logManager);
-            var syncServer = new SyncServer(stateDb, codeDb, tree, receiptStorage, TestSealValidator.AlwaysValid, syncPeerPool, synchronizer, syncConfig, logManager);
+            var syncServer = new SyncServer(stateDb, codeDb, tree, receiptStorage, TestBlockValidator.AlwaysValid, TestSealValidator.AlwaysValid, syncPeerPool, synchronizer, syncConfig, logManager);
 
             ManualResetEventSlim waitEvent = new ManualResetEventSlim();
             tree.NewHeadBlock += (s, e) => waitEvent.Set();
