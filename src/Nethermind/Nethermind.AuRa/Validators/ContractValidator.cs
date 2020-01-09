@@ -18,6 +18,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Nethermind.Abi;
@@ -55,7 +56,7 @@ namespace Nethermind.AuRa.Validators
         private readonly IBlockTree _blockTree;
         private readonly IReceiptStorage _receiptStorage;
         private Address[] _validators;
-        private bool _isProducing;
+        private bool _validatorUsedForSealing;
         private readonly bool _finalizableTransitions;
 
         protected Address ContractAddress { get; }
@@ -97,9 +98,9 @@ namespace Nethermind.AuRa.Validators
             SetPendingValidators(LoadPendingValidators());
         }
 
-        protected override void SetFinalizationManagerInternal(IBlockFinalizationManager finalizationManager, in bool forProducing)
+        protected override void SetFinalizationManagerInternal(IBlockFinalizationManager finalizationManager, in bool forSealing)
         {
-            base.SetFinalizationManagerInternal(finalizationManager, in forProducing);
+            base.SetFinalizationManagerInternal(finalizationManager, in forSealing);
             
             if (_blockFinalizationManager != null)
             {
@@ -107,9 +108,9 @@ namespace Nethermind.AuRa.Validators
             }
 
             _blockFinalizationManager = finalizationManager;
-            _isProducing = forProducing;
+            _validatorUsedForSealing = forSealing;
             
-            if (_finalizableTransitions && !forProducing && _blockFinalizationManager != null)
+            if (_finalizableTransitions && !forSealing && _blockFinalizationManager != null)
             {
                 _blockFinalizationManager.BlocksFinalized += OnBlocksFinalized;
             }
@@ -119,28 +120,31 @@ namespace Nethermind.AuRa.Validators
         {
             var isProducingBlock = options.IsProducingBlock();
             var isProcessingBlock = !isProducingBlock;
+            var isInitBlock = InitBlockNumber == block.Number;
+            var shouldLoadValidators = _validators == null || isProducingBlock || !_finalizableTransitions;
             
-            if (_validators == null || isProducingBlock || !_finalizableTransitions)
+            if (shouldLoadValidators)
             {
                 Validators = LoadValidatorsFromContract(block.Header);
-            }
-
-            if (_finalizableTransitions)
-            {
-                if (InitBlockNumber == block.Number)
+                if (!_validatorUsedForSealing && isProcessingBlock && _finalizableTransitions)
                 {
-                    InitiateChange(block, Validators.ToArray(), isProcessingBlock, true);
+                    if (_logger.IsInfo)  _logger.Info($"{(isInitBlock ? "Initial" : "Current")} contract validators ({Validators.Length}): [{string.Join<Address>(", ", Validators)}].");
                 }
-                else if (isProcessingBlock)
+            }
+            
+            if (isInitBlock)
+            {
+                InitiateChange(block, Validators.ToArray(), isProcessingBlock, true);
+            }
+            else
+            {
+                if (isProcessingBlock)
                 {
                     bool reorganisationHappened = block.Number <= _lastProcessedBlockNumber;
                     if (reorganisationHappened)
                     {
-                        var reorganisationToBlockBeforePendingValidatorsInitChange =
-                            block.Number <= CurrentPendingValidators?.BlockNumber;
-                        var pendingValidators = reorganisationToBlockBeforePendingValidatorsInitChange
-                            ? null
-                            : LoadPendingValidators();
+                        var reorganisationToBlockBeforePendingValidatorsInitChange = block.Number <= CurrentPendingValidators?.BlockNumber;
+                        var pendingValidators = reorganisationToBlockBeforePendingValidatorsInitChange ? null : LoadPendingValidators();
                         SetPendingValidators(pendingValidators);
                     }
                     else if (block.Number > _lastProcessedBlockNumber + 1) // blocks skipped, like fast sync
@@ -249,9 +253,7 @@ namespace Nethermind.AuRa.Validators
             {
                 throw new AuRaException("Failed to initialize validators list.");
             }
-            
-            if(_logger.IsInfo && !_isProducing && _finalizableTransitions) _logger.Info($"Initial contract {validators.Length} validators: [{string.Join<Address>(", ", validators)}].");
-           
+
             return validators;
         }
 
@@ -271,7 +273,10 @@ namespace Nethermind.AuRa.Validators
                     CurrentPendingValidators.AreFinalized = true;
                     Validators = CurrentPendingValidators.Addresses;
                     SetPendingValidators(CurrentPendingValidators, true);
-                    if (_logger.IsInfo && !_isProducing) _logger.Info($"Finalizing validators for transition within contract signalled at block {CurrentPendingValidators.BlockNumber}. after block {e.FinalizingBlock.ToString(BlockHeader.Format.Short)}.");
+                    if (!_validatorUsedForSealing)
+                    {
+                        if (_logger.IsInfo) _logger.Info($"Finalizing validators for transition within contract signalled at block {CurrentPendingValidators.BlockNumber}. after block {e.FinalizingBlock.ToString(BlockHeader.Format.Short)}.");
+                    }
                 }
             }
         }
