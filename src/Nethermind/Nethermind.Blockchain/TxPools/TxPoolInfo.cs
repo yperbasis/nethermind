@@ -22,11 +22,11 @@ namespace Nethermind.Blockchain.TxPools
 {
     public class TxPoolInfo
     {
-        public IDictionary<Address, IDictionary<ulong, Transaction[]>> Pending { get; }
-        public IDictionary<Address, IDictionary<ulong, Transaction[]>> Queued { get; }
+        public IDictionary<Address, IDictionary<ulong, Transaction>> Pending { get; }
+        public IDictionary<Address, IDictionary<ulong, Transaction>> Queued { get; }
 
-        public TxPoolInfo(IDictionary<Address, IDictionary<ulong, Transaction[]>> pending,
-            IDictionary<Address, IDictionary<ulong, Transaction[]>> queued)
+        public TxPoolInfo(IDictionary<Address, IDictionary<ulong, Transaction>> pending,
+            IDictionary<Address, IDictionary<ulong, Transaction>> queued)
         {
             Pending = pending;
             Queued = queued;
