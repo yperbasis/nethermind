@@ -47,18 +47,18 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
 
         private bool _statusReceived;
         private Keccak _remoteHeadBlockHash;
-        private readonly ITxPool _txPool;
-        private readonly ITimestamper _timestamper;
+        private ITxPool _txPool;
+        private ITimestamper _timestamper;
 
         private BlockHeadersMessage _eth1920000HeaderMessage;
         
-        public Eth62ProtocolHandler(ISession session,
+        public Eth62ProtocolHandler(
+            ISession session,
             IMessageSerializationService serializer,
             INodeStatsManager statsManager,
             ISyncServer syncServer,
             ILogManager logManager,
-            ITxPool txPool)
-            : base(session, statsManager, serializer, logManager)
+            ITxPool txPool) : base(session, statsManager, serializer, logManager)
         {
             SyncServer = syncServer ?? throw new ArgumentNullException(nameof(syncServer));
             _txPool = txPool ?? throw new ArgumentNullException(nameof(txPool));
@@ -75,16 +75,18 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
 
         private void CheckTxFlooding(object sender, ElapsedEventArgs e)
         {
-            if (_notAcceptedTxsSinceLastCheck / _txFloodCheckInterval.TotalSeconds > 100)
-            {
-                if (Logger.IsDebug) Logger.Debug($"Disconnecting {Node.Id} due to tx flooding");
-                InitiateDisconnect(DisconnectReason.UselessPeer, $"tx flooding {_notAcceptedTxsSinceLastCheck}/{_txFloodCheckTimer}");
-            }
-
-            if (_notAcceptedTxsSinceLastCheck / _txFloodCheckInterval.TotalSeconds > 10)
+            if (!_isDowngradedDueToTxFlooding && _notAcceptedTxsSinceLastCheck / _txFloodCheckInterval.TotalSeconds > 10)
             {
                 if (Logger.IsDebug) Logger.Debug($"Downgrading {Node.Id} due to tx flooding");
                 _isDowngradedDueToTxFlooding = true;
+            }
+            else
+            {
+                if (_notAcceptedTxsSinceLastCheck / _txFloodCheckInterval.TotalSeconds > 100)
+                {
+                    if (Logger.IsDebug) Logger.Debug($"Disconnecting {Node.Id} due to tx flooding");
+                    InitiateDisconnect(DisconnectReason.UselessPeer, $"tx flooding {_notAcceptedTxsSinceLastCheck}/{_txFloodCheckInterval.TotalSeconds > 100}");
+                }
             }
 
             _notAcceptedTxsSinceLastCheck = 0;
@@ -107,10 +109,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
 
         public bool HasAvailableCapability(Capability capability) => false;
         public bool HasAgreedCapability(Capability capability) => false;
-
-        public void AddSupportedCapability(Capability capability)
-        {
-        }
+        public void AddSupportedCapability(Capability capability) { }
 
         public event EventHandler<ProtocolInitializedEventArgs> ProtocolInitialized;
 
@@ -136,8 +135,9 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
             statusMessage.TotalDifficulty = head.TotalDifficulty ?? head.Difficulty;
             statusMessage.BestHash = head.Hash;
             statusMessage.GenesisHash = SyncServer.Genesis.Hash;
-
+            
             Send(statusMessage);
+            if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportOutgoingMessage(Session.Node.Host, Name, statusMessage.ToString());
             Metrics.StatusesSent++;
 
             //We are expecting receiving Status message anytime from the p2p completion, irrespective of sending Status from our side
@@ -173,9 +173,11 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
             {
                 case Eth62MessageCode.Status:
                     StatusMessage statusMessage = Deserialize<StatusMessage>(message.Content);
+                    if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportIncomingMessage(Session.Node.Host, Name, statusMessage.ToString());
                     Handle(statusMessage);
                     break;
                 case Eth62MessageCode.NewBlockHashes:
+                    if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportIncomingMessage(Session.Node.Host, Name, nameof(NewBlockHashesMessage));
                     Interlocked.Increment(ref Counter);
                     if (Logger.IsTrace) Logger.Trace($"{Counter:D5} NewBlockHashes from {Node:c}");
                     Metrics.Eth62NewBlockHashesReceived++;
@@ -184,9 +186,11 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
                 case Eth62MessageCode.Transactions:
                     Interlocked.Increment(ref Counter);
                     Metrics.Eth62TransactionsReceived++;
+                    TransactionsMessage transactionsMessage = Deserialize<TransactionsMessage>(message.Content);
+                    if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportIncomingMessage(Session.Node.Host, Name, $"{nameof(TransactionsMessage)}({transactionsMessage.Transactions.Length})");
                     if (!_isDowngradedDueToTxFlooding || 10 > _random.Next(0, 99)) // TODO: disable that when IsMining is set to true
                     {
-                        Handle(Deserialize<TransactionsMessage>(message.Content));
+                        Handle(transactionsMessage);
                     }
 
                     break;
@@ -194,31 +198,41 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
                     Interlocked.Increment(ref Counter);
                     if (Logger.IsTrace) Logger.Trace($"{Counter:D5} GetBlockHeaders from {Node:c}");
                     Metrics.Eth62GetBlockHeadersReceived++;
-                    Handle(Deserialize<GetBlockHeadersMessage>(message.Content));
+                    GetBlockHeadersMessage getBlockHeadersMessage = Deserialize<GetBlockHeadersMessage>(message.Content);
+                    if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportIncomingMessage(Session.Node.Host, Name, $"{nameof(GetBlockHeadersMessage)}({getBlockHeadersMessage.StartingBlockNumber}|{getBlockHeadersMessage.StartingBlockHash}, {getBlockHeadersMessage.MaxHeaders})");
+                    Handle(getBlockHeadersMessage);
                     break;
                 case Eth62MessageCode.BlockHeaders:
                     Interlocked.Increment(ref Counter);
                     if (Logger.IsTrace) Logger.Trace($"{Counter:D5} BlockHeaders from {Node:c}");
                     Metrics.Eth62BlockHeadersReceived++;
-                    Handle(Deserialize<BlockHeadersMessage>(message.Content), size);
+                    BlockHeadersMessage blockHeadersMessage = Deserialize<BlockHeadersMessage>(message.Content);
+                    if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportIncomingMessage(Session.Node.Host, Name, $"{nameof(BlockHeadersMessage)}({blockHeadersMessage.BlockHeaders.Length})");
+                    Handle(blockHeadersMessage, size);
                     break;
                 case Eth62MessageCode.GetBlockBodies:
                     Interlocked.Increment(ref Counter);
                     if (Logger.IsTrace) Logger.Trace($"{Counter:D5} GetBlockBodies from {Node:c}");
                     Metrics.Eth62GetBlockBodiesReceived++;
-                    Handle(Deserialize<GetBlockBodiesMessage>(message.Content));
+                    GetBlockBodiesMessage getBlockBodiesMessage = Deserialize<GetBlockBodiesMessage>(message.Content);
+                    if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportIncomingMessage(Session.Node.Host, Name, $"{nameof(GetBlockBodiesMessage)}({getBlockBodiesMessage.BlockHashes.Count})");
+                    Handle(getBlockBodiesMessage);
                     break;
                 case Eth62MessageCode.BlockBodies:
                     Interlocked.Increment(ref Counter);
                     if (Logger.IsTrace) Logger.Trace($"{Counter:D5} BlockBodies from {Node:c}");
                     Metrics.Eth62BlockBodiesReceived++;
-                    Handle(Deserialize<BlockBodiesMessage>(message.Content), size);
+                    BlockBodiesMessage blockBodiesMessage = Deserialize<BlockBodiesMessage>(message.Content);
+                    if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportIncomingMessage(Session.Node.Host, Name, $"{nameof(BlockBodiesMessage)}({blockBodiesMessage.Bodies.Length})");
+                    Handle(blockBodiesMessage, size);
                     break;
                 case Eth62MessageCode.NewBlock:
                     Interlocked.Increment(ref Counter);
                     if (Logger.IsTrace) Logger.Trace($"{Counter:D5} NewBlock from {Node:c}");
                     Metrics.Eth62NewBlockReceived++;
-                    Handle(Deserialize<NewBlockMessage>(message.Content));
+                    NewBlockMessage newBlockMessage = Deserialize<NewBlockMessage>(message.Content);
+                    if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportIncomingMessage(Session.Node.Host, Name, $"{nameof(NewBlockMessage)}({newBlockMessage.Block.Number})");
+                    Handle(newBlockMessage);
                     break;
             }
         }
@@ -290,6 +304,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
             throw new NotSupportedException("Fast sync not supported by eth62 protocol");
         }
 
+        public override string Name => "eth62";
         protected override TimeSpan InitTimeout => Timeouts.Eth62Status;
 
         private void Handle(StatusMessage status)
@@ -311,10 +326,10 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
                              Environment.NewLine + $" difficulty\t{status.TotalDifficulty}");
 
             _remoteHeadBlockHash = status.BestHash;
-
+            
             ReceivedProtocolInitMsg(status);
 
-            var eventArgs = new EthProtocolInitializedEventArgs(this)
+            EthProtocolInitializedEventArgs eventArgs = new EthProtocolInitializedEventArgs(this)
             {
                 ChainId = (long) status.ChainId,
                 BestHash = status.BestHash,
@@ -339,11 +354,11 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
         {
             for (int i = 0; i < msg.Transactions.Length; i++)
             {
-                var transaction = msg.Transactions[i];
+                Transaction transaction = msg.Transactions[i];
                 transaction.DeliveredBy = Node.Id;
                 transaction.Timestamp = _timestamper.EpochSeconds;
                 AddTxResult result = _txPool.AddTransaction(transaction, SyncServer.Head.Number);
-                if (result == AddTxResult.AlreadyKnown)
+                if (result != AddTxResult.Added)
                 {
                     _notAcceptedTxsSinceLastCheck++;
                 }
@@ -389,19 +404,19 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
 
             Interlocked.Increment(ref Counter);
 
-            // to clearly state that this client is an ETH client and not ETC (and avoid disconnections on reversed sync)
-            // also to improve performance as this is the most common request
-            if (getBlockHeadersMessage.StartingBlockNumber == 1920000 && getBlockHeadersMessage.MaxHeaders == 1)
-            {
-                // hardcoded response
-                // Packet packet = new Packet(ProtocolCode, Eth62MessageCode.BlockHeaders, Bytes.FromHexString("f90210f9020da0a218e2c611f21232d857e3c8cecdcdf1f65f25a4477f98f6f47e4063807f2308a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d4934794bcdfc35b86bedf72f0cda046a3c16829a2ef41d1a0c5e389416116e3696cce82ec4533cce33efccb24ce245ae9546a4b8f0d5e9a75a07701df8e07169452554d14aadd7bfa256d4a1d0355c1d174ab373e3e2d0a3743a026cf9d9422e9dd95aedc7914db690b92bab6902f5221d62694a2fa5d065f534bb90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008638c3bf2616aa831d4c008347e7c08301482084578f7aa88d64616f2d686172642d666f726ba05b5acbf4bf305f948bd7be176047b20623e1417f75597341a059729165b9239788bede87201de42426"));
-                // Session.DeliverMessage(packet);
-                LazyInitializer.EnsureInitialized(ref _eth1920000HeaderMessage, () => Deserialize<BlockHeadersMessage>(Bytes.FromHexString("f90210f9020da0a218e2c611f21232d857e3c8cecdcdf1f65f25a4477f98f6f47e4063807f2308a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d4934794bcdfc35b86bedf72f0cda046a3c16829a2ef41d1a0c5e389416116e3696cce82ec4533cce33efccb24ce245ae9546a4b8f0d5e9a75a07701df8e07169452554d14aadd7bfa256d4a1d0355c1d174ab373e3e2d0a3743a026cf9d9422e9dd95aedc7914db690b92bab6902f5221d62694a2fa5d065f534bb90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008638c3bf2616aa831d4c008347e7c08301482084578f7aa88d64616f2d686172642d666f726ba05b5acbf4bf305f948bd7be176047b20623e1417f75597341a059729165b9239788bede87201de42426")));
-                Session.DeliverMessage(_eth1920000HeaderMessage);
-                
-                if (Logger.IsTrace) Logger.Trace($"OUT hardcoded 1920000 BlockHeaders to {Node:c}");
-                return;
-            }
+            // // to clearly state that this client is an ETH client and not ETC (and avoid disconnections on reversed sync)
+            // // also to improve performance as this is the most common request
+            // if (getBlockHeadersMessage.StartingBlockNumber == 1920000 && getBlockHeadersMessage.MaxHeaders == 1)
+            // {
+            //     // hardcoded response
+            //     // Packet packet = new Packet(ProtocolCode, Eth62MessageCode.BlockHeaders, Bytes.FromHexString("f90210f9020da0a218e2c611f21232d857e3c8cecdcdf1f65f25a4477f98f6f47e4063807f2308a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d4934794bcdfc35b86bedf72f0cda046a3c16829a2ef41d1a0c5e389416116e3696cce82ec4533cce33efccb24ce245ae9546a4b8f0d5e9a75a07701df8e07169452554d14aadd7bfa256d4a1d0355c1d174ab373e3e2d0a3743a026cf9d9422e9dd95aedc7914db690b92bab6902f5221d62694a2fa5d065f534bb90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008638c3bf2616aa831d4c008347e7c08301482084578f7aa88d64616f2d686172642d666f726ba05b5acbf4bf305f948bd7be176047b20623e1417f75597341a059729165b9239788bede87201de42426"));
+            //     // Session.DeliverMessage(packet);
+            //     LazyInitializer.EnsureInitialized(ref _eth1920000HeaderMessage, () => Deserialize<BlockHeadersMessage>(Bytes.FromHexString("f90210f9020da0a218e2c611f21232d857e3c8cecdcdf1f65f25a4477f98f6f47e4063807f2308a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d4934794bcdfc35b86bedf72f0cda046a3c16829a2ef41d1a0c5e389416116e3696cce82ec4533cce33efccb24ce245ae9546a4b8f0d5e9a75a07701df8e07169452554d14aadd7bfa256d4a1d0355c1d174ab373e3e2d0a3743a026cf9d9422e9dd95aedc7914db690b92bab6902f5221d62694a2fa5d065f534bb90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008638c3bf2616aa831d4c008347e7c08301482084578f7aa88d64616f2d686172642d666f726ba05b5acbf4bf305f948bd7be176047b20623e1417f75597341a059729165b9239788bede87201de42426")));
+            //     Session.DeliverMessage(_eth1920000HeaderMessage);
+            //     
+            //     if (Logger.IsTrace) Logger.Trace($"OUT hardcoded 1920000 BlockHeaders to {Node:c}");
+            //     return;
+            // }
 
             Keccak startingHash = getBlockHeadersMessage.StartingBlockHash;
             if (startingHash == null)
@@ -457,7 +472,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
 
         private void Handle(BlockHeadersMessage message, long size)
         {
-            var request = _headersRequests.Take();
+            Request<GetBlockHeadersMessage, BlockHeader[]> request = _headersRequests.Take();
             if (message.PacketType == Eth62MessageCode.BlockHeaders)
             {
                 request.ResponseSize = size;
@@ -532,7 +547,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
                 Logger.Trace($"  Max headers: {message.MaxHeaders}");
             }
 
-            var request = new Request<GetBlockHeadersMessage, BlockHeader[]>(message);
+            Request<GetBlockHeadersMessage, BlockHeader[]> request = new Request<GetBlockHeadersMessage, BlockHeader[]>(message);
             _headersRequests.Add(request, token);
             request.StartMeasuringTime();
 
@@ -540,7 +555,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
             Task<BlockHeader[]> task = request.CompletionSource.Task;
             using CancellationTokenSource delayCancellation = new CancellationTokenSource();
             using CancellationTokenSource compositeCancellation = CancellationTokenSource.CreateLinkedTokenSource(token, delayCancellation.Token);
-            var firstTask = await Task.WhenAny(task, Task.Delay(Timeouts.Eth, compositeCancellation.Token));
+            Task firstTask = await Task.WhenAny(task, Task.Delay(Timeouts.Eth, compositeCancellation.Token));
             if (firstTask.IsCanceled)
             {
                 token.ThrowIfCancellationRequested();
@@ -575,7 +590,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
                 Logger.Trace($"Blockhashes count: {message.BlockHashes.Count}");
             }
 
-            var request = new Request<GetBlockBodiesMessage, BlockBody[]>(message);
+            Request<GetBlockBodiesMessage, BlockBody[]> request = new Request<GetBlockBodiesMessage, BlockBody[]>(message);
             _bodiesRequests.Add(request, token);
             request.StartMeasuringTime();
 
@@ -584,7 +599,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
             Task<BlockBody[]> task = request.CompletionSource.Task;
             using CancellationTokenSource delayCancellation = new CancellationTokenSource();
             using CancellationTokenSource compositeCancellation = CancellationTokenSource.CreateLinkedTokenSource(token, delayCancellation.Token);
-            var firstTask = await Task.WhenAny(task, Task.Delay(Timeouts.Eth, compositeCancellation.Token));
+            Task firstTask = await Task.WhenAny(task, Task.Delay(Timeouts.Eth, compositeCancellation.Token));
             if (firstTask.IsCanceled)
             {
                 token.ThrowIfCancellationRequested();
@@ -612,7 +627,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
                 return new BlockHeader[0];
             }
 
-            var msg = new GetBlockHeadersMessage();
+            GetBlockHeadersMessage msg = new GetBlockHeadersMessage();
             msg.MaxHeaders = maxBlocks;
             msg.Reverse = 0;
             msg.Skip = skip;
@@ -629,7 +644,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
                 return new BlockHeader[0];
             }
 
-            var msg = new GetBlockHeadersMessage();
+            GetBlockHeadersMessage msg = new GetBlockHeadersMessage();
             msg.MaxHeaders = maxBlocks;
             msg.Reverse = 0;
             msg.Skip = skip;
@@ -665,7 +680,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
                 return new BlockBody[0];
             }
 
-            var bodiesMsg = new GetBlockBodiesMessage(blockHashes);
+            GetBlockBodiesMessage bodiesMsg = new GetBlockBodiesMessage(blockHashes);
 
             BlockBody[] blocks = await SendRequest(bodiesMsg, token);
 
@@ -684,7 +699,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
 
         async Task<BlockHeader> ISyncPeer.GetHeadBlockHeader(Keccak hash, CancellationToken token)
         {
-            var msg = new GetBlockHeadersMessage();
+            GetBlockHeadersMessage msg = new GetBlockHeadersMessage();
             msg.StartingBlockHash = hash ?? _remoteHeadBlockHash;
             msg.MaxHeaders = 1;
             msg.Reverse = 0;

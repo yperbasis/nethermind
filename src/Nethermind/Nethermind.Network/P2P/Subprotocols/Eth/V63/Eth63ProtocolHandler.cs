@@ -62,24 +62,28 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63
             switch (message.PacketType)
             {
                 case Eth63MessageCode.GetReceipts:
+                    if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportIncomingMessage(Session.Node.Host, Name, nameof(GetReceiptsMessage));
                     Interlocked.Increment(ref Counter);
                     if(Logger.IsTrace) Logger.Trace($"{Counter:D5} GetReceipts from {Node:c}");
                     Metrics.Eth63GetReceiptsReceived++;
                     Handle(Deserialize<GetReceiptsMessage>(message.Content));
                     break;
                 case Eth63MessageCode.Receipts:
+                    if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportIncomingMessage(Session.Node.Host, Name, nameof(ReceiptsMessage));
                     Interlocked.Increment(ref Counter);
                     if(Logger.IsTrace) Logger.Trace($"{Counter:D5} Receipts from {Node:c}");
                     Metrics.Eth63ReceiptsReceived++;
                     Handle(Deserialize<ReceiptsMessage>(message.Content), size);
                     break;
                 case Eth63MessageCode.GetNodeData:
+                    if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportIncomingMessage(Session.Node.Host, Name, nameof(GetNodeDataMessage));
                     Interlocked.Increment(ref Counter);
                     if(Logger.IsTrace) Logger.Trace($"{Counter:D5} GetNodeData from {Node:c}");
                     Metrics.Eth63GetNodeDataReceived++;
                     Handle(Deserialize<GetNodeDataMessage>(message.Content));
                     break;
                 case Eth63MessageCode.NodeData:
+                    if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportIncomingMessage(Session.Node.Host, Name, nameof(NodeDataMessage));
                     Interlocked.Increment(ref Counter);
                     if(Logger.IsTrace) Logger.Trace($"{Counter:D5} NodeData from {Node:c}");
                     Metrics.Eth63NodeDataReceived++;
@@ -88,6 +92,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63
             }
         }
 
+        public override string Name => "eth63";
+        
         private void Handle(GetReceiptsMessage msg)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
@@ -100,7 +106,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63
 
         private void Handle(ReceiptsMessage msg, long size)
         {
-            var request = _receiptsRequests.Take();
+            Request<GetReceiptsMessage, TxReceipt[][]> request = _receiptsRequests.Take();
             if (IsRequestMatched(request, msg))
             {
                 request.ResponseSize = size;
@@ -120,7 +126,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63
 
         private void Handle(NodeDataMessage msg, int size)
         {
-            var request = _nodeDataRequests.Take();
+            Request<GetNodeDataMessage, byte[][]> request = _nodeDataRequests.Take();
             request.ResponseSize = size;
             if (IsRequestMatched(request, msg))
             {
@@ -135,7 +141,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63
                 return Array.Empty<byte[]>();
             }
             
-            var msg = new GetNodeDataMessage(keys);
+            GetNodeDataMessage msg = new GetNodeDataMessage(keys);
             byte[][] receipts = await SendRequest(msg, token);
             return receipts;
         }
@@ -149,7 +155,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63
             
             // Logger.Info($"Sending receipts request ({blockHashes.Count}) to {this}");
             
-            var msg = new GetReceiptsMessage(blockHashes);
+            GetReceiptsMessage msg = new GetReceiptsMessage(blockHashes);
             TxReceipt[][] txReceipts = await SendRequest(msg, token);
             
             // Logger.Info($"Sent receipts request ({blockHashes.Count}) to {this} - received {txReceipts.Length}");
@@ -165,7 +171,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63
                 Logger.Trace($"Keys count: {message.Keys.Count}");
             }
 
-            var request = new Request<GetNodeDataMessage, byte[][]>(message);
+            Request<GetNodeDataMessage, byte[][]> request = new Request<GetNodeDataMessage, byte[][]>(message);
             request.StartMeasuringTime();
             _nodeDataRequests.Add(request, token);
 
@@ -174,7 +180,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63
             
             using CancellationTokenSource delayCancellation = new CancellationTokenSource();
             using CancellationTokenSource compositeCancellation = CancellationTokenSource.CreateLinkedTokenSource(token, delayCancellation.Token);
-            var firstTask = await Task.WhenAny(task, Task.Delay(Timeouts.Eth, compositeCancellation.Token));
+            Task firstTask = await Task.WhenAny(task, Task.Delay(Timeouts.Eth, compositeCancellation.Token));
             if (firstTask.IsCanceled)
             {
                 token.ThrowIfCancellationRequested();
@@ -204,7 +210,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63
                 Logger.Trace($"Hashes count: {message.BlockHashes.Count}");
             }
 
-            var request = new Request<GetReceiptsMessage, TxReceipt[][]>(message);
+            Request<GetReceiptsMessage, TxReceipt[][]> request = new Request<GetReceiptsMessage, TxReceipt[][]>(message);
             request.StartMeasuringTime();
             _receiptsRequests.Add(request, token);
 
@@ -213,7 +219,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63
             Task<TxReceipt[][]> task = request.CompletionSource.Task;
             using CancellationTokenSource delayCancellation = new CancellationTokenSource();
             using CancellationTokenSource compositeCancellation = CancellationTokenSource.CreateLinkedTokenSource(token, delayCancellation.Token);
-            var firstTask = await Task.WhenAny(task, Task.Delay(Timeouts.Eth, compositeCancellation.Token));
+            Task firstTask = await Task.WhenAny(task, Task.Delay(Timeouts.Eth, compositeCancellation.Token));
             if (firstTask.IsCanceled)
             {
                 token.ThrowIfCancellationRequested();

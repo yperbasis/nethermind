@@ -38,7 +38,7 @@ namespace Nethermind.Blockchain.Synchronization.FastBlocks
     {
         private int BodiesRequestSize = GethSyncLimits.MaxBodyFetch;
         private int HeadersRequestSize = GethSyncLimits.MaxHeaderFetch;
-        private int ReceiptsRequestStats = GethSyncLimits.MaxReceiptFetch;
+        private int ReceiptsRequestSize = GethSyncLimits.MaxReceiptFetch;
 
         private ILogger _logger;
         private readonly ISpecProvider _specProvider;
@@ -97,7 +97,7 @@ namespace Nethermind.Blockchain.Synchronization.FastBlocks
             {
                 BodiesRequestSize = NethermindSyncLimits.MaxBodyFetch;
                 HeadersRequestSize = NethermindSyncLimits.MaxHeaderFetch;
-                ReceiptsRequestStats = NethermindSyncLimits.MaxReceiptFetch;
+                ReceiptsRequestSize = NethermindSyncLimits.MaxReceiptFetch;
             }
         }
 
@@ -250,7 +250,7 @@ namespace Nethermind.Blockchain.Synchronization.FastBlocks
                             predecessorBlock = null;
                         }
 
-                        int requestSize = (int) Math.Min(block.Number, ReceiptsRequestStats);
+                        int requestSize = (int) Math.Min(block.Number, ReceiptsRequestSize);
                         batch = new FastBlocksBatch();
                         batch.Receipts = new ReceiptsSyncBatch();
                         batch.Receipts.Predecessors = new long?[requestSize];
@@ -552,7 +552,7 @@ namespace Nethermind.Blockchain.Synchronization.FastBlocks
                     if (receiptsRoot != block.ReceiptsRoot)
                     {
                         if (_logger.IsWarn) _logger.Warn($"{batch} - invalid receipt root");
-                        _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource);
+                        _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource, "invalid receipts root");
                         wasInvalid = true;
                     }
                 }
@@ -612,10 +612,7 @@ namespace Nethermind.Blockchain.Synchronization.FastBlocks
 
         private void InsertReceipts(List<(long, TxReceipt)> receipts)
         {
-            foreach ((long blockNumber, TxReceipt receipt) in receipts)
-            {
-                _receiptStorage.Insert(blockNumber, receipt);
-            }
+            _receiptStorage.Insert(receipts);
         }
 
         private static FastBlocksBatch PrepareReceiptFiller(int added, ReceiptsSyncBatch receiptsSyncBatch)
@@ -655,7 +652,7 @@ namespace Nethermind.Blockchain.Synchronization.FastBlocks
                     block.CalculateOmmersHash() != block.OmmersHash)
                 {
                     if (_logger.IsWarn) _logger.Warn($"{batch} - reporting INVALID - tx or ommers");
-                    _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource);
+                    _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource, $"invalid tx or ommers root");
                     break;
                 }
 
@@ -753,7 +750,7 @@ namespace Nethermind.Blockchain.Synchronization.FastBlocks
             if (headersSyncBatch.Response.Length > batch.Headers.RequestSize)
             {
                 if (_logger.IsWarn) _logger.Warn($"Peer sent too long response ({headersSyncBatch.Response.Length}) to {batch}");
-                _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource);
+                _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource, $"response too long ({headersSyncBatch.Response.Length})");
                 _pendingBatches.Push(batch);
                 return 0;
             }
@@ -775,7 +772,7 @@ namespace Nethermind.Blockchain.Synchronization.FastBlocks
 
                 if (header.Number != headersSyncBatch.StartNumber + i)
                 {
-                    _syncPeerPool.ReportInvalid(batch.Allocation);
+                    _syncPeerPool.ReportInvalid(batch.Allocation, "inconsistent headers batch");
                     break;
                 }
 
@@ -789,7 +786,7 @@ namespace Nethermind.Blockchain.Synchronization.FastBlocks
                         if (batch.Allocation != null)
                         {
                             if (_logger.IsWarn) _logger.Warn($"{batch} - reporting INVALID hash");
-                            _syncPeerPool.ReportInvalid(batch.Allocation);
+                            _syncPeerPool.ReportInvalid(batch.Allocation, "first hash inconsistent with request");
                         }
 
                         break;
@@ -801,14 +798,14 @@ namespace Nethermind.Blockchain.Synchronization.FastBlocks
                         if (header.Number == (_blockTree.LowestInsertedHeader?.Number ?? _pivotNumber + 1) - 1)
                         {
                             if (_logger.IsDebug) _logger.Debug($"{batch} - ended up IGNORED - different branch - number {header.Number} was {header.Hash} while expected {_nextHeaderHash}");
-                            _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource);
+                            _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource, "headers - different branch");
                             break;
                         }
 
                         if (header.Number == _blockTree.LowestInsertedHeader?.Number)
                         {
                             if (_logger.IsDebug) _logger.Debug($"{batch} - ended up IGNORED - different branch");
-                            _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource);
+                            _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource, "headers - different branch");
                             break;
                         }
 
@@ -847,7 +844,7 @@ namespace Nethermind.Blockchain.Synchronization.FastBlocks
                         if (batch.Allocation != null)
                         {
                             if (_logger.IsWarn) _logger.Warn($"{batch} - reporting INVALID inconsistent");
-                            _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource);
+                            _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource, "headers - response not matching request");
                         }
 
                         break;
@@ -861,7 +858,7 @@ namespace Nethermind.Blockchain.Synchronization.FastBlocks
                     if (batch.Allocation != null)
                     {
                         if (_logger.IsWarn) _logger.Warn($"{batch} - reporting INVALID bad block");
-                        _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource);
+                        _syncPeerPool.ReportInvalid(batch.Allocation?.Current ?? batch.OriginalDataSource, $"invalid header {header.ToString(BlockHeader.Format.Short)}");
                     }
 
                     break;
