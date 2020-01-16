@@ -20,6 +20,6 @@ namespace Nethermind.Core.Extensions
 {
     public static class ArrayExtensions
     {
-        public static T GetItemRoundRobin<T>(this T[] array, long index) => array[index % array.Length];
+        public static T GetItemRoundRobin<T>(this IList<T> array, long index) => array[(int) (index % array.Count)];
     }
 }

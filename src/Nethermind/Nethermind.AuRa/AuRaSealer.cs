@@ -31,25 +31,31 @@ namespace Nethermind.AuRa
     public class AuRaSealer : ISealer
     {
         private readonly IBlockTree _blockTree;
+        private readonly IValidatorStore _validatorStore;
         private readonly IAuRaValidator _validator;
         private readonly IAuRaStepCalculator _auRaStepCalculator;
         private readonly Address _nodeAddress;
         private readonly IBasicWallet _wallet;
+        private readonly IValidSealerStrategy _validSealerStrategy;
         private readonly ILogger _logger;
         
         public AuRaSealer(
             IBlockTree blockTree,
             IAuRaValidator validator,
+            IValidatorStore validatorStore,
             IAuRaStepCalculator auRaStepCalculator,
             Address nodeAddress,
             IBasicWallet wallet,
+            IValidSealerStrategy validSealerStrategy,
             ILogManager logManager)
         {
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
+            _validatorStore = validatorStore ?? throw new ArgumentNullException(nameof(validatorStore));
             _validator = validator ?? throw new ArgumentNullException(nameof(validator));
             _auRaStepCalculator = auRaStepCalculator ?? throw new ArgumentNullException(nameof(auRaStepCalculator));
             _nodeAddress = nodeAddress ?? throw new ArgumentNullException(nameof(nodeAddress));
             _wallet = wallet ?? throw new ArgumentNullException(nameof(wallet));
+            _validSealerStrategy = validSealerStrategy ?? throw new ArgumentNullException(nameof(validSealerStrategy));
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
         }
         
@@ -89,7 +95,7 @@ namespace Nethermind.AuRa
             bool IsThisNodeTurn(long blockLevel, long step)
             {
                 _validator.EnsureCorrectValidatorsForBlock(blockLevel);
-                return _validator.IsValidSealer(_nodeAddress, step);
+                return _validSealerStrategy.IsValidSealer(_validatorStore.GetValidators(), _nodeAddress, step);
             }
 
             var currentStep = _auRaStepCalculator.CurrentStep;

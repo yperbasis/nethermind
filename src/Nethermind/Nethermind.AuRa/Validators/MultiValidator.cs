@@ -29,6 +29,7 @@ namespace Nethermind.AuRa.Validators
     {
         private readonly IAuRaAdditionalBlockProcessorFactory _validatorFactory;
         private readonly IBlockTree _blockTree;
+        private readonly IValidatorStore _validatorStore;
         private IBlockFinalizationManager _blockFinalizationManager;
         private readonly IDictionary<long, AuRaParameters.Validator> _validators;
         private readonly ILogger _logger;
@@ -38,13 +39,14 @@ namespace Nethermind.AuRa.Validators
         private readonly bool _immediateTransitions;
         private AuRaParameters.Validator _currentValidatorPrototype;
         
-        public MultiValidator(AuRaParameters.Validator validator, AuRaParameters parameters, IAuRaAdditionalBlockProcessorFactory validatorFactory, IBlockTree blockTree, ILogManager logManager)
+        public MultiValidator(AuRaParameters.Validator validator, AuRaParameters parameters, IAuRaAdditionalBlockProcessorFactory validatorFactory, IBlockTree blockTree, IValidatorStore validatorStore, ILogManager logManager)
         {
             if (validator == null) throw new ArgumentNullException(nameof(validator));
             if (validator.ValidatorType != AuRaParameters.ValidatorType.Multi) throw new ArgumentException("Wrong validator type.", nameof(validator));
             _immediateTransitions = (parameters ?? throw new ArgumentNullException(nameof(parameters))).ImmediateTransitions;
             _validatorFactory = validatorFactory ?? throw new ArgumentNullException(nameof(validatorFactory));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
+            _validatorStore = validatorStore ?? throw new ArgumentNullException(nameof(validatorStore));
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             
             _validators = validator.Validators?.Count > 0
@@ -173,10 +175,7 @@ namespace Nethermind.AuRa.Validators
             _lastProcessedBlock = block.Number;
         }
         
-        public bool IsValidSealer(Address address, long step) => _currentValidator?.IsValidSealer(address, step) == true;
-
-        public int MinSealersForFinalization => _currentValidator.MinSealersForFinalization;
-        public int CurrentSealersCount => _currentValidator.CurrentSealersCount;
+        public Address[] Validators => _currentValidator?.Validators;
 
         void IAuRaValidator.SetFinalizationManager(IBlockFinalizationManager finalizationManager, bool forProducing)
         {
@@ -210,6 +209,11 @@ namespace Nethermind.AuRa.Validators
                 _currentValidator = CreateValidator(finalizedAtBlockNumber, validatorPrototype);
                 _currentValidator.SetFinalizationManager(_blockFinalizationManager, _validatorUsedForSealing);
                 _currentValidatorPrototype = validatorPrototype;
+
+                if (CanChangeValidatorImmediately(validatorPrototype))
+                {
+                    _validatorStore.SetValidators(finalizedAtBlockNumber, _currentValidator.Validators);
+                }
             }
         }
 

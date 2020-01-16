@@ -43,13 +43,13 @@ namespace Nethermind.AuRa.Test
             stateDb[Arg.Any<byte[]>()].Returns((byte[]) null);
             
             var factory = new AuRaAdditionalBlockProcessorFactory(
-                new AuRaParameters(), 
-                stateDb,
+                new AuRaParameters(),
                 Substitute.For<IStateProvider>(),
                 Substitute.For<IAbiEncoder>(), 
                 Substitute.For<ITransactionProcessor>(),
                 Substitute.For<IBlockTree>(),
                 Substitute.For<IReceiptStorage>(),
+                Substitute.For<IValidatorStore>(),
                 Substitute.For<ILogManager>());
 
             var validator = new AuRaParameters.Validator()

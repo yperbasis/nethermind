@@ -28,15 +28,16 @@ namespace Nethermind.AuRa.Validators
     {
         public ReportingContractValidator(AuRaParameters.Validator validator,
             AuRaParameters parameters,
-            IDb stateDb,
             IStateProvider stateProvider,
             IAbiEncoder abiEncoder,
             ITransactionProcessor transactionProcessor,
             IBlockTree blockTree,
             IReceiptStorage receiptStorage,
+            IValidatorStore validatorStore,
+            IValidSealerStrategy validSealerStrategy,
             ILogManager logManager,
             long startBlockNumber) 
-            : base(validator, parameters, stateDb, stateProvider, abiEncoder, transactionProcessor, blockTree, receiptStorage, logManager, startBlockNumber)
+            : base(validator, parameters, stateProvider, abiEncoder, transactionProcessor, blockTree, receiptStorage, validatorStore, validSealerStrategy, logManager, startBlockNumber)
         {
         }
     }
