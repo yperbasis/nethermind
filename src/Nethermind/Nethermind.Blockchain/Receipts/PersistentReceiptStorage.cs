@@ -42,13 +42,13 @@ namespace Nethermind.Blockchain.Receipts
             LowestInsertedReceiptBlock = lowestBytes == null ? (long?) null : new RlpStream(lowestBytes).DecodeLong();
         }
 
-        public TxReceipt Find(Keccak hash)
+        public TxReceipt Find(Keccak transactionHash)
         {
-            var receiptData = _database.Get(hash);
+            var receiptData = _database.Get(transactionHash);
             if (receiptData != null)
             {
                 var receipt = Rlp.Decode<TxReceipt>(new Rlp(receiptData), RlpBehaviors.Storage);
-                receipt.TxHash = hash;
+                receipt.TxHash = transactionHash;
                 return receipt;
             }
 

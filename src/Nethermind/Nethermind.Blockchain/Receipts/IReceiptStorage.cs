@@ -22,10 +22,12 @@ namespace Nethermind.Blockchain.Receipts
 {
     public interface IReceiptStorage
     {
-        TxReceipt Find(Keccak hash);
-        void Add(TxReceipt txReceipt, bool isProcessed);
-        void Insert(long blockNumber, TxReceipt txReceipt);
-        void Insert(List<(long blockNumber, TxReceipt txReceipt)> receipts);
+        TxReceipt Find(Keccak transactionHash);
+        // void Add(TxReceipt txReceipt, bool isProcessed);
+        // void Insert(long blockNumber, TxReceipt txReceipt);
+        // void Insert(List<(long blockNumber, TxReceipt txReceipt)> receipts);
+        void Insert(Block block, TxReceipt[] receipts);
+        TxReceipt[] Get(Block block);
         long? LowestInsertedReceiptBlock { get; }
     }
 }

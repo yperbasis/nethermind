@@ -26,9 +26,9 @@ namespace Nethermind.Blockchain.Receipts
         private readonly ConcurrentDictionary<Keccak, TxReceipt> _receipts =
             new ConcurrentDictionary<Keccak, TxReceipt>();
 
-        public TxReceipt Find(Keccak hash)
+        public TxReceipt Find(Keccak transactionHash)
         {
-            _receipts.TryGetValue(hash, out var transaction);
+            _receipts.TryGetValue(transactionHash, out var transaction);
             return transaction;
         }
 
