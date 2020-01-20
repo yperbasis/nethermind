@@ -21,12 +21,13 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Encoding;
 using Nethermind.Core.Specs;
+using Nethermind.Evm;
 using Nethermind.Logging;
 using Nethermind.Store;
 
 namespace Nethermind.Blockchain.Receipts
 {
-    public class PersistentReceiptStorage : IReceiptStorage
+    public class PersistentReceiptStorage : IReceiptStorage, IReceiptFinder
     {
         private readonly IDb _database;
         private readonly ISpecProvider _specProvider;
@@ -55,80 +56,110 @@ namespace Nethermind.Blockchain.Receipts
             return null;
         }
 
-        public void Add(TxReceipt txReceipt, bool isProcessed)
+        public void Insert(Block block, TxReceipt[] receipts)
         {
-            if (txReceipt == null)
-            {
-                throw new ArgumentNullException(nameof(txReceipt));
-            }
-
-            var spec = _specProvider.GetSpec(txReceipt.BlockNumber);
-            RlpBehaviors behaviors = spec.IsEip658Enabled ? RlpBehaviors.Eip658Receipts : RlpBehaviors.None;
-            if (isProcessed)
-            {
-                behaviors = behaviors | RlpBehaviors.Storage;
-            }
-
-            _database.Set(txReceipt.TxHash,
-                Rlp.Encode(txReceipt, behaviors).Bytes);
+            if (block == null) throw new ArgumentNullException(nameof(block));
+            if (receipts == null) throw new ArgumentNullException(nameof(receipts));
+            if (block.Transactions.Length != receipts.Length) throw new ArgumentException("Count mismatch between transactions and receipts.");
+            
+            InsertForBlock(block.Hash, block.Number, receipts);
+            InsertForTransactions(block);
+            UpdateLowestInsertedReceiptBlock(block.Number);
         }
 
-        public void Insert(long blockNumber, TxReceipt txReceipt)
+        private void InsertForBlock(Keccak blockHash, long blockNumber, TxReceipt[] receipts)
         {
-            if (txReceipt == null && blockNumber != 1L)
+            var spec = _specProvider.GetSpec(blockNumber);
+            RlpBehaviors behaviors = spec.IsEip658Enabled ? RlpBehaviors.Eip658Receipts : RlpBehaviors.None;
+            _database.Set(blockHash, Rlp.Encode(receipts, behaviors).Bytes);
+        }
+        
+        private void InsertForTransactions(Block block)
+        {
+            var transactions = block.Transactions;
+            for (int i = 0; i < transactions.Length; i++)
             {
-                throw new ArgumentNullException(nameof(txReceipt));
+                var transaction = transactions[i];
+                var receiptInfo = new TransactionInfo {BlockHash = block.Hash, TransactionIndex = i};
+                _database.Set(transaction.Hash, Rlp.Encode(receiptInfo).Bytes);
             }
+        }
 
-            if (txReceipt != null)
+        private void UpdateLowestInsertedReceiptBlock(in long blockNumber)
+        {
+            if (blockNumber > LowestInsertedReceiptBlock)
             {
-                var spec = _specProvider.GetSpec(blockNumber);
-                RlpBehaviors behaviors = spec.IsEip658Enabled ? RlpBehaviors.Eip658Receipts : RlpBehaviors.None;
-                _database.Set(txReceipt.TxHash, Rlp.Encode(txReceipt, behaviors).Bytes);
+                _logger.Error($"{blockNumber} > {LowestInsertedReceiptBlock}");
             }
 
             LowestInsertedReceiptBlock = blockNumber;
-//            LowestInsertedReceiptBlock = Math.Min(LowestInsertedReceiptBlock ?? long.MaxValue, blockNumber);
             _database.Set(Keccak.Zero, Rlp.Encode(LowestInsertedReceiptBlock.Value).Bytes);
         }
 
-        public void Insert(List<(long blockNumber, TxReceipt txReceipt)> receipts)
+        public TxReceipt[] Get(Block block)
         {
-            if (!receipts.Any())
-            {
-                return;
-            }
+            var receipts = Get(block.Hash);
+            receipts?.RecoverData(block);
+            return receipts;
+        }
 
-            long? blockNumber = null;
-            foreach ((long blockNumber, TxReceipt txReceipt) tuple in receipts)
-            {
-                blockNumber = tuple.blockNumber;
-                TxReceipt txReceipt = tuple.txReceipt;
-                if (txReceipt == null && blockNumber != 1L)
-                {
-                    throw new ArgumentNullException(nameof(txReceipt));
-                }
-
-                if (txReceipt != null)
-                {
-                    var spec = _specProvider.GetSpec(blockNumber.Value);
-                    RlpBehaviors behaviors = spec.IsEip658Enabled ? RlpBehaviors.Eip658Receipts : RlpBehaviors.None;
-                    _database.Set(txReceipt.TxHash, Rlp.Encode(txReceipt, behaviors).Bytes);
-                }
-            }
-
-            if (blockNumber.HasValue)
-            {
-                if (blockNumber > LowestInsertedReceiptBlock)
-                {
-                    _logger.Error($"{blockNumber} > {LowestInsertedReceiptBlock}");
-                }
-
-                LowestInsertedReceiptBlock = blockNumber;
-                _database.Set(Keccak.Zero, Rlp.Encode(LowestInsertedReceiptBlock.Value).Bytes);
-            }
+        public TxReceipt[] Get(Keccak blockHash)
+        {
+            var data = _database.Get(blockHash);
+            return data == null ? null : Rlp.Decode<TxReceipt[]>(data);
         }
 
         public long? LowestInsertedReceiptBlock { get; private set; }
+    }
+
+    public class TransactionInfo
+    {
+        public Keccak BlockHash { get; set; }
+        public int TransactionIndex { get; set; }
+    }
+    
+    public static class ReceiptsRecovery
+    {
+        public static void RecoverData(this TxReceipt[] receipts, Block block)
+        {
+            if (block.Transactions.Length != receipts.Length) throw new ArgumentException("Count mismatch between transactions and receipts.");
+            
+            long gasUsedBefore = 0;
+            for (int receiptIndex = 0; receiptIndex < block.Transactions.Length; receiptIndex++)
+            {
+                Transaction transaction = block.Transactions[receiptIndex];
+                if (receipts.Length > receiptIndex)
+                {
+                    TxReceipt receipt = receipts[receiptIndex];
+                    receipt.RecoverData(block, transaction, receiptIndex, gasUsedBefore);
+                    gasUsedBefore = receipt.GasUsedTotal;
+                }
+            }
+        }
+
+        public static void RecoverData(this TxReceipt receipt, Block block, Transaction transaction, int transactionIndex)
+        {
+            receipt.RecoverData(block, transaction, transactionIndex, null);
+        }
+        
+        private static void RecoverData(this TxReceipt receipt, Block block, Transaction transaction, int transactionIndex, long? gasUsedBefore)
+        {
+            receipt.BlockHash = block.Hash;
+            receipt.BlockNumber = block.Number;
+            receipt.TxHash = transaction.Hash;
+            receipt.Index = transactionIndex;
+            receipt.Sender = transaction.SenderAddress;
+            receipt.Recipient = transaction.IsContractCreation ? null : transaction.To;
+            receipt.ContractAddress = transaction.IsContractCreation ? transaction.To : null;
+            if (gasUsedBefore.HasValue)
+            {
+                receipt.GasUsed = receipt.GasUsedTotal - gasUsedBefore.Value;
+            }
+
+            if (receipt.StatusCode != StatusCode.Success)
+            {
+                receipt.StatusCode = receipt.Logs.Length == 0 ? StatusCode.Failure : StatusCode.Success;
+            }
+        }
     }
 }

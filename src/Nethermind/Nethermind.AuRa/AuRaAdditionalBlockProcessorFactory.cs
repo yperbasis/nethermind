@@ -46,7 +46,7 @@ namespace Nethermind.AuRa
         private readonly IDb _stateDb;
         private readonly ITransactionProcessor _transactionProcessor;
         private readonly IBlockTree _blockTree;
-        private readonly IReceiptStorage _receiptStorage;
+        private readonly IReceiptFinder _receiptFinder;
         private readonly ILogManager _logManager;
 
         public AuRaAdditionalBlockProcessorFactory(
@@ -55,7 +55,7 @@ namespace Nethermind.AuRa
             IAbiEncoder abiEncoder,
             ITransactionProcessor transactionProcessor,
             IBlockTree blockTree,
-            IReceiptStorage receiptStorage,
+            IReceiptFinder receiptFinder,
             ILogManager logManager)
         {
             _stateProvider = stateProvider;
@@ -63,7 +63,7 @@ namespace Nethermind.AuRa
             _stateDb = stateDb;
             _transactionProcessor = transactionProcessor;
             _blockTree = blockTree;
-            _receiptStorage = receiptStorage;
+            _receiptFinder = receiptFinder;
             _logManager = logManager;
         }
 
@@ -75,9 +75,9 @@ namespace Nethermind.AuRa
                 case AuRaParameters.ValidatorType.List:
                     return new ListValidator(validator, _logManager);
                 case AuRaParameters.ValidatorType.Contract:
-                    return new ContractValidator(validator, _stateDb, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptStorage, _logManager, startBlockNumber);
+                    return new ContractValidator(validator, _stateDb, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptFinder, _logManager, startBlockNumber);
                 case AuRaParameters.ValidatorType.ReportingContract:
-                    return new ReportingContractValidator(validator, _stateDb, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptStorage, _logManager, startBlockNumber);
+                    return new ReportingContractValidator(validator, _stateDb, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptFinder, _logManager, startBlockNumber);
                 case AuRaParameters.ValidatorType.Multi:
                     return new MultiValidator(validator, this, _blockTree, _logManager);
                 default:

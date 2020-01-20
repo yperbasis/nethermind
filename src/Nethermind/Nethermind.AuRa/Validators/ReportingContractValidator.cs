@@ -32,10 +32,10 @@ namespace Nethermind.AuRa.Validators
             IAbiEncoder abiEncoder,
             ITransactionProcessor transactionProcessor,
             IBlockTree blockTree,
-            IReceiptStorage receiptStorage,
+            IReceiptFinder receiptFinder,
             ILogManager logManager,
             long startBlockNumber) 
-            : base(validator, stateDb, stateProvider, abiEncoder, transactionProcessor, blockTree, receiptStorage, logManager, startBlockNumber)
+            : base(validator, stateDb, stateProvider, abiEncoder, transactionProcessor, blockTree, receiptFinder, logManager, startBlockNumber)
         {
         }
     }

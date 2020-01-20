@@ -248,22 +248,22 @@ namespace Nethermind.Blockchain.Synchronization
                         break;
                     }
 
-                    if (_logger.IsTrace) _logger.Trace($"Received {blocks[blockIndex]} from {bestPeer}");
+                    var block = blocks[blockIndex];
+                    
+                    if (_logger.IsTrace) _logger.Trace($"Received {block} from {bestPeer}");
 
                     // can move this to block tree now?
-                    if (!_blockValidator.ValidateSuggestedBlock(blocks[blockIndex]))
+                    if (!_blockValidator.ValidateSuggestedBlock(block))
                     {
-                        throw new EthSynchronizationException($"{bestPeer} sent an invalid block {blocks[blockIndex].ToString(Block.Format.Short)}.");
+                        throw new EthSynchronizationException($"{bestPeer} sent an invalid block {block.ToString(Block.Format.Short)}.");
                     }
 
-                    if (HandleAddResult(blocks[blockIndex].Header, blockIndex == 0, _blockTree.SuggestBlock(blocks[blockIndex], shouldProcess)))
+                    if (HandleAddResult(block.Header, blockIndex == 0, _blockTree.SuggestBlock(block, shouldProcess)))
                     {
                         if (downloadReceipts)
                         {
-                            for (int receiptIndex = 0; receiptIndex < (context.ReceiptsForBlocks[blockIndex]?.Length ?? 0); receiptIndex++)
-                            {
-                                _receiptStorage.Add(context.ReceiptsForBlocks[blockIndex][receiptIndex], true);
-                            }
+                            var receiptsForBlock = context.ReceiptsForBlocks[blockIndex] ?? Array.Empty<TxReceipt>();
+                            _receiptStorage.Insert(block, receiptsForBlock);
                         }
 
                         blocksSynced++;

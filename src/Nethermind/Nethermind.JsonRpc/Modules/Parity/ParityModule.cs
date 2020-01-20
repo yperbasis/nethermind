@@ -51,7 +51,7 @@ namespace Nethermind.JsonRpc.Modules.Parity
         {
             var filterBlock = blockParameter.ToFilterBlock();
             var block = _blockFinder.GetBlock(filterBlock);
-            var receipts = _receiptStorage.FindForBlock(block);
+            var receipts = _receiptStorage.Get(block);
             var result = receipts.Zip(block.Transactions, (r, t) => new ReceiptForRpc(t.Hash, r));
             return ResultWrapper<ReceiptForRpc[]>.Success(result.ToArray());
         }

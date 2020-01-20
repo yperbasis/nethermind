@@ -55,7 +55,7 @@ namespace Nethermind.Blockchain.Test
         {
             var transaction = GetSignedTransaction();
             var receipt = GetReceipt(transaction);
-            storage.Add(receipt, true);
+            storage.Insert(Build.A.Block.TestObject, receipt);
             var fetchedReceipt = storage.Find(transaction.Hash);
             receipt.StatusCode.Should().Be(fetchedReceipt.StatusCode);
             receipt.PostTransactionState.Should().Be(fetchedReceipt.PostTransactionState);
@@ -66,7 +66,7 @@ namespace Nethermind.Blockchain.Test
         {
             var transaction = GetSignedTransaction();
             var receipt = GetReceipt(transaction);
-            storage.Add(receipt, true);
+            storage.Insert(Build.A.Block.TestObject, receipt);
             var fetchedReceipt = storage.Find(transaction.Hash);
             receipt.StatusCode.Should().Be(fetchedReceipt.StatusCode);
             receipt.PostTransactionState.Should().Be(fetchedReceipt.PostTransactionState);

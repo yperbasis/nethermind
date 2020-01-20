@@ -14,6 +14,7 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Nethermind.Core;
@@ -23,34 +24,36 @@ namespace Nethermind.Blockchain.Receipts
 {
     public class InMemoryReceiptStorage : IReceiptStorage
     {
-        private readonly ConcurrentDictionary<Keccak, TxReceipt> _receipts =
+        private readonly ConcurrentDictionary<Keccak, TxReceipt[]> _receipts =
+            new ConcurrentDictionary<Keccak, TxReceipt[]>();
+        
+        private readonly ConcurrentDictionary<Keccak, TxReceipt> _transactions =
             new ConcurrentDictionary<Keccak, TxReceipt>();
 
         public TxReceipt Find(Keccak transactionHash)
         {
-            _receipts.TryGetValue(transactionHash, out var transaction);
+            _transactions.TryGetValue(transactionHash, out var transaction);
             return transaction;
         }
 
-        public void Add(TxReceipt txReceipt, bool isProcessed)
-            => _receipts.TryAdd(txReceipt.TxHash, txReceipt);
-
-        public void Insert(long blockNumber, TxReceipt txReceipt)
+        public void Insert(Block block, TxReceipt[] receipts)
         {
-            if (txReceipt != null)
+            _receipts[block.Hash] = receipts;
+            for (var index = 0; index < block.Transactions.Length; index++)
             {
-                _receipts.TryAdd(txReceipt.TxHash, txReceipt);
+                var transaction = block.Transactions[index];
+                _transactions[transaction.Hash] = receipts[index];
             }
 
-            LowestInsertedReceiptBlock = blockNumber;
+            LowestInsertedReceiptBlock = Math.Min(LowestInsertedReceiptBlock ?? long.MaxValue, block.Number);
         }
 
-        public void Insert(List<(long blockNumber, TxReceipt txReceipt)> receipts)
+        public TxReceipt[] Get(Block block) => Get(block.Hash);
+
+        public TxReceipt[] Get(Keccak blockHash)
         {
-            foreach ((long blockNumber, TxReceipt txReceipt) in receipts)
-            {
-                Insert(blockNumber, txReceipt);
-            }
+            _receipts.TryGetValue(blockHash, out var receipts);
+            return receipts;
         }
 
         public long? LowestInsertedReceiptBlock { get; private set; }

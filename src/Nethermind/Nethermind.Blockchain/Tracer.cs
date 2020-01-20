@@ -34,12 +34,12 @@ namespace Nethermind.Blockchain
         private readonly IBlockTree _blockTree;
         private readonly IDb _traceDb;
         private readonly IBlockchainProcessor _processor;
-        private readonly IReceiptStorage _receiptStorage;
+        private readonly IReceiptFinder _receiptFinder;
 
-        public Tracer(IBlockchainProcessor processor, IReceiptStorage receiptStorage, IBlockTree blockTree, IDb traceDb)
+        public Tracer(IBlockchainProcessor processor, IReceiptFinder receiptStorage, IBlockTree blockTree, IDb traceDb)
         {
             _processor = processor ?? throw new ArgumentNullException(nameof(processor));
-            _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
+            _receiptFinder = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _traceDb = traceDb ?? throw new ArgumentNullException(nameof(traceDb));
         }
@@ -61,7 +61,7 @@ namespace Nethermind.Blockchain
 
         public GethLikeTxTrace Trace(Keccak txHash, GethTraceOptions traceOptions)
         {
-            TxReceipt txReceipt = _receiptStorage.Find(txHash);
+            TxReceipt txReceipt = _receiptFinder.Find(txHash);
             if (txReceipt == null)
             {
                 return null;
@@ -121,7 +121,7 @@ namespace Nethermind.Blockchain
                 return Rlp.Decode<ParityLikeTxTrace>(traceBytes);
             }
 
-            TxReceipt txReceipt = _receiptStorage.Find(txHash);
+            TxReceipt txReceipt = _receiptFinder.Find(txHash);
             Block block = _blockTree.FindBlock(txReceipt.BlockNumber, BlockTreeLookupOptions.RequireCanonical);
             if (block == null) throw new InvalidOperationException("Only historical blocks");
 

@@ -54,7 +54,7 @@ namespace Nethermind.AuRa.Validators
         private long _lastProcessedBlockNumber = 0;
         private IBlockFinalizationManager _blockFinalizationManager;
         private readonly IBlockTree _blockTree;
-        private readonly IReceiptStorage _receiptStorage;
+        private readonly IReceiptFinder _receiptFinder;
         private Address[] _validators;
         private bool _validatorUsedForSealing;
 
@@ -79,7 +79,7 @@ namespace Nethermind.AuRa.Validators
             IAbiEncoder abiEncoder,
             ITransactionProcessor transactionProcessor,
             IBlockTree blockTree,
-            IReceiptStorage receiptStorage,
+            IReceiptFinder receiptFinder,
             ILogManager logManager,
             long startBlockNumber) : base(validator, logManager)
         {
@@ -88,7 +88,7 @@ namespace Nethermind.AuRa.Validators
             _stateDb = stateDb ?? throw new ArgumentNullException(nameof(stateDb));
             _stateProvider = stateProvider ?? throw new ArgumentNullException(nameof(stateProvider));
             _transactionProcessor = transactionProcessor ?? throw new ArgumentNullException(nameof(transactionProcessor));
-            _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
+            _receiptFinder = receiptFinder ?? throw new ArgumentNullException(nameof(receiptFinder));
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             AbiEncoder = abiEncoder ?? throw new ArgumentNullException(nameof(abiEncoder));
             InitBlockNumber = startBlockNumber;
@@ -172,7 +172,7 @@ namespace Nethermind.AuRa.Validators
             var block = _blockTree.FindBlock(blockHash, BlockTreeLookupOptions.None);
             while (block?.Number >= toBlock)
             {
-                var receipts = block.Transactions.Select(t => _receiptStorage.Find(t.Hash)).Where(r => r != null).ToArray();
+                var receipts = _receiptFinder.Get(block) ?? Array.Empty<TxReceipt>();
                 if (ValidatorContract.CheckInitiateChangeEvent(ContractAddress, block.Header, receipts, out var potentialValidators))
                 {
                     if (Validators.SequenceEqual(potentialValidators))

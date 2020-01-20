@@ -20,14 +20,68 @@ using Nethermind.Core.Crypto;
 
 namespace Nethermind.Blockchain.Receipts
 {
-    public interface IReceiptStorage
+    public interface IReceiptFinder
     {
         TxReceipt Find(Keccak transactionHash);
-        // void Add(TxReceipt txReceipt, bool isProcessed);
-        // void Insert(long blockNumber, TxReceipt txReceipt);
-        // void Insert(List<(long blockNumber, TxReceipt txReceipt)> receipts);
-        void Insert(Block block, TxReceipt[] receipts);
         TxReceipt[] Get(Block block);
+    }
+
+    public class OldFormatReceiptFinder : IReceiptFinder
+    {
+        public TxReceipt Find(Keccak transactionHash)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public TxReceipt[] Get(Block block)
+        {
+            throw new System.NotImplementedException();
+        }
+    }
+
+    public class ReceiptFinderChain : IReceiptFinder
+    {
+        private readonly IReceiptFinder[] _finders;
+
+        public ReceiptFinderChain(params IReceiptFinder[] finders)
+        {
+            _finders = finders;
+        }
+        
+        public TxReceipt Find(Keccak transactionHash)
+        {
+            for (int i = 0; i < _finders.Length; i++)
+            {
+                var finder = _finders[i];
+                var txReceipt = finder.Find(transactionHash);
+                if (txReceipt != null)
+                {
+                    return txReceipt;
+                }
+            }
+
+            return null;
+        }
+
+        public TxReceipt[] Get(Block block)
+        {
+            for (int i = 0; i < _finders.Length; i++)
+            {
+                var finder = _finders[i];
+                var txReceipt = finder.Get(block);
+                if (txReceipt != null)
+                {
+                    return txReceipt;
+                }
+            }
+
+            return null;
+        }
+    }
+
+    public interface IReceiptStorage : IReceiptFinder
+    {
+        void Insert(Block block, params TxReceipt[] receipts);
         long? LowestInsertedReceiptBlock { get; }
     }
 }

@@ -33,7 +33,7 @@ namespace Nethermind.Blockchain.Synchronization
         private readonly IBlockTree _blockTree;
         private readonly ILogger _logger;
         private readonly IEthSyncPeerPool _pool;
-        private readonly IReceiptStorage _receiptStorage;
+        private readonly IReceiptFinder _receiptFinder;
         private readonly IBlockValidator _blockValidator;
         private readonly ISealValidator _sealValidator;
         private readonly ISnapshotableDb _stateDb;
@@ -43,7 +43,7 @@ namespace Nethermind.Blockchain.Synchronization
         private object _dummyValue = new object();
         private LruCache<Keccak, object> _recentlySuggested = new LruCache<Keccak, object>(8);
 
-        public SyncServer(ISnapshotableDb stateDb, ISnapshotableDb codeDb, IBlockTree blockTree, IReceiptStorage receiptStorage, IBlockValidator blockValidator, ISealValidator sealValidator, IEthSyncPeerPool pool, ISynchronizer synchronizer, ISyncConfig syncConfig, ILogManager logManager)
+        public SyncServer(ISnapshotableDb stateDb, ISnapshotableDb codeDb, IBlockTree blockTree, IReceiptFinder receiptStorage, IBlockValidator blockValidator, ISealValidator sealValidator, IEthSyncPeerPool pool, ISynchronizer synchronizer, ISyncConfig syncConfig, ILogManager logManager)
         {
             _synchronizer = synchronizer ?? throw new ArgumentNullException(nameof(synchronizer));
             _syncConfig = syncConfig ?? throw new ArgumentNullException(nameof(syncConfig));
@@ -52,7 +52,7 @@ namespace Nethermind.Blockchain.Synchronization
             _stateDb = stateDb ?? throw new ArgumentNullException(nameof(stateDb));
             _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
-            _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
+            _receiptFinder = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
             _blockValidator = blockValidator ?? throw new ArgumentNullException(nameof(blockValidator));
             _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
 
@@ -221,33 +221,13 @@ namespace Nethermind.Blockchain.Synchronization
             for (int blockIndex = 0; blockIndex < blockHashes.Count; blockIndex++)
             {
                 Block block = Find(blockHashes[blockIndex]);
-                var blockReceipts = new TxReceipt[block?.Transactions.Length ?? 0];
-                bool setNullForBlock = false;
-                for (int receiptIndex = 0; receiptIndex < (block?.Transactions.Length ?? 0); receiptIndex++)
-                {
-                    if (block == null) continue;
-
-                    TxReceipt receipt = _receiptStorage.Find(block.Transactions[receiptIndex].Hash);
-                    if (receipt == null)
-                    {
-                        setNullForBlock = true;
-                        break;
-                    }
-                    
-                    receipt.BlockNumber = block.Number;
-                    blockReceipts[receiptIndex] = receipt;
-                }
-
-                receipts[blockIndex] = setNullForBlock ? null : blockReceipts;
+                receipts[blockIndex] = block != null ? _receiptFinder.Get(block) : Array.Empty<TxReceipt>();
             }
 
             return receipts;
         }
 
-        public BlockHeader[] FindHeaders(Keccak hash, int numberOfBlocks, int skip, bool reverse)
-        {
-            return _blockTree.FindHeaders(hash, numberOfBlocks, skip, reverse);
-        }
+        public BlockHeader[] FindHeaders(Keccak hash, int numberOfBlocks, int skip, bool reverse) => _blockTree.FindHeaders(hash, numberOfBlocks, skip, reverse);
 
         public byte[][] GetNodeData(IList<Keccak> keys)
         {
@@ -260,10 +240,7 @@ namespace Nethermind.Blockchain.Synchronization
             return values;
         }
 
-        public Block Find(Keccak hash)
-        {
-            return _blockTree.FindBlock(hash, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
-        }
+        public Block Find(Keccak hash) => _blockTree.FindBlock(hash, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
 
         public Keccak FindHash(long number)
         {

@@ -147,10 +147,11 @@ namespace Nethermind.Core.Test.Builders
                         TxHash = transaction.Hash,
                         Bloom = new Bloom(logEntries)
                     };
-                    _receiptStorage.Add(receipt, false);
                     receipts.Add(receipt);
                     current.Bloom.Add(receipt.Logs);
                 }
+                
+                _receiptStorage.Insert(current, receipts.ToArray());
 
                 current.Header.TxRoot = current.CalculateTxRoot();
                 current.Header.ReceiptsRoot = current.CalculateReceiptRoot(_specProvider, receipts.ToArray());
