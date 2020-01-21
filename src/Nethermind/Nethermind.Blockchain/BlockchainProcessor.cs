@@ -21,6 +21,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Validators;
 using Nethermind.Core;
+using Nethermind.Core.Attributes;
 using Nethermind.Core.Crypto;
 using Nethermind.Dirichlet.Numerics;
 using Nethermind.Evm.Tracing;
@@ -28,12 +29,11 @@ using Nethermind.Logging;
 
 namespace Nethermind.Blockchain
 {
-    public class BlockchainProcessor : IBlockchainProcessor
+    public class BlockchainProcessor : IBlockchainProcessor, IBlockProcessingQueue
     {
         private readonly IBlockProcessor _blockProcessor;
         private readonly IBlockDataRecoveryStep _recoveryStep;
         private readonly bool _storeReceiptsByDefault;
-        private readonly bool _storeTracesByDefault;
         private readonly IBlockTree _blockTree;
         private readonly ILogger _logger;
 
@@ -55,15 +55,13 @@ namespace Nethermind.Blockchain
             IBlockProcessor blockProcessor,
             IBlockDataRecoveryStep recoveryStep,
             ILogManager logManager,
-            bool storeReceiptsByDefault,
-            bool storeTracesByDefault)
+            bool storeReceiptsByDefault)
         {
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _blockProcessor = blockProcessor ?? throw new ArgumentNullException(nameof(blockProcessor));
             _recoveryStep = recoveryStep ?? throw new ArgumentNullException(nameof(recoveryStep));
             _storeReceiptsByDefault = storeReceiptsByDefault;
-            _storeTracesByDefault = storeTracesByDefault;
 
             _blockTree.NewBestSuggestedBlock += OnNewBestBlock;
             _stats = new ProcessingStats(_logger);
@@ -75,11 +73,6 @@ namespace Nethermind.Blockchain
             if (_storeReceiptsByDefault)
             {
                 options |= ProcessingOptions.StoreReceipts;
-            }
-
-            if (_storeTracesByDefault)
-            {
-                options |= ProcessingOptions.StoreTraces;
             }
 
             SuggestBlock(blockEventArgs.Block, options);
@@ -152,7 +145,7 @@ namespace Nethermind.Blockchain
             });
         }
 
-        public async Task StopAsync(bool processRemainingBlocks)
+        public async Task StopAsync(bool processRemainingBlocks = false)
         {
             if (processRemainingBlocks)
             {
@@ -221,7 +214,7 @@ namespace Nethermind.Blockchain
             _stats.Start();
             if (_logger.IsDebug) _logger.Debug($"Starting block processor - {_blockQueue.Count} blocks waiting in the queue.");
 
-            if (_blockQueue.Count == 0)
+            if (IsEmpty)
             {
                 ProcessingQueueEmpty?.Invoke(this, EventArgs.Empty);
             }
@@ -238,10 +231,6 @@ namespace Nethermind.Blockchain
                 if (_logger.IsTrace) _logger.Trace($"Processing block {block.ToString(Block.Format.Short)}).");
 
                 IBlockTracer tracer = NullBlockTracer.Instance;
-                if ((blockRef.ProcessingOptions & ProcessingOptions.StoreTraces) != 0)
-                {
-                    tracer = new ParityLikeBlockTracer(ParityTraceTypes.Trace | ParityTraceTypes.StateDiff);
-                }
 
                 Block processedBlock = Process(block, blockRef.ProcessingOptions, tracer);
                 if (processedBlock == null)
@@ -255,7 +244,7 @@ namespace Nethermind.Blockchain
                 }
 
                 if (_logger.IsTrace) _logger.Trace($"Now {_blockQueue.Count} blocks waiting in the queue.");
-                if (_blockQueue.Count == 0)
+                if (IsEmpty)
                 {
                     ProcessingQueueEmpty?.Invoke(this, EventArgs.Empty);
                 }
@@ -265,6 +254,8 @@ namespace Nethermind.Blockchain
         }
 
         public event EventHandler ProcessingQueueEmpty;
+
+        public bool IsEmpty => _blockQueue.Count == 0 && _recoveryQueue.Count == 0;
 
         [Todo("Introduce priority queue and create a SuggestWithPriority that waits for block execution to return a block, then make this private")]
         public Block Process(Block suggestedBlock, ProcessingOptions options, IBlockTracer blockTracer)

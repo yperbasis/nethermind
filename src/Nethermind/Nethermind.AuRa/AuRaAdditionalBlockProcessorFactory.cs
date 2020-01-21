@@ -25,8 +25,8 @@ using Nethermind.Blockchain.Receipts;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
-using Nethermind.Core.Specs.ChainSpecStyle;
-using Nethermind.Core.Specs.Forks;
+using Nethermind.Specs.ChainSpecStyle;
+using Nethermind.Specs.Forks;
 using Nethermind.Dirichlet.Numerics;
 using Nethermind.Evm;
 using Nethermind.Evm.Tracing;
@@ -40,46 +40,46 @@ namespace Nethermind.AuRa
     public class AuRaAdditionalBlockProcessorFactory : IAuRaAdditionalBlockProcessorFactory
     {
         private const long DefaultStartBlockNumber = 1;
-        
+
         private readonly IStateProvider _stateProvider;
         private readonly IAbiEncoder _abiEncoder;
-        private readonly IDb _stateDb;
         private readonly ITransactionProcessor _transactionProcessor;
         private readonly IBlockTree _blockTree;
         private readonly IReceiptFinder _receiptFinder;
+        private readonly IValidatorStore _validatorStore;
         private readonly ILogManager _logManager;
 
-        public AuRaAdditionalBlockProcessorFactory(
-            IDb stateDb,
-            IStateProvider stateProvider,
+        public AuRaAdditionalBlockProcessorFactory(IStateProvider stateProvider,
             IAbiEncoder abiEncoder,
             ITransactionProcessor transactionProcessor,
             IBlockTree blockTree,
             IReceiptFinder receiptFinder,
+            IValidatorStore validatorStore,
             ILogManager logManager)
         {
             _stateProvider = stateProvider;
             _abiEncoder = abiEncoder;
-            _stateDb = stateDb;
             _transactionProcessor = transactionProcessor;
             _blockTree = blockTree;
             _receiptFinder = receiptFinder;
+            _validatorStore = validatorStore;
             _logManager = logManager;
         }
 
         public IAuRaValidatorProcessor CreateValidatorProcessor(AuRaParameters.Validator validator, long? startBlock = null)
         {
+            var auRaSealerValidator = new ValidSealerStrategy();
             long startBlockNumber = startBlock ?? DefaultStartBlockNumber;
             switch (validator.ValidatorType)
             {
                 case AuRaParameters.ValidatorType.List:
-                    return new ListValidator(validator, _logManager);
+                    return new ListValidator(validator, auRaSealerValidator, _logManager);
                 case AuRaParameters.ValidatorType.Contract:
-                    return new ContractValidator(validator, _stateDb, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptFinder, _logManager, startBlockNumber);
+                    return new ContractValidator(validator, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptFinder, _validatorStore, auRaSealerValidator, _logManager, startBlockNumber);
                 case AuRaParameters.ValidatorType.ReportingContract:
-                    return new ReportingContractValidator(validator, _stateDb, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptFinder, _logManager, startBlockNumber);
+                    return new ReportingContractValidator(validator, _stateProvider, _abiEncoder, _transactionProcessor, _blockTree, _receiptFinder, _validatorStore, auRaSealerValidator, _logManager, startBlockNumber);
                 case AuRaParameters.ValidatorType.Multi:
-                    return new MultiValidator(validator, this, _blockTree, _logManager);
+                    return new MultiValidator(validator, this, _blockTree, _validatorStore, _logManager);
                 default:
                     throw new ArgumentOutOfRangeException();
             }

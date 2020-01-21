@@ -15,9 +15,10 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using Nethermind.Blockchain;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
-using Nethermind.Core.Specs.Forks;
+using Nethermind.Specs.Forks;
 using Nethermind.Dirichlet.Numerics;
 using Nethermind.Evm;
 using Nethermind.Evm.Tracing;
@@ -27,27 +28,27 @@ namespace Nethermind.AuRa.Contracts
 {
     public class SystemContract
     {
-        private readonly Address _contractAddress;
+        protected Address ContractAddress { get; }
 
         public SystemContract(Address contractAddress)
         {
-            _contractAddress = contractAddress ?? throw new ArgumentNullException(nameof(contractAddress));
+            ContractAddress = contractAddress ?? throw new ArgumentNullException(nameof(contractAddress));
         }
         
-        protected Transaction GenerateTransaction(byte[] transactionData, long gasLimit = long.MaxValue, UInt256? nonce = null)
+        protected Transaction GenerateTransaction(byte[] transactionData, Address sender, long gasLimit = long.MaxValue, UInt256? nonce = null)
         {
             var transaction = new Transaction(true)
             {
                 Value = UInt256.Zero,
                 Data = transactionData,
-                To = _contractAddress,
-                SenderAddress = Address.SystemUser,
+                To = ContractAddress,
+                SenderAddress = sender,
                 GasLimit = gasLimit,
                 GasPrice = UInt256.Zero,
                 Nonce = nonce ?? UInt256.Zero,
             };
                 
-            transaction.Hash = Transaction.CalculateHash(transaction);
+            transaction.Hash = transaction.CalculateHash();
 
             return transaction;
         }
@@ -77,6 +78,7 @@ namespace Nethermind.AuRa.Contracts
             try
             {
                 transactionProcessor.Execute(transaction, header, tracer);
+                
                 return tracer.StatusCode == StatusCode.Success;
             }
             catch (Exception)

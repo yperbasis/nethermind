@@ -21,8 +21,8 @@ using Nethermind.Blockchain;
 using Nethermind.Config;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Encoding;
 using Nethermind.Evm.Tracing;
+using Nethermind.Serialization.Rlp;
 using Nethermind.Store;
 
 namespace Nethermind.JsonRpc.Modules.DebugModule
@@ -34,9 +34,9 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
         private readonly IBlockTree _blockTree;
         private Dictionary<string, IDb> _dbMappings;
 
-        public DebugBridge(IConfigProvider configProvider, IReadOnlyDbProvider dbProvider, ITracer tracer, IBlockchainProcessor receiptsProcessor, IBlockTree blockTree)
+        public DebugBridge(IConfigProvider configProvider, IReadOnlyDbProvider dbProvider, ITracer tracer, IBlockProcessingQueue receiptsBlockQueue, IBlockTree blockTree)
         {
-            receiptsProcessor.ProcessingQueueEmpty += (sender, args) => _receiptProcessedEvent.Set();
+            receiptsBlockQueue.ProcessingQueueEmpty += (sender, args) => _receiptProcessedEvent.Set();
             _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
@@ -47,7 +47,6 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
             IDb receiptsDb = dbProvider.ReceiptsDb ?? throw new ArgumentNullException(nameof(dbProvider.ReceiptsDb));
             IDb codeDb = dbProvider.CodeDb ?? throw new ArgumentNullException(nameof(dbProvider.CodeDb));
             IDb pendingTxsDb = dbProvider.PendingTxsDb ?? throw new ArgumentNullException(nameof(dbProvider.PendingTxsDb));
-            IDb traceDb = dbProvider.TraceDb ?? throw new ArgumentNullException(nameof(dbProvider.TraceDb));
 
             _dbMappings = new Dictionary<string, IDb>(StringComparer.InvariantCultureIgnoreCase)
             {
@@ -59,7 +58,6 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
                 {DbNames.Code, codeDb},
                 {DbNames.Receipts, receiptsDb},
                 {DbNames.PendingTxs, pendingTxsDb},
-                {DbNames.Trace, traceDb}
             };
         }
 
