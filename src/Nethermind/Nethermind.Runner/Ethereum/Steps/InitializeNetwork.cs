@@ -84,7 +84,7 @@ namespace Nethermind.Runner.Ethereum.Steps
                 _context.DbProvider.StateDb,
                 _context.DbProvider.CodeDb,
                 _context.BlockTree,
-                _context.ReceiptStorage,
+                _context.ReceiptFinder,
                 _context.BlockValidator,
                 _context.SealValidator,
                 _context.SyncPeerPool,
@@ -296,7 +296,7 @@ namespace Nethermind.Runner.Ethereum.Steps
                 FilterStore filterStore = new FilterStore();
                 FilterManager filterManager = new FilterManager(filterStore, _context.BlockProcessor, _context.TxPool, _context.LogManager);
                 INdmCapabilityConnector capabilityConnector = await _context.NdmInitializer.InitAsync(_context.ConfigProvider, _context.DbProvider,
-                    initConfig.BaseDbPath, _context.BlockTree, _context.TxPool, _context.SpecProvider, _context.ReceiptStorage, _context.Wallet, filterStore,
+                    initConfig.BaseDbPath, _context.BlockTree, _context.TxPool, _context.SpecProvider, _context.ReceiptStorage, _context.ReceiptFinder, _context.Wallet, filterStore,
                     filterManager, _context.Timestamper, _context.EthereumEcdsa, _context.RpcModuleProvider, _context.KeyStore, _context.EthereumJsonSerializer,
                     _context.CryptoRandom, _context.Enode, _context.NdmConsumerChannelManager, _context.NdmDataPublisher, _context.GrpcServer,
                     _context.NodeStatsManager, _context.ProtocolsManager, protocolValidator, _context._messageSerializationService,

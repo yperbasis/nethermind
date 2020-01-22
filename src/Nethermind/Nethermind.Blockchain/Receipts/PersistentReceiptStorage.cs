@@ -16,10 +16,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
+using Nethermind.Evm;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Store;
@@ -62,7 +64,6 @@ namespace Nethermind.Blockchain.Receipts
             if (block.Transactions.Length != receipts.Length) throw new ArgumentException("Count mismatch between transactions and receipts.");
             
             InsertForBlock(block.Hash, block.Number, receipts);
-            InsertForTransactions(block);
             UpdateLowestInsertedReceiptBlock(block.Number);
         }
 
@@ -71,17 +72,6 @@ namespace Nethermind.Blockchain.Receipts
             var spec = _specProvider.GetSpec(blockNumber);
             RlpBehaviors behaviors = spec.IsEip658Enabled ? RlpBehaviors.Eip658Receipts : RlpBehaviors.None;
             _database.Set(blockHash, Rlp.Encode(receipts, behaviors).Bytes);
-        }
-        
-        private void InsertForTransactions(Block block)
-        {
-            var transactions = block.Transactions;
-            for (int i = 0; i < transactions.Length; i++)
-            {
-                var transaction = transactions[i];
-                var receiptInfo = new TransactionInfo {BlockHash = block.Hash, TransactionIndex = i};
-                _database.Set(transaction.Hash, Rlp.Encode(receiptInfo).Bytes);
-            }
         }
 
         private void UpdateLowestInsertedReceiptBlock(in long blockNumber)
@@ -111,10 +101,79 @@ namespace Nethermind.Blockchain.Receipts
         public long? LowestInsertedReceiptBlock { get; private set; }
     }
 
+    interface ITransactionInfoRepository
+    {
+        void Set(IList<(Keccak TxHash, TransactionInfo Info)> transactionInfos);
+        TransactionInfo Get(Keccak txHash);
+    }
+
+    public class TransactionInfoRepository : ITransactionInfoRepository
+    {
+        private readonly IDb _db;
+
+        public TransactionInfoRepository(IDb db)
+        {
+            _db = db;
+        }
+        
+        public void Set(IList<(Keccak TxHash, TransactionInfo Info)> transactionInfos)
+        {
+            _db.StartBatch();
+            for (int i = 0; i < transactionInfos.Count; i++)
+            {
+                var info = transactionInfos[i];
+                _db.Set(info.TxHash, Rlp.Encode(info.Info).Bytes);
+            }
+            _db.CommitBatch();
+        }
+
+        public TransactionInfo Get(Keccak txHash)
+        {
+            var bytes = _db.Get(txHash);
+            return bytes == null ? null : Rlp.Decode<TransactionInfo>(bytes);
+        }
+    }
+
     public class TransactionInfo
     {
+        static TransactionInfo()
+        {
+            Rlp.Decoders[typeof(TransactionInfo)] = new TransactionInfoDecoder();
+        }
+        
         public Keccak BlockHash { get; set; }
         public int TransactionIndex { get; set; }
+    }
+
+    public class TransactionInfoDecoder : IRlpDecoder<TransactionInfo>
+    {
+        public TransactionInfo Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+        {
+            if (rlpStream.IsNextItemNull())
+            {
+                rlpStream.ReadByte();
+                return null;
+            }
+
+            return new TransactionInfo() {BlockHash = rlpStream.DecodeKeccak(), TransactionIndex = rlpStream.DecodeInt()};
+        }
+
+        public Rlp Encode(TransactionInfo item, RlpBehaviors rlpBehaviors = RlpBehaviors.None) => Rlp.Encode(Rlp.Encode(item.BlockHash), Rlp.Encode(item.TransactionIndex));
+
+        public void Encode(MemoryStream stream, TransactionInfo item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+        {
+            if (item == null)
+            {
+                stream.Write(Rlp.OfEmptySequence.Bytes);
+                return;
+            }
+            
+            Rlp.StartSequence(stream, GetLength(item, rlpBehaviors));
+            Rlp.Encode(stream, item.BlockHash);
+            Rlp.Encode(stream, item.TransactionIndex);
+        }
+
+        public int GetLength(TransactionInfo item, RlpBehaviors rlpBehaviors) => Rlp.LengthOfKeccakRlp + Rlp.LengthOf(item.TransactionIndex);
     }
     
     public static class ReceiptsRecovery

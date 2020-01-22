@@ -81,7 +81,9 @@ namespace Nethermind.Runner.Ethereum.Steps
                 _context.StateProvider,
                 _context.LogManager);
 
-            _context.ReceiptStorage = new PersistentReceiptStorage(_context.DbProvider.ReceiptsDb, _context.SpecProvider, _context.LogManager);
+            var receiptStorage = new PersistentReceiptStorage(_context.DbProvider.ReceiptsDb, _context.SpecProvider, _context.LogManager);
+            _context.ReceiptStorage = receiptStorage;
+            _context.ReceiptFinder = new ReceiptFinderChain(receiptStorage);
 
             _context.ChainLevelInfoRepository = new ChainLevelInfoRepository(_context.DbProvider.BlockInfosDb);
 
@@ -249,7 +251,7 @@ namespace Nethermind.Runner.Ethereum.Steps
                 case SealEngineType.AuRa:
                     AbiEncoder abiEncoder = new AbiEncoder();
                     _context.ValidatorStore = new ValidatorStore(_context.DbProvider.BlockInfosDb);
-                    IAuRaValidatorProcessor validatorProcessor = new AuRaAdditionalBlockProcessorFactory(_context.StateProvider, abiEncoder, _context.TransactionProcessor, _context.BlockTree, _context.ReceiptStorage, _context.ValidatorStore, _context.LogManager)
+                    IAuRaValidatorProcessor validatorProcessor = new AuRaAdditionalBlockProcessorFactory(_context.StateProvider, abiEncoder, _context.TransactionProcessor, _context.BlockTree, _context.ReceiptFinder, _context.ValidatorStore, _context.LogManager)
                         .CreateValidatorProcessor(_context.ChainSpec.AuRa.Validators);
                     
                     AuRaStepCalculator auRaStepCalculator = new AuRaStepCalculator(_context.ChainSpec.AuRa.StepDuration, _context.Timestamper);    

@@ -86,6 +86,7 @@ namespace Nethermind.Runner.Ethereum
         public INodeStatsManager NodeStatsManager;
         public ITxPool TxPool;
         public IReceiptStorage ReceiptStorage;
+        public IReceiptFinder ReceiptFinder;
         public IEthereumEcdsa EthereumEcdsa;
         public IEthSyncPeerPool SyncPeerPool;
         public ISynchronizer Synchronizer;

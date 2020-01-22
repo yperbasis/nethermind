@@ -82,6 +82,7 @@ namespace Nethermind.DataMarketplace.Test.Infrastructure
         private IEthJsonRpcClientProxy _ethJsonRpcClientProxy;
         private IHttpClient _httpClient;
         private IMonitoringService _monitoringService;
+        private IReceiptFinder _receiptFinder;
 
         [SetUp]
         public void Setup()
@@ -97,6 +98,7 @@ namespace Nethermind.DataMarketplace.Test.Infrastructure
             _specProvider = Substitute.For<ISpecProvider>();
             _transactionPool = Substitute.For<ITxPool>();
             _receiptStorage = Substitute.For<IReceiptStorage>();
+            _receiptFinder = Substitute.For<IReceiptFinder>();
             _filterStore = Substitute.For<IFilterStore>();
             _filterManager = Substitute.For<IFilterManager>();
             _wallet = Substitute.For<IWallet>();
@@ -126,7 +128,7 @@ namespace Nethermind.DataMarketplace.Test.Infrastructure
         {
             var services = _ndmModule.Init(new NdmRequiredServices(_configProvider, _configManager, _ndmConfig,
                 _baseDbPath, _rocksProvider, _mongoProvider, _logManager, _blockTree, _transactionPool, _specProvider,
-                _receiptStorage, _filterStore, _filterManager, _wallet, _timestamper, _ecdsa, _keyStore,
+                _receiptStorage, _receiptFinder, _filterStore, _filterManager, _wallet, _timestamper, _ecdsa, _keyStore,
                 _rpcModuleProvider, _jsonSerializer, _cryptoRandom, _enode, _ndmConsumerChannelManager,
                 _ndmDataPublisher, _grpcServer, _ethRequestService, _notifier, _enableUnsecuredDevWallet,
                 _blockProcessor, _jsonRpcClientProxy, _ethJsonRpcClientProxy, _httpClient, _monitoringService));

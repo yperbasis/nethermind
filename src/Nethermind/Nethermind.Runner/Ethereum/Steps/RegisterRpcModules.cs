@@ -67,14 +67,14 @@ namespace Nethermind.Runner.Ethereum.Steps
             else
             {
                 EthModuleFactory ethModuleFactory = new EthModuleFactory(_context.DbProvider, _context.TxPool, _context.Wallet, _context.BlockTree,
-                    _context.EthereumEcdsa, _context.BlockProcessor, _context.ReceiptStorage, _context.SpecProvider, rpcConfig, _context.LogManager);
+                    _context.EthereumEcdsa, _context.BlockProcessor, _context.ReceiptFinder, _context.SpecProvider, rpcConfig, _context.LogManager);
                 _context.RpcModuleProvider.Register(new BoundedModulePool<IEthModule>(8, ethModuleFactory));
             }
 
-            DebugModuleFactory debugModuleFactory = new DebugModuleFactory(_context.DbProvider, _context.BlockTree, _context.BlockValidator, _context.RecoveryStep, _context.RewardCalculator, _context.ReceiptStorage, _context.ConfigProvider, _context.SpecProvider, _context.LogManager);
+            DebugModuleFactory debugModuleFactory = new DebugModuleFactory(_context.DbProvider, _context.BlockTree, _context.BlockValidator, _context.RecoveryStep, _context.RewardCalculator, _context.ReceiptStorage, _context.ReceiptFinder, _context.ConfigProvider, _context.SpecProvider, _context.LogManager);
             _context.RpcModuleProvider.Register(new BoundedModulePool<IDebugModule>(8, debugModuleFactory));
 
-            TraceModuleFactory traceModuleFactory = new TraceModuleFactory(_context.DbProvider, _context.TxPool, _context.BlockTree, _context.BlockValidator, _context.EthereumEcdsa, _context.RecoveryStep, _context.RewardCalculator, _context.ReceiptStorage, _context.SpecProvider, rpcConfig, _context.LogManager);
+            TraceModuleFactory traceModuleFactory = new TraceModuleFactory(_context.DbProvider, _context.TxPool, _context.BlockTree, _context.BlockValidator, _context.EthereumEcdsa, _context.RecoveryStep, _context.RewardCalculator, _context.ReceiptStorage, _context.ReceiptFinder, _context.SpecProvider, rpcConfig, _context.LogManager);
             _context.RpcModuleProvider.Register(new BoundedModulePool<ITraceModule>(8, traceModuleFactory));
 
             if (_context.SealValidator is CliqueSealValidator)
@@ -99,7 +99,7 @@ namespace Nethermind.Runner.Ethereum.Steps
             NetModule netModule = new NetModule(_context.LogManager, new NetBridge(_context.Enode, _context.SyncServer, _context.PeerManager));
             _context.RpcModuleProvider.Register(new SingletonModulePool<INetModule>(netModule, true));
 
-            ParityModule parityModule = new ParityModule(_context.EthereumEcdsa, _context.TxPool, _context.BlockTree, _context.ReceiptStorage, _context.LogManager);
+            ParityModule parityModule = new ParityModule(_context.EthereumEcdsa, _context.TxPool, _context.BlockTree, _context.ReceiptFinder);
             _context.RpcModuleProvider.Register(new SingletonModulePool<IParityModule>(parityModule, true));
 
             SubsystemStateChanged?.Invoke(this, new SubsystemStateEventArgs(EthereumSubsystemState.Running));

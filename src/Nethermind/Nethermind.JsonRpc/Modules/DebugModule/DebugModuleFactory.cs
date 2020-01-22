@@ -36,6 +36,7 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
         private readonly IBlockValidator _blockValidator;
         private readonly IRewardCalculator _rewardCalculator;
         private readonly IReceiptStorage _receiptStorage;
+        private readonly IReceiptFinder _receiptFinder;
         private readonly IConfigProvider _configProvider;
         private readonly ISpecProvider _specProvider;
         private readonly ILogManager _logManager;
@@ -49,6 +50,7 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
             IBlockDataRecoveryStep recoveryStep,
             IRewardCalculator rewardCalculator,
             IReceiptStorage receiptStorage,
+            IReceiptFinder receiptFinder,
             IConfigProvider configProvider,
             ISpecProvider specProvider,
             ILogManager logManager)
@@ -59,6 +61,7 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
             _recoveryStep = recoveryStep ?? throw new ArgumentNullException(nameof(recoveryStep));
             _rewardCalculator = rewardCalculator ?? throw new ArgumentNullException(nameof(rewardCalculator));
             _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
+            _receiptFinder = receiptFinder ?? throw new ArgumentNullException(nameof(receiptFinder));
             _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
             _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
@@ -71,7 +74,7 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
             ReadOnlyBlockTree readOnlyTree = new ReadOnlyBlockTree(_blockTree);
             ReadOnlyTxProcessingEnv txEnv = new ReadOnlyTxProcessingEnv(readOnlyDbProvider, readOnlyTree, _specProvider, _logManager);
             ReadOnlyChainProcessingEnv readOnlyChainProcessingEnv = new ReadOnlyChainProcessingEnv(txEnv, _blockValidator, _recoveryStep, _rewardCalculator, _receiptStorage, readOnlyDbProvider, _specProvider, _logManager);
-            ITracer tracer = new Tracer(readOnlyChainProcessingEnv.Processor, _receiptStorage, new ReadOnlyBlockTree(_blockTree));
+            ITracer tracer = new Tracer(readOnlyChainProcessingEnv.Processor, _receiptFinder, new ReadOnlyBlockTree(_blockTree));
 
             DebugBridge debugBridge = new DebugBridge(_configProvider, readOnlyDbProvider, tracer, readOnlyChainProcessingEnv.BlockProcessingQueue, _blockTree);
             return new DebugModule(_logManager, debugBridge);

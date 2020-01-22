@@ -21,7 +21,7 @@ using Nethermind.Core.Crypto;
 
 namespace Nethermind.Blockchain.Receipts
 {
-    public class NullReceiptStorage : IReceiptStorage
+    public class NullReceiptStorage : IReceiptStorage, IReceiptFinder
     {
         public TxReceipt Find(Keccak hash) => null;
         public void Insert(Block block, TxReceipt[] receipts) { }

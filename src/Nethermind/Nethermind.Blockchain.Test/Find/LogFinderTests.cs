@@ -36,6 +36,7 @@ namespace Nethermind.Blockchain.Test.Find
     {
         private IBlockTree _blockTree;
         private IReceiptStorage _receiptStorage;
+        private IReceiptFinder _receiptFinder;
         private LogFinder _logFinder;
 
         [SetUp]
@@ -43,10 +44,12 @@ namespace Nethermind.Blockchain.Test.Find
         {
             var specProvider = Substitute.For<ISpecProvider>();
             specProvider.GetSpec(Arg.Any<long>()).IsEip155Enabled.Returns(true);
-            _receiptStorage = new InMemoryReceiptStorage();
+            var inMemoryReceiptStorage = new InMemoryReceiptStorage();
+            _receiptStorage = inMemoryReceiptStorage;
+            _receiptFinder = inMemoryReceiptStorage;
             _blockTree = Build.A.BlockTree().WithTransactions(_receiptStorage, specProvider, LogsForBlockBuilder).OfChainLength(5).TestObject;
             
-            _logFinder = new LogFinder(new BlockFinder(_blockTree),  _receiptStorage);
+            _logFinder = new LogFinder(new BlockFinder(_blockTree), _receiptFinder);
 
         }
 
@@ -90,7 +93,8 @@ namespace Nethermind.Blockchain.Test.Find
         public void filter_all_logs_when_receipts_ar_missing()
         {
             _receiptStorage = NullReceiptStorage.Instance;
-            _logFinder = new LogFinder(new BlockFinder(_blockTree),  _receiptStorage);
+            _receiptFinder = NullReceiptStorage.Instance;
+            _logFinder = new LogFinder(new BlockFinder(_blockTree), _receiptFinder);
             
             var logFilter = AllBlockFilter().Build();
             var logs = _logFinder.FindLogs(logFilter);
@@ -101,7 +105,7 @@ namespace Nethermind.Blockchain.Test.Find
         public void filter_all_logs_should_return_empty_array_when_to_block_is_null()
         {
             var blockFinder = Substitute.For<IBlockFinder>();
-            _logFinder = new LogFinder(blockFinder, _receiptStorage);
+            _logFinder = new LogFinder(blockFinder, _receiptFinder);
             var logFilter = AllBlockFilter().Build();
             var logs = _logFinder.FindLogs(logFilter);
             logs.Should().BeEmpty();
@@ -180,7 +184,7 @@ namespace Nethermind.Blockchain.Test.Find
         [Test]
         public void filter_by_blocks_with_limit()
         {
-            _logFinder = new LogFinder(new BlockFinder(_blockTree),  _receiptStorage, 2);
+            _logFinder = new LogFinder(new BlockFinder(_blockTree), _receiptFinder, 2);
             var filter = FilterBuilder.New().FromLatestBlock().ToLatestBlock().Build();
             var logs = _logFinder.FindLogs(filter);
 

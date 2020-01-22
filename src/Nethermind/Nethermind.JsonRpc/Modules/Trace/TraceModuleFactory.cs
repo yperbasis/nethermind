@@ -43,6 +43,7 @@ namespace Nethermind.JsonRpc.Modules.Trace
         private readonly IEthereumEcdsa _ethereumEcdsa;
         private readonly IRewardCalculator _rewardCalculator;
         private readonly IReceiptStorage _receiptStorage;
+        private readonly IReceiptFinder _receiptFinder;
         private readonly ISpecProvider _specProvider;
         private readonly IRpcConfig _rpcConfig;
         private readonly ILogManager _logManager;
@@ -58,6 +59,7 @@ namespace Nethermind.JsonRpc.Modules.Trace
             IBlockDataRecoveryStep recoveryStep,
             IRewardCalculator rewardCalculator,
             IReceiptStorage receiptStorage,
+            IReceiptFinder receiptFinder,
             ISpecProvider specProvider,
             IRpcConfig rpcConfig,
             ILogManager logManager)
@@ -70,6 +72,7 @@ namespace Nethermind.JsonRpc.Modules.Trace
             _recoveryStep = recoveryStep ?? throw new ArgumentNullException(nameof(recoveryStep));
             _rewardCalculator = rewardCalculator ?? throw new ArgumentNullException(nameof(rewardCalculator));
             _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
+            _receiptFinder = receiptFinder ?? throw new ArgumentNullException(nameof(receiptFinder));
             _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
             _rpcConfig = rpcConfig ?? throw new ArgumentNullException(nameof(rpcConfig));
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
@@ -88,7 +91,7 @@ namespace Nethermind.JsonRpc.Modules.Trace
                 txEnv.StorageProvider,
                 txEnv.BlockTree,
                 _txPool,
-                _receiptStorage,
+                _receiptFinder,
                 NullFilterStore.Instance,
                 NullFilterManager.Instance,
                 NullWallet.Instance,
@@ -98,12 +101,12 @@ namespace Nethermind.JsonRpc.Modules.Trace
                 );
             
             ReadOnlyChainProcessingEnv chainEnv = new ReadOnlyChainProcessingEnv(txEnv, _blockValidator, _recoveryStep, _rewardCalculator, _receiptStorage, readOnlyDbProvider, _specProvider, _logManager);
-            ITracer tracer = new Tracer(chainEnv.Processor, _receiptStorage, new ReadOnlyBlockTree(_blockTree));
+            ITracer tracer = new Tracer(chainEnv.Processor, _receiptFinder, new ReadOnlyBlockTree(_blockTree));
             
             return new TraceModule(blockchainBridge, _logManager, tracer);
         }
         
-        public static JsonConverter[] Converters = 
+        public static readonly JsonConverter[] Converters = 
         {
             new ParityLikeTxTraceConverter(),
             new ParityAccountStateChangeConverter(),

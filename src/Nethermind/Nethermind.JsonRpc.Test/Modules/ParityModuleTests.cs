@@ -56,8 +56,8 @@ namespace Nethermind.JsonRpc.Test.Modules
             IDb blockInfoDb = new MemDb();
             IBlockTree blockTree = new BlockTree(blockDb, headerDb, blockInfoDb, new ChainLevelInfoRepository(blockInfoDb), specProvider, txPool, LimboLogs.Instance);
             
-            IReceiptStorage receiptStorage = new InMemoryReceiptStorage();
-            _parityModule = new ParityModule(new EthereumEcdsa(specProvider,logger), txPool, blockTree, receiptStorage, logger);
+            InMemoryReceiptStorage receiptStorage = new InMemoryReceiptStorage();
+            _parityModule = new ParityModule(new EthereumEcdsa(specProvider,logger), txPool, blockTree, receiptStorage);
             var blockNumber = 2;
             var pendingTransaction = Build.A.Transaction.Signed(ethereumEcdsa, TestItem.PrivateKeyD, blockNumber)
                 .WithSenderAddress(Address.FromNumber((UInt256)blockNumber)).TestObject;

@@ -53,7 +53,7 @@ namespace Nethermind.Blockchain.Test
         public void should_add_and_fetch_receipt_from_persistent_storage_with_eip_658()
             => TestAddAndGetReceiptEip658(new PersistentReceiptStorage(new MemDb(), _specProvider, LimboLogs.Instance));
 
-        private void TestAddAndGetReceipt(IReceiptStorage storage)
+        private void TestAddAndGetReceipt<T>(T storage) where T : IReceiptFinder, IReceiptStorage
         {
             var transaction = GetSignedTransaction();
             var receipt = GetReceipt(transaction);
@@ -64,7 +64,7 @@ namespace Nethermind.Blockchain.Test
             receipt.TxHash.Should().Be(transaction.Hash);
         }
         
-        private void TestAddAndGetReceiptEip658(IReceiptStorage storage)
+        private void TestAddAndGetReceiptEip658<T>(T storage) where T : IReceiptFinder, IReceiptStorage
         {
             var transaction = GetSignedTransaction();
             var receipt = GetReceipt(transaction);

@@ -22,7 +22,7 @@ using Nethermind.Core.Crypto;
 
 namespace Nethermind.Blockchain.Receipts
 {
-    public class InMemoryReceiptStorage : IReceiptStorage
+    public class InMemoryReceiptStorage : IReceiptStorage, IReceiptFinder
     {
         private readonly ConcurrentDictionary<Keccak, TxReceipt[]> _receipts =
             new ConcurrentDictionary<Keccak, TxReceipt[]>();
@@ -36,7 +36,7 @@ namespace Nethermind.Blockchain.Receipts
             return transaction;
         }
 
-        public void Insert(Block block, TxReceipt[] receipts)
+        public void Insert(Block block, params TxReceipt[] receipts)
         {
             _receipts[block.Hash] = receipts;
             for (var index = 0; index < block.Transactions.Length; index++)

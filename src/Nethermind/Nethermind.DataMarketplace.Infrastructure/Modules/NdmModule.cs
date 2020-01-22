@@ -54,7 +54,7 @@ namespace Nethermind.DataMarketplace.Infrastructure.Modules
                 readOnlyTxProcessingEnv.StorageProvider,
                 readOnlyTxProcessingEnv.BlockTree,
                 services.TransactionPool,
-                services.ReceiptStorage,
+                services.ReceiptFinder,
                 services.FilterStore,
                 services.FilterManager,
                 wallet,

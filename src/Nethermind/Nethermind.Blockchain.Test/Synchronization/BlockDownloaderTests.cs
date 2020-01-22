@@ -61,7 +61,7 @@ namespace Nethermind.Blockchain.Test.Synchronization
 
             private IDb _blockInfoDb = new MemDb();
             public BlockTree BlockTree { get; private set; }
-            private IReceiptStorage _receiptStorage = new InMemoryReceiptStorage();
+            private InMemoryReceiptStorage _receiptStorage = new InMemoryReceiptStorage();
 
             public Response Flags { get; set; }
 

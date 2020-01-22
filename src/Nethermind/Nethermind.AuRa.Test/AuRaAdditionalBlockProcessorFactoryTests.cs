@@ -46,7 +46,7 @@ namespace Nethermind.AuRa.Test
                 Substitute.For<IAbiEncoder>(), 
                 Substitute.For<ITransactionProcessor>(),
                 Substitute.For<IBlockTree>(),
-                Substitute.For<IReceiptStorage>(),
+                Substitute.For<IReceiptFinder>(),
                 Substitute.For<IValidatorStore>(),
                 Substitute.For<ILogManager>());
 

@@ -76,7 +76,7 @@ namespace Nethermind.DataMarketplace.Initializers
         
         public virtual async Task<INdmCapabilityConnector> InitAsync(IConfigProvider configProvider,
             IDbProvider dbProvider, string baseDbPath, IBlockTree blockTree, ITxPool txPool, ISpecProvider specProvider,
-            IReceiptStorage receiptStorage, IWallet wallet, IFilterStore filterStore, IFilterManager filterManager,
+            IReceiptStorage receiptStorage, IReceiptFinder receiptFinder, IWallet wallet, IFilterStore filterStore, IFilterManager filterManager,
             ITimestamper timestamper, IEthereumEcdsa ecdsa, IRpcModuleProvider rpcModuleProvider, IKeyStore keyStore,
             IJsonSerializer jsonSerializer, ICryptoRandom cryptoRandom, IEnode enode,
             INdmConsumerChannelManager consumerChannelManager, INdmDataPublisher dataPublisher, IGrpcServer grpcServer,
@@ -88,7 +88,7 @@ namespace Nethermind.DataMarketplace.Initializers
         {
             var (config, services, faucet, ethRequestService, accountService, consumerService, consumerAddress,
                 providerAddress) = await PreInitAsync(configProvider, dbProvider, baseDbPath, blockTree, txPool,
-                specProvider, receiptStorage, wallet, filterStore, filterManager, timestamper, ecdsa, rpcModuleProvider,
+                specProvider, receiptStorage, receiptFinder, wallet, filterStore, filterManager, timestamper, ecdsa, rpcModuleProvider,
                 keyStore, jsonSerializer, cryptoRandom, enode, consumerChannelManager, dataPublisher, grpcServer,
                 enableUnsecuredDevWallet, webSocketsManager, logManager, blockProcessor, jsonRpcClientProxy,
                 ethJsonRpcClientProxy, httpClient, monitoringService);
@@ -113,7 +113,7 @@ namespace Nethermind.DataMarketplace.Initializers
                 IConsumerService consumerService, Address consumerAddress, Address providerAddress)>
             PreInitAsync(IConfigProvider configProvider, IDbProvider dbProvider, string baseDbPath,
                 IBlockTree blockTree, ITxPool txPool, ISpecProvider specProvider,
-                IReceiptStorage receiptStorage, IWallet wallet, IFilterStore filterStore, IFilterManager filterManager,
+                IReceiptStorage receiptStorage, IReceiptFinder receiptFinder, IWallet wallet, IFilterStore filterStore, IFilterManager filterManager,
                 ITimestamper timestamper, IEthereumEcdsa ecdsa, IRpcModuleProvider rpcModuleProvider,
                 IKeyStore keyStore, IJsonSerializer jsonSerializer, ICryptoRandom cryptoRandom, IEnode enode,
                 INdmConsumerChannelManager consumerChannelManager, INdmDataPublisher dataPublisher,
@@ -171,7 +171,7 @@ namespace Nethermind.DataMarketplace.Initializers
             var ethRequestService = new EthRequestService(ndmConfig.FaucetHost, logManager);
             DbPath = Path.Combine(baseDbPath, ndmConfig.DatabasePath);
             var services = _ndmModule.Init(new NdmRequiredServices(configProvider, configManager, ndmConfig,
-                DbPath, dbProvider, mongoProvider, logManager, blockTree, txPool, specProvider, receiptStorage,
+                DbPath, dbProvider, mongoProvider, logManager, blockTree, txPool, specProvider, receiptStorage, receiptFinder,
                 filterStore, filterManager, wallet, timestamper, ecdsa, keyStore, rpcModuleProvider, jsonSerializer,
                 cryptoRandom, enode, consumerChannelManager, dataPublisher, grpcServer, ethRequestService, notifier,
                 enableUnsecuredDevWallet, blockProcessor, jsonRpcClientProxy, ethJsonRpcClientProxy, httpClient,

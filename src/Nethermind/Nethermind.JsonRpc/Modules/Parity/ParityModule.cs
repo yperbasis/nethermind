@@ -23,7 +23,6 @@ using Nethermind.Blockchain.TxPools;
 using Nethermind.Core.Crypto;
 using Nethermind.Crypto;
 using Nethermind.JsonRpc.Data;
-using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.JsonRpc.Modules.Parity
@@ -33,14 +32,14 @@ namespace Nethermind.JsonRpc.Modules.Parity
         private readonly IEcdsa _ecdsa;
         private readonly ITxPool _txPool;
         private readonly IBlockFinder _blockFinder;
-        private readonly IReceiptStorage _receiptStorage;
+        private readonly IReceiptFinder _receiptFinder;
         
-        public ParityModule(IEcdsa ecdsa, ITxPool txPool, IBlockTree blockTree, IReceiptStorage  receiptStorage, ILogManager logManager)
+        public ParityModule(IEcdsa ecdsa, ITxPool txPool, IBlockTree blockTree, IReceiptFinder receiptFinder)
         {
             _ecdsa = ecdsa ?? throw new ArgumentNullException(nameof(ecdsa));
             _txPool = txPool ?? throw new ArgumentNullException(nameof(txPool));
             _blockFinder = new BlockFinder(blockTree ?? throw new ArgumentNullException(nameof(blockTree)));
-            _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
+            _receiptFinder = receiptFinder ?? throw new ArgumentNullException(nameof(receiptFinder));
         }
 
         public ResultWrapper<ParityTransaction[]> parity_pendingTransactions()
@@ -52,7 +51,7 @@ namespace Nethermind.JsonRpc.Modules.Parity
         {
             var filterBlock = blockParameter.ToFilterBlock();
             var block = _blockFinder.GetBlock(filterBlock);
-            var receipts = _receiptStorage.Get(block);
+            var receipts = _receiptFinder.Get(block);
             var result = receipts.Zip(block.Transactions, (r, t) => new ReceiptForRpc(t.Hash, r));
             return ResultWrapper<ReceiptForRpc[]>.Success(result.ToArray());
         }

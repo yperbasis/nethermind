@@ -47,7 +47,7 @@ namespace Nethermind.Blockchain.Test.Synchronization
             _stateDb = new StateDb();
             _codeDb = new StateDb();
             _receiptsDb = new MemDb();
-            _receiptStorage = Substitute.For<IReceiptStorage>();
+            _receiptStorage = new InMemoryReceiptStorage();
             SyncConfig quickConfig = new SyncConfig();
             quickConfig.FastSync = false;
 
@@ -73,7 +73,7 @@ namespace Nethermind.Blockchain.Test.Synchronization
         private IDb _receiptsDb;
         private IBlockTree _blockTree;
         private IBlockTree _remoteBlockTree;
-        private IReceiptStorage _receiptStorage;
+        private InMemoryReceiptStorage _receiptStorage;
         private Block _genesisBlock;
         private IEthSyncPeerPool _pool;
         private ISyncServer _syncServer;

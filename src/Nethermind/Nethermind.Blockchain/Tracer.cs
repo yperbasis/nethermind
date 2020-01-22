@@ -25,7 +25,6 @@ using Nethermind.Core.Crypto;
 using Nethermind.Dirichlet.Numerics;
 using Nethermind.Evm.Tracing;
 using Nethermind.Serialization.Rlp;
-using Nethermind.Store;
 
 namespace Nethermind.Blockchain
 {
@@ -35,7 +34,7 @@ namespace Nethermind.Blockchain
         private readonly IBlockchainProcessor _processor;
         private readonly IReceiptFinder _receiptFinder;
 
-        public Tracer(IBlockchainProcessor processor, IReceiptFinder receiptFinder, IBlockTree blockTree, IDb traceDb)
+        public Tracer(IBlockchainProcessor processor, IReceiptFinder receiptFinder, IBlockTree blockTree)
         {
             _processor = processor ?? throw new ArgumentNullException(nameof(processor));
             _receiptFinder = receiptFinder ?? throw new ArgumentNullException(nameof(receiptFinder));

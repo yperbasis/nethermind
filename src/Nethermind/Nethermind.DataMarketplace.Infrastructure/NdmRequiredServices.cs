@@ -55,6 +55,7 @@ namespace Nethermind.DataMarketplace.Infrastructure
         public ITxPool TransactionPool { get; }
         public ISpecProvider SpecProvider { get; }
         public IReceiptStorage ReceiptStorage { get; }
+        public IReceiptFinder ReceiptFinder { get; }
         public IFilterStore FilterStore { get; }
         public IFilterManager FilterManager { get; }
         public IWallet Wallet { get; }
@@ -79,7 +80,7 @@ namespace Nethermind.DataMarketplace.Infrastructure
 
         public NdmRequiredServices(IConfigProvider configProvider, IConfigManager configManager, INdmConfig ndmConfig,
             string baseDbPath, IDbProvider rocksProvider, IMongoProvider mongoProvider, ILogManager logManager,
-            IBlockTree blockTree, ITxPool transactionPool, ISpecProvider specProvider, IReceiptStorage receiptStorage,
+            IBlockTree blockTree, ITxPool transactionPool, ISpecProvider specProvider, IReceiptStorage receiptStorage, IReceiptFinder receiptFinder,
             IFilterStore filterStore, IFilterManager filterManager, IWallet wallet, ITimestamper timestamper,
             IEthereumEcdsa ecdsa, IKeyStore keyStore, IRpcModuleProvider rpcModuleProvider,
             IJsonSerializer jsonSerializer, ICryptoRandom cryptoRandom, IEnode enode,
@@ -99,6 +100,7 @@ namespace Nethermind.DataMarketplace.Infrastructure
             TransactionPool = transactionPool;
             SpecProvider = specProvider;
             ReceiptStorage = receiptStorage;
+            ReceiptFinder = receiptFinder;
             FilterStore = filterStore;
             FilterManager = filterManager;
             Wallet = wallet;
