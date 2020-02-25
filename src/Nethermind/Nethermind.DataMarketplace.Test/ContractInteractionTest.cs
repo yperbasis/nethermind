@@ -137,7 +137,7 @@ namespace Nethermind.DataMarketplace.Test
             Transaction deployContract = new Transaction();
             deployContract.SenderAddress = _providerAccount;
             deployContract.GasLimit = 4000000;
-            deployContract.Init = initCode;
+            deployContract.Data = initCode;
             deployContract.Nonce = _bridge.GetNonce(_providerAccount);
             Keccak txHash = _bridge.SendTransaction(deployContract, TxHandlingOptions.None);
             TxReceipt receipt = _bridge.GetReceipt(txHash);

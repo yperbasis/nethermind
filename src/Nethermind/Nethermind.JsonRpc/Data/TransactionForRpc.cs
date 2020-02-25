@@ -38,8 +38,7 @@ namespace Nethermind.JsonRpc.Data
             Value = transaction.Value;
             GasPrice = transaction.GasPrice;
             Gas = transaction.GasLimit;
-            Input = transaction.Init;
-            Data = transaction.Data;
+            Input = transaction.Data;
             R = transaction.Signature?.R;
             S = transaction.Signature?.S;
             V = (UInt256?) transaction.Signature?.V;
@@ -70,7 +69,7 @@ namespace Nethermind.JsonRpc.Data
         public UInt256? GasPrice { get; set; }
         public long? Gas { get; set; }
         
-        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public byte[] Data { get; set; }
         
         [JsonProperty(NullValueHandling = NullValueHandling.Include)]
@@ -84,21 +83,13 @@ namespace Nethermind.JsonRpc.Data
         public Transaction ToTransactionWithDefaults()
         {
             Transaction tx = new Transaction();
-            tx.GasLimit = (long)(Gas ?? 90000);
+            tx.GasLimit = Gas ?? 90000;
             tx.GasPrice = (GasPrice ?? 20.GWei());
             tx.Nonce = (ulong)(Nonce ?? 0); // here pick the last nonce?
             tx.To = To;
             tx.SenderAddress = From;
             tx.Value = Value ?? 0;
-            if (tx.To == null)
-            {
-                tx.Init = Data ?? Input;
-            }
-            else
-            {
-                tx.Data = Data ?? Input;
-            }
-
+            tx.Data = Data ?? Input;
             return tx;
         }
         
@@ -111,14 +102,7 @@ namespace Nethermind.JsonRpc.Data
             tx.To = To;
             tx.SenderAddress = From;
             tx.Value = Value ?? 0;
-            if (tx.To == null)
-            {
-                tx.Init = Data ?? Input;
-            }
-            else
-            {
-                tx.Data = Data ?? Input;
-            }
+            tx.Data = Data ?? Input;
 
             return tx;
         }

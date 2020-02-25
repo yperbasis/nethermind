@@ -14,6 +14,7 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System;
 using System.Diagnostics;
 using System.Text;
 using Nethermind.Core.Crypto;
@@ -47,19 +48,18 @@ namespace Nethermind.Core
         public Address To { get; set; }
         public UInt256 Value { get; set; }
         public byte[] Data { get; set; }
-        public byte[] Init { get; set; }
         public Address SenderAddress { get; set; }
         public Signature Signature { get; set; }
         public bool IsSigned => Signature != null;
-        public bool IsContractCreation => Init != null;
-        public bool IsMessageCall => Data != null;
+        public bool IsContractCreation => To == null;
+        public bool IsMessageCall => To != null;
         public Keccak Hash { get; set; }
         public PublicKey DeliveredBy { get; set; } // tks: this is added so we do not send the pending tx back to original sources, not used yet
         public UInt256 Timestamp { get; set; }
 
         public string ToShortString()
         {
-            return $"[TX: from {SenderAddress} to {To} with data {Data?.ToHexString() ?? Init?.ToHexString()}, gas price {GasPrice} and limit {GasLimit}, nonce {Nonce}]";
+            return $"[TX: from {SenderAddress} to {To} with data {Data?.ToHexString() ?? Data?.ToHexString()}, gas price {GasPrice} and limit {GasLimit}, nonce {Nonce}]";
         }
         
         public string ToString(string indent)
@@ -70,8 +70,7 @@ namespace Nethermind.Core
             builder.AppendLine($"{indent}To: {To}");
             builder.AppendLine($"{indent}Nonce: {Nonce}");
             builder.AppendLine($"{indent}Value: {Value}");
-            builder.AppendLine($"{indent}Data: {(Data ?? new byte[0]).ToHexString()}");
-            builder.AppendLine($"{indent}Init: {(Init ?? new byte[0]).ToHexString()}");
+            builder.AppendLine($"{indent}Data: {(Data ?? Array.Empty<byte>()).ToHexString()}");
             builder.AppendLine($"{indent}Hash: {Hash}");
             return builder.ToString();
         }

@@ -164,10 +164,9 @@ namespace Nethermind.Evm.Test
 
             Transaction transaction = Build.A.Transaction
                 .WithTo(null)
-                .WithData(Bytes.Empty)
                 .WithGasLimit(gasLimit)
                 .WithGasPrice(1)
-                .WithInit(code)
+                .WithData(code)
                 .SignedAndResolved(_ethereumEcdsa, senderRecipientAndMiner.SenderKey, blockNumber)
                 .TestObject;
 

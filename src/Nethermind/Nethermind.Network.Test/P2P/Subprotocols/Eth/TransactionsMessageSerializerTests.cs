@@ -35,7 +35,6 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Eth
             transaction.Data = new byte[] {1, 2, 3};
             transaction.GasLimit = 10;
             transaction.GasPrice = 100;
-            transaction.Init = new byte[] {4, 5, 6};
             transaction.Nonce = 1000;
             transaction.Signature = new Signature(1, 2, 27);
             transaction.To = Address.Zero;

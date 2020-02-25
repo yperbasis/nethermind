@@ -14,6 +14,7 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using Nethermind.Core.Test.Builders;
 using NUnit.Framework;
 
 namespace Nethermind.Core.Test
@@ -25,7 +26,7 @@ namespace Nethermind.Core.Test
         public void When_init_empty_and_data_not_empty_then_is_message_call()
         {
             Transaction transaction = new Transaction();
-            transaction.Init = null;
+            transaction.To = TestItem.AddressA;
             transaction.Data = new byte[0];
             Assert.True(transaction.IsMessageCall, nameof(Transaction.IsMessageCall));
             Assert.False(transaction.IsContractCreation, nameof(Transaction.IsContractCreation));
@@ -35,8 +36,8 @@ namespace Nethermind.Core.Test
         public void When_init_not_empty_and_data_empty_then_is_message_call()
         {
             Transaction transaction = new Transaction();
-            transaction.Init = new byte[0];
-            transaction.Data = null;
+            transaction.To = null;
+            transaction.Data = new byte[0];
             Assert.False(transaction.IsMessageCall, nameof(Transaction.IsMessageCall));
             Assert.True(transaction.IsContractCreation, nameof(Transaction.IsContractCreation));
         }

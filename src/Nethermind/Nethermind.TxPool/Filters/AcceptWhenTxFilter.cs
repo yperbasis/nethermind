@@ -75,11 +75,6 @@ namespace Nethermind.TxPool.Filters
                 return FalseWithLogTrace(transaction, nameof(transaction.Data));
             }
 
-            if (_filter.Init != null && !_filter.Init(transaction.Init))
-            {
-                return FalseWithLogTrace(transaction, nameof(transaction.Init));
-            }
-
             if (_filter.SenderAddress != null && !_filter.SenderAddress(transaction.SenderAddress))
             {
                 return FalseWithLogTrace(transaction, nameof(transaction.SenderAddress));
@@ -159,13 +154,6 @@ namespace Nethermind.TxPool.Filters
                 return this;
             }
 
-            public Builder Init(Predicate<byte[]> init)
-            {
-                _filter.Init = init;
-
-                return this;
-            }
-
             public Builder SenderAddress(Predicate<Address> senderAddress)
             {
                 _filter.SenderAddress = senderAddress;
@@ -205,7 +193,6 @@ namespace Nethermind.TxPool.Filters
             public Predicate<Address> To { get; set; }
             public Predicate<UInt256> Value { get; set; }
             public Predicate<byte[]> Data { get; set; }
-            public Predicate<byte[]> Init { get; set; }
             public Predicate<Address> SenderAddress { get; set; }
             public Predicate<Signature> Signature { get; set; }
             public Predicate<Keccak> Hash { get; set; }

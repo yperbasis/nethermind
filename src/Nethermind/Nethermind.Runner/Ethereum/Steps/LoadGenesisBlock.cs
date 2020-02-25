@@ -85,7 +85,7 @@ namespace Nethermind.Runner.Ethereum.Steps
                     Transaction constructorTransaction = new Transaction(true)
                     {
                         SenderAddress = address,
-                        Init = allocation.Constructor,
+                        Data = allocation.Constructor,
                         GasLimit = genesis.GasLimit
                     };
                     

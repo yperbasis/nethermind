@@ -74,7 +74,6 @@ namespace Nethermind.PubSub
                     To = transaction.To?.Bytes,
                     Value = transaction.Value.ToString(),
                     Data = transaction.Data,
-                    Init = transaction.Init,
                     SenderAddress = transaction.SenderAddress?.Bytes,
                     Signature = MapSignature(transaction.Signature),
                     IsSigned = transaction.IsSigned,

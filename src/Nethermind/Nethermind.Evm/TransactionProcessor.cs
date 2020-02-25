@@ -86,7 +86,7 @@ namespace Nethermind.Evm
             UInt256 value = transaction.Value;
             UInt256 gasPrice = transaction.GasPrice;
             long gasLimit = transaction.GasLimit;
-            byte[] machineCode = transaction.Init;
+            byte[] machineCode = transaction.Data;
             byte[] data = transaction.Data ?? Bytes.Empty;
 
             Address sender = transaction.SenderAddress;

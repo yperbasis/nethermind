@@ -222,7 +222,7 @@ namespace Nethermind.Serialization.Rlp
             sequence[2] = Encode(transaction.GasLimit);
             sequence[3] = Encode(transaction.To);
             sequence[4] = Encode(transaction.Value);
-            sequence[5] = Encode(transaction.To == null ? transaction.Init : transaction.Data);
+            sequence[5] = Encode(transaction.Data);
 
             if (forSigning)
             {

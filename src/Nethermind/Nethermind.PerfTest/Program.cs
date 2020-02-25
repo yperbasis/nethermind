@@ -329,7 +329,7 @@ namespace Nethermind.PerfTest
                     Transaction constructorTransaction = new Transaction(true)
                     {
                         SenderAddress = address,
-                        Init = allocation.Constructor,
+                        Data = allocation.Constructor,
                         GasLimit = chainSpec.Genesis.GasLimit
                     };
 
