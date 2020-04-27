@@ -145,7 +145,7 @@ namespace Nethermind.Blockchain.Processing
             {
                 if (t.IsFaulted)
                 {
-                    if (_logger.IsError) _logger.Error($"{nameof(BlockchainProcessor)} encountered an exception.", t.Exception);
+                    if (_logger.IsError) _logger.Error($"{nameof(BlockchainProcessor)} encountered an exception when processing {_currentlyProcessingBlock.Header.ToString(BlockHeader.Format.Full)}.", t.Exception);
                 }
                 else if (t.IsCanceled)
                 {
@@ -204,6 +204,9 @@ namespace Nethermind.Blockchain.Processing
             }
         }
 
+        // just for exception logging
+        private Block _currentlyProcessingBlock;
+
         private void RunProcessingLoop()
         {
             _stats.Start();
@@ -222,6 +225,7 @@ namespace Nethermind.Blockchain.Processing
                 }
 
                 Block block = blockRef.Block;
+                _currentlyProcessingBlock = block;
 
                 if (_logger.IsTrace) _logger.Trace($"Processing block {block.ToString(Block.Format.Short)}).");
 
@@ -272,7 +276,7 @@ namespace Nethermind.Blockchain.Processing
                                  // and below is less correct but potentially reporting well
                                  // || totalDifficulty >= (_blockTree.Head?.TotalDifficulty ?? 0)
                                  || (options & ProcessingOptions.ForceProcessing) == ProcessingOptions.ForceProcessing;
-            
+
             if (!shouldProcess)
             {
                 if (_logger.IsDebug) _logger.Debug($"Skipped processing of {suggestedBlock.ToString(Block.Format.FullHashAndNumber)}, Head = {_blockTree.Head?.Header?.ToString(BlockHeader.Format.Short)}, total diff = {totalDifficulty}, head total diff = {_blockTree.Head?.TotalDifficulty}");
@@ -475,6 +479,11 @@ namespace Nethermind.Blockchain.Processing
             public List<Block> Blocks { get; }
             public List<Block> BlocksToProcess { get; }
             public List<Block> ProcessedBlocks { get; }
+
+            public override string ToString()
+            {
+                return $"[Processing branch | from: {BlocksToProcess?[0].Number} | from: {BlocksToProcess?[^1].Number}]";
+            }
         }
     }
 }
