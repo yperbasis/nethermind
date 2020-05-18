@@ -58,14 +58,14 @@ namespace Nethermind.BeaconNode.Host
                     {
                         configureLogging.AddConsole();
                     }
-                    if (hostContext.Configuration.GetSection("Logging:Seq").Exists())
-                    {
-                        configureLogging.AddSeq(hostContext.Configuration.GetSection("Logging:Seq"));
-                    }
-                    if (hostContext.Configuration.GetSection("Logging:Elasticsearch").Exists())
-                    {
-                        configureLogging.AddElasticsearch();
-                    }
+                    // if (hostContext.Configuration.GetSection("Logging:Seq").Exists())
+                    // {
+                    //     configureLogging.AddSeq(hostContext.Configuration.GetSection("Logging:Seq"));
+                    // }
+                    // if (hostContext.Configuration.GetSection("Logging:Elasticsearch").Exists())
+                    // {
+                    //     configureLogging.AddElasticsearch();
+                    // }
                 })
                 .ConfigureAppConfiguration((hostContext, config) =>
                 {
