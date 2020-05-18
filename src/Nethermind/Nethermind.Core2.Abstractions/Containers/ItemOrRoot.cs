@@ -14,11 +14,12 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System;
 using Nethermind.Core2.Crypto;
 
 namespace Nethermind.Core2.Containers
 {
-    public struct Ref<T> where T : class 
+    public class Ref<T> where T : class 
     {
         public Ref(T item)
         {

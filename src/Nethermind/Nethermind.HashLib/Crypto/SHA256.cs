@@ -46,8 +46,8 @@ namespace Nethermind.HashLib.Crypto
         
         protected override byte[] GetResult()
         {
-            Interlocked.Increment(ref _count);
-            Console.WriteLine(_count);
+            // Interlocked.Increment(ref _count);
+            // Console.WriteLine(_count);
             return Converters.ConvertUIntsToBytesSwapOrder(m_state);
         }
     }
