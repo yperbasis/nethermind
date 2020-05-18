@@ -136,7 +136,7 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
             Gwei amount = gweiValues.MaximumEffectiveBalance;
 
             // Build deposits
-            List<DepositData> depositDataList = new List<DepositData>();
+            List<Ref<DepositData>> depositDataList = new List<Ref<DepositData>>();
             List<Deposit> deposits = new List<Deposit>();
             for (ulong validatorIndex = 0uL; validatorIndex < quickStartParameters.ValidatorCount; validatorIndex++)
             {
@@ -179,11 +179,12 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
                 // TODO: Add some tests around quick start, then improve
 
                 int index = depositDataList.Count;
-                depositDataList.Add(depositData);
+                Ref<DepositData> depositDataRef = depositData.OrRoot;
+                depositDataList.Add(depositDataRef);
                 //int depositDataLength = (ulong) 1 << _chainConstants.DepositContractTreeDepth;
                 Root root = _cryptographyService.HashTreeRoot(depositDataList);
                 IEnumerable<Bytes32> allLeaves = depositDataList.Select(x =>
-                    new Bytes32(_cryptographyService.HashTreeRoot((DepositData) x).AsSpan()));
+                    new Bytes32(_cryptographyService.HashTreeRoot(x).AsSpan()));
                 IList<IList<Bytes32>> tree = CalculateMerkleTreeFromLeaves(allLeaves);
 
 
@@ -194,10 +195,10 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
                 BinaryPrimitives.WriteInt32LittleEndian(indexBytes, index + 1);
                 Bytes32 indexHash = new Bytes32(indexBytes);
                 proof.Add(indexHash);
-                Bytes32 leaf = new Bytes32(_cryptographyService.HashTreeRoot(depositData).AsSpan());
+                Bytes32 leaf = new Bytes32(_cryptographyService.HashTreeRoot(depositDataRef).AsSpan());
                 _beaconChainUtility.IsValidMerkleBranch(leaf, proof, _chainConstants.DepositContractTreeDepth + 1,
                     (ulong) index, root);
-                Deposit deposit = new Deposit(proof, depositData);
+                Deposit deposit = new Deposit(proof, depositDataRef);
 
                 if (_logger.IsEnabled(LogLevel.Debug))
                     LogDebug.QuickStartAddValidator(_logger, validatorIndex, publicKey.ToString().Substring(0, 12),
@@ -233,8 +234,7 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
                 }
             }
 
-            var eth1GenesisData = new Eth1GenesisData(quickStartParameters.Eth1BlockHash, eth1Timestamp,
-                deposits);
+            var eth1GenesisData = new Eth1GenesisData(quickStartParameters.Eth1BlockHash, eth1Timestamp, deposits);
 
             if (_logger.IsEnabled(LogLevel.Debug))
                 LogDebug.QuickStartGenesisDataCreated(_logger, eth1GenesisData.BlockHash, eth1GenesisData.Timestamp,
