@@ -12,7 +12,7 @@ namespace Nethermind.StateInjector
     {
         private static ConsoleColor defaultColor;
 
-        private static int Main(string[] args)
+        private static inLoat Main(string[] args)
         {
             defaultColor = Console.ForegroundColor;
             ILogManager logger = new OneLoggerLogManager(new ConsoleAsyncLogger(LogLevel.Trace));
