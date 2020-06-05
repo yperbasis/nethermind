@@ -13,25 +13,18 @@
 // 
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
+// 
 
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Nethermind.Monitoring.Metrics;
-using Prometheus;
 
-namespace Nethermind.Monitoring
+namespace Nethermind.Hosted
 {
-    public static class Extensions
+    public static class ExperimentExtensions
     {
-        public static void AddMonitoring(this IServiceCollection services)
+        public static void AddExperiments(this IServiceCollection services)
         {
-            services.AddHostedService<MetricsHostedService>();
-            services.AddSingleton<IMetricsUpdater, MetricsUpdater>();
-        }
-        
-        public static void UseMonitoring(this IApplicationBuilder app)
-        {
-            app.UseMetricServer();
+            services.AddScoped<IAsyncExperiment, AsyncDisposeExperiment>();
+            services.AddScoped<IExperiment, DisposeExperiment>();
         }
     }
 }

@@ -122,7 +122,7 @@ namespace Nethermind.Runner.Test
             Type type8 = typeof(ISyncConfig);
             Type type9 = typeof(IBloomConfig);
 
-            var configProvider = new ConfigProvider();
+            var configProvider = new ConfigProvider(null);
             configProvider.AddSource(new ConfigSource(chainSpecPath));
             
             Console.WriteLine(type1.Name);
@@ -178,7 +178,7 @@ namespace Nethermind.Runner.Test
             Type type8 = typeof(ISyncConfig);
             Type type9 = typeof(IBloomConfig);
 
-            var configProvider = new ConfigProvider();
+            var configProvider = new ConfigProvider(null);
             configProvider.AddSource(new ConfigSource(chainSpecPath));
             
             Console.WriteLine(type1.Name);

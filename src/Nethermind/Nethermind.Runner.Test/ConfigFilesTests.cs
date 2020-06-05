@@ -314,7 +314,7 @@ namespace Nethermind.Runner.Test
 
         private static ConfigProvider GetConfigProviderFromFile(string configFile)
         {
-            ConfigProvider configProvider = new ConfigProvider();
+            ConfigProvider configProvider = new ConfigProvider(null);
             var configPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "configs", configFile);
             configProvider.AddSource(new JsonConfigSource(configPath));
             return configProvider;

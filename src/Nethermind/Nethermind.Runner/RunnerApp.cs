@@ -153,7 +153,7 @@ namespace Nethermind.Runner
                     LogManager.ReconfigExistingLoggers();
                 }
 
-                ConfigProvider configProvider = new ConfigProvider();
+                ConfigProvider configProvider = new ConfigProvider(null);
                 Dictionary<string, string> args = new Dictionary<string, string>();
                 foreach (CommandOption commandOption in app.Options)
                 {

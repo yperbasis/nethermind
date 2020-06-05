@@ -72,7 +72,7 @@ namespace Nethermind.Network.Test.Discovery
             _loggerMock = Substitute.For<ILogger>();
             //setting config to store 3 nodes in a bucket and for table to have one bucket//setting config to store 3 nodes in a bucket and for table to have one bucket
 
-            _configurationProvider = new ConfigProvider();
+            _configurationProvider = new ConfigProvider(null);
             _networkConfig.ExternalIp = "99.10.10.66";
             _networkConfig.LocalIp = "10.0.0.5";
             

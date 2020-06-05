@@ -28,6 +28,14 @@ namespace Nethermind.Config
         
         private readonly List<IConfigSource> _configSource = new List<IConfigSource>();
 
+        public ConfigProvider(IEnumerable<IConfigSource> configSource)
+        {
+            foreach (IConfigSource source in configSource ?? Enumerable.Empty<IConfigSource>())
+            {
+                AddSource(source);
+            }
+        }
+        
         public T GetConfig<T>() where T : IConfig
         {
             if (!_instances.ContainsKey(typeof(T)))

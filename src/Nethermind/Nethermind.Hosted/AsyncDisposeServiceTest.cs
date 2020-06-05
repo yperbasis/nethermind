@@ -13,47 +13,52 @@
 // 
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
+// 
 
 using System;
-using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Hosting;
 
-namespace Nethermind.Monitoring.Metrics
+namespace Nethermind.Hosted
 {
-    public class MetricsHostedService : IHostedService, IDisposable
+    public interface IAsyncExperiment : IAsyncDisposable
     {
-        private const int IntervalSeconds = 5;
-        private readonly IMetricsUpdater _metricsUpdater;
-        private Timer _timer;
+    }
 
-        public MetricsHostedService(IMetricsUpdater metricsUpdater)
+    public interface IExperiment : IDisposable
+    {
+    }
+
+    public class AsyncDisposeExperiment : IAsyncExperiment
+    {
+        public AsyncDisposeExperiment()
         {
-            _metricsUpdater = metricsUpdater;
+            Console.WriteLine("AsyncDisposeExperiment");
+        }
+        
+        public ValueTask DisposeAsync()
+        {
+                    for (int i = 0; i < 5; i++)
+                    {
+                        Console.WriteLine($"Closing {i}");
+                        Task.Delay(1000).GetAwaiter().GetResult();
+                    }
+        
+            Console.WriteLine($"Disposed {nameof(AsyncDisposeExperiment)}");
+            return default;
+        }
+    }
+
+    public class DisposeExperiment : IExperiment
+    {
+        public DisposeExperiment()
+        {
+            Console.WriteLine("DisposeExperiment");
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-            _timer = new Timer(UpdateMetrics, null, TimeSpan.Zero, TimeSpan.FromSeconds(IntervalSeconds));
-
-            return Task.CompletedTask;
-        }
-
-        private void UpdateMetrics(object state)
-        {
-            _metricsUpdater.StartUpdating();
-        }
-
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            _timer?.Change(Timeout.Infinite, 0);
-
-            return Task.CompletedTask;
-        }
-
+        
         public void Dispose()
         {
-            _timer?.Dispose();
+            Console.WriteLine($"Disposed {nameof(DisposeExperiment)}");
         }
     }
 }

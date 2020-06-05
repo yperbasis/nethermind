@@ -38,7 +38,7 @@ namespace Nethermind.Network.Test
         {
             NetworkNodeDecoder.Init();
             ILogManager logManager = LimboLogs.Instance;
-            ConfigProvider configSource = new ConfigProvider();
+            ConfigProvider configSource = new ConfigProvider(null);
             _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             _statsConfig = configSource.GetConfig<IStatsConfig>();
 

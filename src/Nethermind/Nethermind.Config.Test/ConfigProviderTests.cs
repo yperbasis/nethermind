@@ -42,7 +42,7 @@ namespace Nethermind.Config.Test
         [Test]
         public void Can_read_without_sources()
         {
-            ConfigProvider configProvider = new ConfigProvider();
+            ConfigProvider configProvider = new ConfigProvider(null);
             IStatsConfig statsConfig = configProvider.GetConfig<IStatsConfig>();
             Assert.AreEqual(1000500L, statsConfig.PredefinedReputation);
         }
@@ -52,7 +52,7 @@ namespace Nethermind.Config.Test
         [Test]
         public void Can_read_defaults_from_registered_categories()
         {
-            ConfigProvider configProvider = new ConfigProvider();
+            ConfigProvider configProvider = new ConfigProvider(null);
             configProvider.RegisterCategory("Nananana", typeof(DefaultConfigProviderTests));
             var result = configProvider.GetRawValue("Nananana", nameof(DefaultTestProperty));
             Assert.AreEqual(5, result);
@@ -64,7 +64,7 @@ namespace Nethermind.Config.Test
             BitArray bitArray = new BitArray(6);
             for (int i = 0; i < 2 * 2 * 2 * 2 * 2 * 2; i++)
             {
-                ConfigProvider configProvider = new ConfigProvider();
+                ConfigProvider configProvider = new ConfigProvider(null);
                 bitArray.Set(0, (i >> 0) % 2 == 1);
                 bitArray.Set(1, (i >> 1) % 2 == 1);
                 bitArray.Set(2, (i >> 2) % 2 == 1);
