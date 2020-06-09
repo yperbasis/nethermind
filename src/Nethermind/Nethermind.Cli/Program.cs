@@ -142,6 +142,7 @@ namespace Nethermind.Cli
             }
             else if (!result.IsNull())
             {
+                File.WriteAllText("C:\\Temp\\cli.txt", Serializer.Serialize(result.ToObject(), true));
                 string text = Serializer.Serialize(result.ToObject(), true);
                 _cliConsole.WriteGood(text);
             }
