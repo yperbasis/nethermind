@@ -45,8 +45,8 @@ namespace Nethermind.Runner.Hive
             ILogger logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _wallet = wallet ?? throw new ArgumentNullException(nameof(wallet));
-            _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
+            _wallet = wallet;
+            _blockTree = blockTree;
             _jsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
             _configurationProvider = configurationProvider ?? throw new ArgumentNullException(nameof(configurationProvider));
         }

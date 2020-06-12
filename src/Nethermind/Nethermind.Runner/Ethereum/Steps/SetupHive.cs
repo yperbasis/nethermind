@@ -30,6 +30,7 @@ namespace Nethermind.Runner.Ethereum.Steps
 
         public SetupHive(EthereumRunnerContext context)
         {
+            Console.WriteLine("SetupHive given context" + context);
             _context = context;
         }
 
