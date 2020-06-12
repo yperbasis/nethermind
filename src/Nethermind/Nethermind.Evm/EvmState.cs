@@ -50,10 +50,10 @@ namespace Nethermind.Evm
                 if (_bytesOnStackPool.Count == 0)
                 {
                     Interlocked.Increment(ref _bytesOnStackCreated);
-                    if (_bytesOnStackCreated > _capacity)
-                    {
-                        throw new Exception();
-                    }
+                    // if (_bytesOnStackCreated > _capacity)
+                    // {
+                    //     throw new Exception();
+                    // }
 
                     _bytesOnStackPool.Push(new byte[(EvmStack.MaxStackSize + EvmStack.RegisterLength) * 32]);
                 }

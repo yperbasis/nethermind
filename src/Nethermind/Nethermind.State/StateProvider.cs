@@ -161,12 +161,12 @@ namespace Nethermind.State
             }
             else if (releaseSpec.IsEip158Enabled)
             {
-                if (_logger.IsTrace) _logger.Trace($"  Touch {address} (code hash)");
-                Account touched = GetThroughCache(address);
-                if (touched.IsEmpty)
-                {
-                    PushTouch(address, touched, releaseSpec, touched.Balance.IsZero);
-                }
+                // if (_logger.IsTrace) _logger.Trace($"  Touch {address} (code hash)");
+                // Account touched = GetThroughCache(address);
+                // if (touched.IsEmpty)
+                // {
+                //     PushTouch(address, touched, releaseSpec, touched.Balance.IsZero);
+                // }
             }
         }
 
@@ -189,15 +189,15 @@ namespace Nethermind.State
             bool isZero = balanceChange.IsZero;
             if (isZero)
             {
-                if (releaseSpec.IsEip158Enabled)
-                {
-                    Account touched = GetThroughCacheCheckExists();
-                    if (_logger.IsTrace) _logger.Trace($"  Touch {address} (balance)");
-                    if (touched.IsEmpty)
-                    {
-                        PushTouch(address, touched, releaseSpec, isZero);
-                    }
-                }
+                // if (releaseSpec.IsEip158Enabled)
+                // {
+                //     Account touched = GetThroughCacheCheckExists();
+                //     if (_logger.IsTrace) _logger.Trace($"  Touch {address} (balance)");
+                //     if (touched.IsEmpty)
+                //     {
+                //         PushTouch(address, touched, releaseSpec, isZero);
+                //     }
+                // }
 
                 return;
             }

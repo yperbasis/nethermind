@@ -120,7 +120,16 @@ namespace Nethermind.Evm
                             _txTracer.ReportAction(currentState.GasAvailable, currentState.Env.Value, currentState.From, currentState.To, currentState.Env.InputData, currentState.ExecutionType, true);
                         }
 
-                        callResult = ExecutePrecompile(currentState, spec);
+                        long gasAvailable = currentState.GasAvailable;
+                        ExecutionEnvironment env = currentState.Env;
+                        callResult = ExecutePrecompile(
+                            env.InputData,
+                            env.TransferValue,
+                            ref gasAvailable,
+                            env.CodeInfo.PrecompiledContract,
+                            spec);
+                        
+                        currentState.GasAvailable = gasAvailable;
 
                         if (!callResult.PrecompileSuccess.Value)
                         {
@@ -333,11 +342,11 @@ namespace Nethermind.Evm
                     _state.Restore(currentState.StateSnapshot);
                     _storage.Restore(currentState.StorageSnapshot);
 
-                    if (_parityTouchBugAccount != null)
-                    {
-                        _state.AddToBalance(_parityTouchBugAccount, UInt256.Zero, spec);
-                        _parityTouchBugAccount = null;
-                    }
+                    // if (_parityTouchBugAccount != null)
+                    // {
+                    //     _state.AddToBalance(_parityTouchBugAccount, UInt256.Zero, spec);
+                    //     _parityTouchBugAccount = null;
+                    // }
 
                     if (txTracer.IsTracingInstructions)
                     {
@@ -429,28 +438,30 @@ namespace Nethermind.Evm
             gasAvailable += refund;
         }
 
-        private CallResult ExecutePrecompile(EvmState state, IReleaseSpec spec)
+        private CallResult ExecutePrecompile(
+            byte[] callData,
+            UInt256 transferValue,
+            ref long gasAvailable,
+            IPrecompiledContract precompile,
+            IReleaseSpec spec)
         {
-            byte[] callData = state.Env.InputData;
-            UInt256 transferValue = state.Env.TransferValue;
-            long gasAvailable = state.GasAvailable;
-
-            IPrecompiledContract precompile = state.Env.CodeInfo.PrecompiledContract;
+            return new CallResult(new byte[0], true);
+            
             long baseGasCost = precompile.BaseGasCost(spec);
             long dataGasCost = precompile.DataGasCost(callData, spec);
 
             bool wasCreated = false;
-            if (!_state.AccountExists(state.Env.ExecutingAccount))
+            if (!_state.AccountExists(precompile.Address))
             {
                 wasCreated = true;
-                _state.CreateAccount(state.Env.ExecutingAccount, transferValue);
+                _state.CreateAccount(precompile.Address, transferValue);
             }
             else
             {
-                _state.AddToBalance(state.Env.ExecutingAccount, transferValue, spec);
+                _state.AddToBalance(precompile.Address, transferValue, spec);
             }
 
-            if (gasAvailable < dataGasCost + baseGasCost)
+            if (baseGasCost + dataGasCost > gasAvailable)
             {
                 // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-161.md
                 // An additional issue was found in Parity,
@@ -463,27 +474,12 @@ namespace Nethermind.Evm
 
                 if (!wasCreated && transferValue.IsZero && spec.IsEip158Enabled)
                 {
-                    _parityTouchBugAccount = state.Env.ExecutingAccount;
+                    _parityTouchBugAccount = precompile.Address;
                 }
-
+                
                 Metrics.EvmExceptions++;
                 throw new OutOfGasException();
             }
-
-            //if(!UpdateGas(dataGasCost, ref gasAvailable)) return CallResult.Exception;
-            if (!UpdateGas(baseGasCost, ref gasAvailable))
-            {
-                Metrics.EvmExceptions++;
-                throw new OutOfGasException();
-            }
-
-            if (!UpdateGas(dataGasCost, ref gasAvailable))
-            {
-                Metrics.EvmExceptions++;
-                throw new OutOfGasException();
-            }
-
-            state.GasAvailable = gasAvailable;
 
             try
             {
@@ -2261,60 +2257,46 @@ namespace Nethermind.Evm
                             gasLimit = BigInteger.Min(gasAvailable - gasAvailable / 64L, gasLimit);
                         }
 
-                        long gasLimitUl = (long) gasLimit;
-                        if (!UpdateGas(gasLimitUl, ref gasAvailable))
-                        {
-                            EndInstructionTraceError(OutOfGasErrorText);
-                            return CallResult.OutOfGasException;
-                        }
-
-                        if (!transferValue.IsZero)
-                        {
-                            if (_txTracer.IsTracingRefunds) _txTracer.ReportExtraGasPressure(GasCostOf.CallStipend);
-                            gasLimitUl += GasCostOf.CallStipend;
-                        }
-
-                        if (env.CallDepth >= MaxCallDepth || !transferValue.IsZero && _state.GetBalance(env.ExecutingAccount) < transferValue)
-                        {
-                            _returnDataBuffer = new byte[0];
-                            stack.PushZero();
-
-                            if (_txTracer.IsTracingInstructions)
-                            {
-                                // very specific for Parity trace, need to find generalization - very peculiar 32 length...
-                                byte[] memoryTrace = vmState.Memory.Load(ref dataOffset, 32);
-                                _txTracer.ReportMemoryChange((long) dataOffset, memoryTrace);
-                            }
-
-                            if (isTrace) _logger.Trace("FAIL - call depth");
-                            if (_txTracer.IsTracingInstructions) _txTracer.ReportOperationRemainingGas(gasAvailable);
-                            if (_txTracer.IsTracingInstructions) _txTracer.ReportOperationError(EvmExceptionType.NotEnoughBalance);
-
-                            UpdateGasUp(gasLimitUl, ref gasAvailable);
-                            if (_txTracer.IsTracingInstructions) _txTracer.ReportGasUpdateForVmTrace(gasLimitUl, gasAvailable);
-                            break;
-                        }
+                        // long gasLimitUl = (long) gasLimit;
+                        // if (!UpdateGas(gasLimitUl, ref gasAvailable))
+                        // {
+                        //     EndInstructionTraceError(OutOfGasErrorText);
+                        //     return CallResult.OutOfGasException;
+                        // }
+                        //
+                        // if (!transferValue.IsZero)
+                        // {
+                        //     if (_txTracer.IsTracingRefunds) _txTracer.ReportExtraGasPressure(GasCostOf.CallStipend);
+                        //     gasLimitUl += GasCostOf.CallStipend;
+                        // }
+                        //
+                        // if (env.CallDepth >= MaxCallDepth || !transferValue.IsZero && _state.GetBalance(env.ExecutingAccount) < transferValue)
+                        // {
+                        //     _returnDataBuffer = new byte[0];
+                        //     stack.PushZero();
+                        //
+                        //     if (_txTracer.IsTracingInstructions)
+                        //     {
+                        //         // very specific for Parity trace, need to find generalization - very peculiar 32 length...
+                        //         byte[] memoryTrace = vmState.Memory.Load(ref dataOffset, 32);
+                        //         _txTracer.ReportMemoryChange((long) dataOffset, memoryTrace);
+                        //     }
+                        //
+                        //     if (isTrace) _logger.Trace("FAIL - call depth");
+                        //     if (_txTracer.IsTracingInstructions) _txTracer.ReportOperationRemainingGas(gasAvailable);
+                        //     if (_txTracer.IsTracingInstructions) _txTracer.ReportOperationError(EvmExceptionType.NotEnoughBalance);
+                        //
+                        //     UpdateGasUp(gasLimitUl, ref gasAvailable);
+                        //     if (_txTracer.IsTracingInstructions) _txTracer.ReportGasUpdateForVmTrace(gasLimitUl, gasAvailable);
+                        //     break;
+                        // }
 
                         byte[] callData = vmState.Memory.Load(ref dataOffset, dataLength);
-
+                        
                         int stateSnapshot = _state.TakeSnapshot();
                         int storageSnapshot = _storage.TakeSnapshot();
                         _state.SubtractFromBalance(sender, transferValue, spec);
 
-                        ExecutionEnvironment callEnv = new ExecutionEnvironment();
-                        callEnv.CallDepth = env.CallDepth + 1;
-                        callEnv.CurrentBlock = env.CurrentBlock;
-                        callEnv.GasPrice = env.GasPrice;
-                        callEnv.Originator = env.Originator;
-                        callEnv.Sender = sender;
-                        callEnv.CodeSource = codeSource;
-                        callEnv.ExecutingAccount = target;
-                        callEnv.TransferValue = transferValue;
-                        callEnv.Value = callValue;
-                        callEnv.InputData = callData;
-                        callEnv.CodeInfo = GetCachedCodeInfo(codeSource, spec);
-
-                        if (isTrace) _logger.Trace($"Tx call gas {gasLimitUl}");
                         if (outputLength == 0)
                         {
                             // TODO: when output length is 0 outputOffset can have any value really
@@ -2322,44 +2304,68 @@ namespace Nethermind.Evm
                             outputOffset = 0;
                         }
 
-                        ExecutionType executionType;
-                        if (instruction == Instruction.CALL)
-                        {
-                            executionType = ExecutionType.Call;
-                        }
-                        else if (instruction == Instruction.DELEGATECALL)
-                        {
-                            executionType = ExecutionType.DelegateCall;
-                        }
-                        else if (instruction == Instruction.STATICCALL)
-                        {
-                            executionType = ExecutionType.StaticCall;
-                        }
-                        else if (instruction == Instruction.CALLCODE)
-                        {
-                            executionType = ExecutionType.CallCode;
-                        }
-                        else
-                        {
-                            throw new NotSupportedException($"Execution type is undefined for {Enum.GetName(typeof(Instruction), instruction)}");
-                        }
-
-                        EvmState callState = new EvmState(
-                            gasLimitUl,
-                            callEnv,
-                            executionType,
-                            false,
-                            stateSnapshot,
-                            storageSnapshot,
-                            (long) outputOffset,
-                            (long) outputLength,
-                            instruction == Instruction.STATICCALL || vmState.IsStatic,
-                            false,
-                            false);
-
-                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
-                        EndInstructionTrace();
-                        return new CallResult(callState);
+                        CallResult callResult = ExecutePrecompile(
+                            callData,
+                            transferValue,
+                            ref gasAvailable,
+                            IdentityPrecompiledContract.Instance,
+                            spec);
+                        stack.PushBytes(callResult.PrecompileSuccess.Value ? StatusCode.SuccessBytes : StatusCode.FailureBytes);
+                        break;
+                        
+                        // ExecutionEnvironment callEnv = new ExecutionEnvironment();
+                        // callEnv.CallDepth = env.CallDepth + 1;
+                        // callEnv.CurrentBlock = env.CurrentBlock;
+                        // callEnv.GasPrice = env.GasPrice;
+                        // callEnv.Originator = env.Originator;
+                        // callEnv.Sender = sender;
+                        // callEnv.CodeSource = codeSource;
+                        // callEnv.ExecutingAccount = target;
+                        // callEnv.TransferValue = transferValue;
+                        // callEnv.Value = callValue;
+                        // callEnv.InputData = callData;
+                        // callEnv.CodeInfo = GetCachedCodeInfo(codeSource, spec);
+                        //
+                        // if (isTrace) _logger.Trace($"Tx call gas {gasLimitUl}");
+                        //
+                        // ExecutionType executionType;
+                        // if (instruction == Instruction.CALL)
+                        // {
+                        //     executionType = ExecutionType.Call;
+                        // }
+                        // else if (instruction == Instruction.DELEGATECALL)
+                        // {
+                        //     executionType = ExecutionType.DelegateCall;
+                        // }
+                        // else if (instruction == Instruction.STATICCALL)
+                        // {
+                        //     executionType = ExecutionType.StaticCall;
+                        // }
+                        // else if (instruction == Instruction.CALLCODE)
+                        // {
+                        //     executionType = ExecutionType.CallCode;
+                        // }
+                        // else
+                        // {
+                        //     throw new NotSupportedException($"Execution type is undefined for {Enum.GetName(typeof(Instruction), instruction)}");
+                        // }
+                        //
+                        // EvmState callState = new EvmState(
+                        //     gasLimitUl,
+                        //     callEnv,
+                        //     executionType,
+                        //     false,
+                        //     stateSnapshot,
+                        //     storageSnapshot,
+                        //     (long) outputOffset,
+                        //     (long) outputLength,
+                        //     instruction == Instruction.STATICCALL || vmState.IsStatic,
+                        //     false,
+                        //     false);
+                        //
+                        // UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
+                        // EndInstructionTrace();
+                        // return new CallResult(callState);
                     }
                     case Instruction.REVERT:
                     {
