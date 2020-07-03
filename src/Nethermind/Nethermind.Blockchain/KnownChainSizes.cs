@@ -49,8 +49,10 @@ namespace Nethermind.Blockchain
         {
             {ChainId.Goerli,  new SizeInfo(1130.MB(), 4.MB(), new DateTime(2020, 6, 13))},
             {ChainId.Rinkeby,  new SizeInfo(13700.MB(), 8.MB(), new DateTime(2020, 4, 23))},
+            {ChainId.Ropsten,  new SizeInfo(24700.MB(), 40.MB(), new DateTime(2020, 7, 3))},
+            {ChainId.Sokol,  new SizeInfo(1786.MB(), 2.MB(), new DateTime(2020, 7, 3))},
+            {ChainId.PoaCore,  new SizeInfo(7500.MB(), 6.MB(), new DateTime(2020, 7, 3))},
             {ChainId.Mainnet,  new SizeInfo(45700.MB(), 60.MB(), new DateTime(2020, 7, 1))},
-            // {ChainId.Ropsten,  new SizeInfo(12000.MB(), 4.MB(), new DateTime(2020, 4, 23))},
         };
     }
 }

@@ -51,8 +51,10 @@ namespace Nethermind.Core
         public const int Kovan = 42;
         public const int EthereumClassicMainnet = 61;
         public const int EthereumClassicTestnet = 62;
+        public const int Sokol = 77;
+        public const int PoaCore = 99;
+        public const int XDai = 100;
         public const int DefaultGethPrivateChain = 1337;
-        public const int Stureby = 314158;
 
         public static string GetChainName(int chainId)
         {
@@ -82,8 +84,6 @@ namespace Nethermind.Core
                     return "EthereumClassicTestnet";
                 case DefaultGethPrivateChain:
                     return "DefaultGethPrivateChain";
-                case Stureby:
-                    return "Stureby";
             }
 
             return chainId.ToString();
