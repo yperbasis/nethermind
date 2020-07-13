@@ -278,6 +278,12 @@ namespace Nethermind.Network.P2P
             //     return;
             // }
 
+            // request from Geth / Parity to check if we are on a correct fork  
+            if (getBlockHeadersMessage.MaxHeaders == 1 && getBlockHeadersMessage.StartBlockHash == null)
+            {
+                
+            }
+            
             Send(FulfillBlockHeadersRequest(getBlockHeadersMessage));
             stopwatch.Stop();
             if (Logger.IsTrace) Logger.Trace($"OUT {Counter:D5} BlockHeaders to {Node:c} in {stopwatch.Elapsed.TotalMilliseconds}ms");

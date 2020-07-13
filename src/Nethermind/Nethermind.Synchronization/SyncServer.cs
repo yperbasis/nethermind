@@ -109,6 +109,14 @@ namespace Nethermind.Synchronization
                 {
                     _pivotHeader ??= _blockTree.FindHeader(_pivotHash, BlockTreeLookupOptions.None);
                 }
+                
+                if ((_syncConfig.FastSync || _syncConfig.BeamSync) &&
+                    (_blockTree.LowestInsertedHeader?.Number ?? 0) + 1000000 > (_blockTree.BestSuggestedHeader?.Number ?? 0))
+                {
+                    // if we do not have headers from the recent past (1 million last headers)
+                    // then better to return genesis
+                    return _blockTree.Genesis;
+                }
 
                 return headIsGenesis ? _pivotHeader ?? _blockTree.Genesis : _blockTree.Head?.Header;
             }
