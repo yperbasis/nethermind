@@ -27,7 +27,7 @@ namespace Nethermind.Synchronization.FastBlocks
         /// <summary>
         /// Max queued bodies
         /// </summary>
-        public const long ForBodies = 16 * 1024;
+        public const long ForBodies = 1024;
         
         /// <summary>
         /// Max queued receipts
