@@ -60,6 +60,15 @@ namespace Nethermind.Core
             CodeHash = codeHash;
             IsTotallyEmpty = Balance.IsZero && Nonce == _accountStartNonce && CodeHash == Keccak.OfAnEmptyString && StorageRoot == Keccak.EmptyTreeHash;
         }
+        
+        public Account(UInt256 nonce, UInt256 balance)
+        {
+            Nonce = nonce;
+            Balance = balance;
+            StorageRoot = Keccak.EmptyTreeHash;
+            CodeHash = Keccak.OfAnEmptyString;
+            IsTotallyEmpty = Balance.IsZero && Nonce == _accountStartNonce && CodeHash == Keccak.OfAnEmptyString && StorageRoot == Keccak.EmptyTreeHash;
+        }
 
         private Account(UInt256 nonce, UInt256 balance, Keccak storageRoot, Keccak codeHash, bool isTotallyEmpty)
         {

@@ -255,7 +255,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                 {
                     if (i >= MaxResponseLength) break;
 
-                    if (_filter == null || _filter.Contains(item)) responses[i] = _stateDb[item.Bytes] ?? _codeDb[item.Bytes];
+                    if (_filter == null || _filter.Contains(item)) responses[i] = StateDb.DecompressNormalAccount(_stateDb.Innermost[item.Bytes]) ?? _codeDb[item.Bytes];
 
                     i++;
                 }
@@ -301,6 +301,8 @@ namespace Nethermind.Synchronization.Test.FastSync
             dbContext.RemoteCodeDb[Keccak.Compute(TrieScenarios.Code2).Bytes] = TrieScenarios.Code2;
             dbContext.RemoteCodeDb[Keccak.Compute(TrieScenarios.Code3).Bytes] = TrieScenarios.Code3;
             testCase.SetupTree(dbContext.RemoteStateTree, dbContext.RemoteStateDb, dbContext.RemoteCodeDb);
+            
+            dbContext.RemoteStateTree.Commit();
             dbContext.RemoteStateDb.Commit();
 
             SyncPeerMock mock = new SyncPeerMock(dbContext.RemoteStateDb, dbContext.RemoteCodeDb);

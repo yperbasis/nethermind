@@ -66,13 +66,13 @@ namespace Nethermind.State
         public void Set(Address address, Account account)
         {
             ValueKeccak keccak = ValueKeccak.Compute(address.Bytes);
-            Set(keccak.BytesAsSpan, account == null ? null : account.IsTotallyEmpty ? EmptyAccountRlp : Rlp.Encode(account));
+            Set(keccak.BytesAsSpan, account == null ? null : account.IsTotallyEmpty ? EmptyAccountRlp : _decoder.Encode(account));
         }
         
         [DebuggerStepThrough]
         internal void Set(Keccak keccak, Account account) // for testing
         {
-            Set(keccak.Bytes, account == null ? null : account.IsTotallyEmpty ? EmptyAccountRlp : Rlp.Encode(account));
+            Set(keccak.Bytes, account == null ? null : account.IsTotallyEmpty ? EmptyAccountRlp : _decoder.Encode(account));
         }
     }
 }

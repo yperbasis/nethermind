@@ -47,5 +47,18 @@ namespace Nethermind.Core.Test.Encoding
             Assert.AreEqual(decoded.CodeHash, TestItem.KeccakA);
             Assert.AreEqual(decoded.StorageRoot, TestItem.KeccakB);
         }
+        
+        [Test]
+        public void Shorter_accounts()
+        {
+            Account account = new Account(100);
+            AccountDecoder decoder = new AccountDecoder();
+            Rlp rlp = decoder.EncodeShort(account);
+            Account decoded = decoder.Decode(new RlpStream(rlp.Bytes));
+            Assert.AreEqual((int)decoded.Balance, 100);
+            Assert.AreEqual((int)decoded.Nonce, 0);
+            Assert.AreEqual(decoded.CodeHash, Keccak.OfAnEmptyString);
+            Assert.AreEqual(decoded.StorageRoot, Keccak.EmptyTreeHash);
+        }
     }
 }

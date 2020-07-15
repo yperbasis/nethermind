@@ -16,6 +16,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Resettables;
 
@@ -45,6 +47,14 @@ namespace Nethermind.Db
         public StateDb(IDb db)
         {
             _db = db;
+        }
+
+        static StateDb()
+        {
+            _normalAccountEnding[0] = 160;
+            Keccak.EmptyTreeHash.Bytes.AsSpan().CopyTo(_normalAccountEnding.AsSpan(1, 32));
+            _normalAccountEnding[33] = 160;
+            Keccak.OfAnEmptyString.Bytes.AsSpan().CopyTo(_normalAccountEnding.AsSpan(34, 32));
         }
 
         public byte[] this[byte[] key]
@@ -119,6 +129,8 @@ namespace Nethermind.Db
             _currentPosition = snapshot;
         }
 
+        private static byte[] _normalAccountEnding = new byte[66]; 
+        
         public void Commit()
         {
             if (_currentPosition == -1) return;
@@ -149,7 +161,22 @@ namespace Nethermind.Db
         private byte[] Get(byte[] key)
         {
             if (_pendingChanges.TryGetValue(key, out int pendingChangeIndex)) return _changes[pendingChangeIndex].Value;
-            return _db[key];
+            byte[] value = _db[key];
+            value = DecompressNormalAccount(value);
+            return value;
+        }
+
+        public static byte[] DecompressNormalAccount(byte[] value)
+        {
+            if (value != null && value[0] == 0)
+            {
+                byte[] decompressedValue = new byte[value.Length - 1 + 66];
+                value.AsSpan(1).CopyTo(decompressedValue.AsSpan(0, value.Length - 1));
+                _normalAccountEnding.CopyTo(decompressedValue.AsSpan(value.Length - 1));
+                value = decompressedValue;
+            }
+
+            return value;
         }
 
         /// <summary>
@@ -164,7 +191,18 @@ namespace Nethermind.Db
             if (value == null) throw new ArgumentNullException(nameof(value), "Cannot store null values");
             
             Resettable<Change>.IncrementPosition(ref _changes, ref _capacity, ref _currentPosition);
-            Change change = new Change(key, value);
+
+            byte[] valueToSave = value; 
+            if (value.Length > 66)
+            {
+                if (value.Slice(value.Length - 66, 66).SequenceEqual(_normalAccountEnding))
+                {
+                    valueToSave = new byte[value.Length - 66 + 1];
+                    value.AsSpan(0, value.Length - 66).CopyTo(valueToSave.AsSpan().Slice(1));
+                }
+            }
+            
+            Change change = new Change(key, valueToSave);
             _changes[_currentPosition] = change;
             _pendingChanges[key] = _currentPosition;
         }

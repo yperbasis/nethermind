@@ -14,6 +14,7 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using FluentAssertions;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Test.Builders;
@@ -50,6 +51,27 @@ namespace Nethermind.Store.Test
             tree.Set(TestItem.AddressC, _account0);
             tree.Commit();
             Assert.AreEqual(0, db.ReadsCount, "reads");
+        }
+
+        [Test]
+        public void Encode_short_works()
+        {
+            MemDb db = new MemDb();
+            StateDb stateDb = new StateDb(db);
+            StateTree tree = new StateTree(stateDb);
+            tree.Set(TestItem.AddressA, _account0);
+            tree.Commit();
+            stateDb.Commit();
+            Keccak root = tree.RootHash;
+            Assert.AreEqual(1, db.WritesCount, "writes"); // branch, branch, two leaves (one is stored as RLP)
+            
+            PatriciaTree.NodeCache.Clear();
+            StateDb stateDb2 = new StateDb(db);
+            StateTree tree2 = new StateTree(stateDb2);
+            tree2.RootHash = root;
+            Account account = tree2.Get(TestItem.AddressA);
+            account.Should().BeEquivalentTo(_account0);
+            tree2.RootHash.Should().Be(new Keccak("0x545a417202afcb10925b2afddb70a698710bb1cf4ab32942c42e9f019d564fdc"));
         }
         
         [Test]
