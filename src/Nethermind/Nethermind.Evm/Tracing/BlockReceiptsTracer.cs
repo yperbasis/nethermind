@@ -82,8 +82,7 @@ namespace Nethermind.Evm.Tracing
         private TxReceipt BuildReceipt(Address recipient, long spentGas, byte statusCode, LogEntry[] logEntries, Keccak stateRoot = null)
         {
             Transaction transaction = _block.Transactions[_currentIndex];
-            TxReceipt txReceipt = new TxReceipt();
-            txReceipt.Logs = logEntries;
+            
             if (logEntries.Length > 0)
             {
                 if (_block.Bloom == Bloom.Empty)
@@ -92,20 +91,19 @@ namespace Nethermind.Evm.Tracing
                 }
             }
             
-            txReceipt.Bloom = logEntries.Length == 0 ? Bloom.Empty : new Bloom(logEntries, _block.Bloom);
-            txReceipt.GasUsedTotal = _block.GasUsed;
-            txReceipt.StatusCode = statusCode;
-            txReceipt.Recipient = transaction.IsContractCreation ? null : recipient;
-            txReceipt.BlockHash = _block.Hash;
-            txReceipt.BlockNumber = _block.Number;
-            txReceipt.Index = _currentIndex;
-            txReceipt.GasUsed = spentGas;
-            txReceipt.Sender = transaction.SenderAddress;
-            txReceipt.ContractAddress = transaction.IsContractCreation ? recipient : null;
-            txReceipt.TxHash = transaction.Hash;
-            txReceipt.PostTransactionState = stateRoot;
+            Bloom bloom = logEntries.Length == 0 ? Bloom.Empty : new Bloom(logEntries, _block.Bloom);
+            TxReceipt receipt = new TxReceipt(statusCode, stateRoot, bloom, logEntries, _block.GasUsed);
+            receipt.Recipient = transaction.IsContractCreation ? null : recipient;
+            receipt.BlockHash = _block.Hash;
+            receipt.BlockNumber = _block.Number;
+            receipt.Index = _currentIndex;
+            receipt.GasUsed = spentGas;
+            receipt.Sender = transaction.SenderAddress;
+            receipt.ContractAddress = transaction.IsContractCreation ? recipient : null;
+            receipt.TxHash = transaction.Hash;
+            receipt.PostTransactionState = stateRoot;
 
-            return txReceipt;
+            return receipt;
         }
 
         public void StartOperation(int depth, long gas, Instruction opcode, int pc)

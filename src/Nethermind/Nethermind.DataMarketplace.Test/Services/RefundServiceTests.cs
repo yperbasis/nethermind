@@ -75,7 +75,7 @@ namespace Nethermind.DataMarketplace.Test.Services
             Keccak depositTxHash = await depositService.MakeDepositAsync(_consumerAccount, deposit, 20.GWei());
             TxReceipt depositTxReceipt = _bridge.GetReceipt(depositTxHash);
             TestContext.WriteLine("GAS USED FOR DEPOSIT: {0}", depositTxReceipt.GasUsed);
-            Assert.AreEqual(StatusCode.Success, depositTxReceipt.StatusCode, $"deposit made {depositTxReceipt.Error} {Encoding.UTF8.GetString(depositTxReceipt.ReturnValue ?? new byte[0])}");
+            Assert.AreEqual(StatusCode.Success, depositTxReceipt.StatusCode, $"deposit made {depositTxReceipt.Error}");
 
             // calls revert and cannot reuse the same state - use only for manual debugging
 //            Assert.True(depositService.VerifyDeposit(deposit.Id), "deposit verified");
@@ -90,7 +90,7 @@ namespace Nethermind.DataMarketplace.Test.Services
             Keccak refundTxHash = await refundService.ClaimRefundAsync(_consumerAccount, refundClaim, 20.GWei());
             TxReceipt refundReceipt = _bridge.GetReceipt(refundTxHash);
             TestContext.WriteLine("GAS USED FOR REFUND CLAIM: {0}", refundReceipt.GasUsed);
-            Assert.AreEqual(StatusCode.Success, refundReceipt.StatusCode, $"refund claim {refundReceipt.Error} {Encoding.UTF8.GetString(refundReceipt.ReturnValue ?? new byte[0])}");
+            Assert.AreEqual(StatusCode.Success, refundReceipt.StatusCode, $"refund claim {refundReceipt.Error}");
             UInt256 balanceAfter = _state.GetBalance(_consumerAccount);
             Assert.Greater(balanceAfter, balanceBefore);
         }
@@ -124,7 +124,7 @@ namespace Nethermind.DataMarketplace.Test.Services
             Keccak depositTxHash = await depositService.MakeDepositAsync(_consumerAccount, deposit, 20.GWei());
             TxReceipt depositTxReceipt = _bridge.GetReceipt(depositTxHash);
             TestContext.WriteLine("GAS USED FOR DEPOSIT: {0}", depositTxReceipt.GasUsed);
-            Assert.AreEqual(StatusCode.Success, depositTxReceipt.StatusCode, $"deposit made {depositTxReceipt.Error} {Encoding.UTF8.GetString(depositTxReceipt.ReturnValue ?? new byte[0])}");
+            Assert.AreEqual(StatusCode.Success, depositTxReceipt.StatusCode, $"deposit made {depositTxReceipt.Error}");
 
             // calls revert and cannot reuse the same state - use only for manual debugging
             // Assert.True(depositService.VerifyDeposit(deposit.Id), "deposit verified");
@@ -146,7 +146,7 @@ namespace Nethermind.DataMarketplace.Test.Services
             Keccak refundTxHash = await refundService.ClaimEarlyRefundAsync(_consumerAccount, earlyRefundClaim, 20.GWei());
             TxReceipt refundReceipt = _bridge.GetReceipt(refundTxHash);
             TestContext.WriteLine("GAS USED FOR EARLY REFUND CLAIM: {0}", refundReceipt.GasUsed);
-            Assert.AreEqual(StatusCode.Success, refundReceipt.StatusCode, $"early refund claim {refundReceipt.Error} {Encoding.UTF8.GetString(refundReceipt.ReturnValue ?? new byte[0])}");
+            Assert.AreEqual(StatusCode.Success, refundReceipt.StatusCode, $"early refund claim {refundReceipt.Error}");
             UInt256 balanceAfter = _state.GetBalance(_consumerAccount);
             Assert.Greater(balanceAfter, balanceBefore);
         }

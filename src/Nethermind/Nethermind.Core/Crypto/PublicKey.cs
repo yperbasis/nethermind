@@ -107,7 +107,7 @@ namespace Nethermind.Core.Crypto
             return new Address(hash.Slice(12).ToArray());
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as PublicKey);
         }

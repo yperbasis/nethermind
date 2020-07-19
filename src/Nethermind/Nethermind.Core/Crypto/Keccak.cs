@@ -173,7 +173,7 @@ namespace Nethermind.Core.Crypto
             return Core.Extensions.Bytes.AreEqual(other.Bytes, Bytes);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj?.GetType() == typeof(Keccak) && Equals((Keccak) obj);
         }
@@ -303,7 +303,7 @@ namespace Nethermind.Core.Crypto
         
         public bool Equals(KeccakStructRef other) => Core.Extensions.Bytes.AreEqual(other.Bytes, Bytes);
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj?.GetType() == typeof(Keccak) && Equals((Keccak) obj);
         }

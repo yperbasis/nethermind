@@ -22,30 +22,38 @@ namespace Nethermind.Core
 {
     public class TxReceipt
     {
+        public TxReceipt(byte statusCode, Keccak? postTransactionState, Bloom bloom, LogEntry[] logs, long gasUsedTotal)
+        {
+            StatusCode = statusCode;
+            Bloom = Bloom;
+            Logs = Logs;
+            GasUsedTotal = gasUsedTotal;
+            PostTransactionState = postTransactionState;
+        }
+
         /// <summary>
         ///     EIP-658
         /// </summary>
         public byte StatusCode { get; set; }
-        public long BlockNumber { get; set; }
-        public Keccak BlockHash { get; set; }
-        public Keccak TxHash { get; set; }
-        public int Index { get; set; }
-        public long GasUsed { get; set; }
-        public long GasUsedTotal { get; set; }
-        public Address Sender { get; set; }
-        public Address ContractAddress { get; set; }
-        public Address Recipient { get; set; }
-        
-        [Todo(Improve.Refactor, "Receipt tracer?")]
-        public byte[] ReturnValue { get; set; }
         
         /// <summary>
         ///     Removed in EIP-658
         /// </summary>
-        public Keccak PostTransactionState { get; set; }
+        public Keccak? PostTransactionState { get; set; }
         public Bloom Bloom { get; set; }
         public LogEntry[] Logs { get; set; }
-        public string Error { get; set; }
+        public long GasUsedTotal { get; set; }
+
+        public long BlockNumber { get; set; }
+        public Keccak? BlockHash { get; set; }
+        public Keccak? TxHash { get; set; }
+        public int Index { get; set; }
+        public long GasUsed { get; set; }
+        public string? Error { get; set; }
+        
+        public Address? Sender { get; set; }
+        public Address? ContractAddress { get; set; }
+        public Address? Recipient { get; set; }
     }
 
     public ref struct TxReceiptStructRef
@@ -64,9 +72,6 @@ namespace Nethermind.Core
         public AddressStructRef ContractAddress;
         public AddressStructRef Recipient;
 
-        [Todo(Improve.Refactor, "Receipt tracer?")]
-        public Span<byte> ReturnValue;
-
         /// <summary>
         ///     Removed in EIP-658
         /// </summary>
@@ -81,7 +86,7 @@ namespace Nethermind.Core
         
         public LogEntry[] Logs { get; }
         
-        public string Error { get; set; }
+        public string? Error { get; set; }
 
         public TxReceiptStructRef(TxReceipt receipt)
         {
@@ -95,7 +100,6 @@ namespace Nethermind.Core
             Sender = (receipt.Sender ?? Address.Zero).ToStructRef();
             ContractAddress = (receipt.ContractAddress ?? Address.Zero).ToStructRef();
             Recipient = (receipt.Recipient ?? Address.Zero).ToStructRef();
-            ReturnValue = receipt.ReturnValue;
             PostTransactionState = (receipt.PostTransactionState ?? Keccak.Zero).ToStructRef();
             Bloom = (receipt.Bloom ?? Core.Bloom.Empty).ToStructRef();
             Logs = receipt.Logs;

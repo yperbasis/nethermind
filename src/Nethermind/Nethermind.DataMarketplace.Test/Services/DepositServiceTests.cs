@@ -49,7 +49,7 @@ namespace Nethermind.DataMarketplace.Test.Services
             Keccak depositTxHash = await depositService.MakeDepositAsync(address, deposit, 20.GWei());
             _bridge.IncrementNonce(address);
             TxReceipt depositTxReceipt = _bridge.GetReceipt(depositTxHash);
-            Assert.AreEqual(StatusCode.Success, depositTxReceipt.StatusCode, $"deposit made {depositTxReceipt.Error} {Encoding.UTF8.GetString(depositTxReceipt.ReturnValue ?? new byte[0])}");
+            Assert.AreEqual(StatusCode.Success, depositTxReceipt.StatusCode, $"deposit made {depositTxReceipt.Error}");
             Assert.Greater(await depositService.VerifyDepositAsync(_consumerAccount, deposit.Id), 0, "deposit verified");
         }
 
@@ -61,7 +61,7 @@ namespace Nethermind.DataMarketplace.Test.Services
             Keccak depositTxHash = await depositService.MakeDepositAsync(_consumerAccount, deposit, 20.GWei());
             _bridge.IncrementNonce(_consumerAccount);
             TxReceipt depositTxReceipt = _bridge.GetReceipt(depositTxHash);
-            Assert.AreEqual(StatusCode.Success, depositTxReceipt.StatusCode, $"deposit made {depositTxReceipt.Error} {Encoding.UTF8.GetString(depositTxReceipt.ReturnValue ?? new byte[0])}");
+            Assert.AreEqual(StatusCode.Success, depositTxReceipt.StatusCode, $"deposit made {depositTxReceipt.Error}");
             Assert.Greater(await depositService.VerifyDepositAsync(_consumerAccount, deposit.Id), 0, "deposit verified");
         }
 
@@ -73,7 +73,7 @@ namespace Nethermind.DataMarketplace.Test.Services
             Keccak depositTxHash = await depositService.MakeDepositAsync(_consumerAccount, deposit, 20.GWei());
             _bridge.IncrementNonce(_consumerAccount);
             TxReceipt depositTxReceipt = _bridge.GetReceipt(depositTxHash);
-            Assert.AreEqual(StatusCode.Success, depositTxReceipt.StatusCode, $"deposit made {depositTxReceipt.Error} {Encoding.UTF8.GetString(depositTxReceipt.ReturnValue ?? new byte[0])}");
+            Assert.AreEqual(StatusCode.Success, depositTxReceipt.StatusCode, $"deposit made {depositTxReceipt.Error}");
             Assert.AreEqual(0U, await depositService.VerifyDepositAsync(_consumerAccount, Keccak.Compute("incorrect id")), "deposit verified");
         }
 
@@ -85,7 +85,7 @@ namespace Nethermind.DataMarketplace.Test.Services
             Keccak depositTxHash = await depositService.MakeDepositAsync(_consumerAccount, deposit, 20.GWei());
             _bridge.IncrementNonce(_consumerAccount);
             TxReceipt depositTxReceipt = _bridge.GetReceipt(depositTxHash);
-            Assert.AreEqual(StatusCode.Success, depositTxReceipt.StatusCode, $"deposit made {depositTxReceipt.Error} {Encoding.UTF8.GetString(depositTxReceipt.ReturnValue ?? new byte[0])}");
+            Assert.AreEqual(StatusCode.Success, depositTxReceipt.StatusCode, $"deposit made {depositTxReceipt.Error}");
             Assert.True(await depositService.VerifyDepositAsync(_consumerAccount, deposit.Id) > 0, "deposit verified");
         }
         

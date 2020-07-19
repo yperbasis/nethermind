@@ -35,20 +35,21 @@ namespace Nethermind.Serialization.Rlp
                 return null;
             }
             
-            TxReceipt txReceipt = new TxReceipt();
             rlpStream.ReadSequenceLength();
             byte[] firstItem = rlpStream.DecodeByteArray();
+            Keccak postTransactionState = null;
+            byte statusCode = 0;
             if (firstItem.Length == 1)
             {
-                txReceipt.StatusCode = firstItem[0];
+                statusCode = firstItem[0];
             }
             else
             {
-                txReceipt.PostTransactionState = firstItem.Length == 0 ? null : new Keccak(firstItem);
+                postTransactionState = firstItem.Length == 0 ? null : new Keccak(firstItem);
             }
 
-            txReceipt.GasUsedTotal = (long) rlpStream.DecodeUBigInt();
-            txReceipt.Bloom = rlpStream.DecodeBloom();
+            long gasUsedTotal = (long) rlpStream.DecodeUBigInt();
+            Bloom bloom = rlpStream.DecodeBloom();
 
             int lastCheck = rlpStream.ReadSequenceLength() + rlpStream.Position;
             List<LogEntry> logEntries = new List<LogEntry>();
@@ -58,7 +59,9 @@ namespace Nethermind.Serialization.Rlp
                 logEntries.Add(Rlp.Decode<LogEntry>(rlpStream, RlpBehaviors.AllowExtraData));
             }
             
-            txReceipt.Logs = logEntries.ToArray();
+            LogEntry[] logs = logEntries.ToArray();
+            
+            TxReceipt txReceipt = new TxReceipt(statusCode, postTransactionState, bloom, logs, gasUsedTotal);
             return txReceipt;
         }
 

@@ -102,7 +102,7 @@ namespace Nethermind.Core
             return Nethermind.Core.Extensions.Bytes.AreEqual(Bytes, other.Bytes);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
@@ -278,7 +278,7 @@ namespace Nethermind.Core
         }
 
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(null, obj)) return false;
             if (obj.GetType() != typeof(BloomStructRef)) return false;

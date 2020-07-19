@@ -111,16 +111,17 @@ namespace Nethermind.Serialization.Rlp
             }
             
             bool isStorage = (rlpBehaviors & RlpBehaviors.Storage) != 0;
-            TxReceipt txReceipt = new TxReceipt();
             decoderContext.ReadSequenceLength();
             byte[] firstItem = decoderContext.DecodeByteArray();
+            Keccak? postTransagtionState = null;
+            byte statusCode = 0;
             if (firstItem.Length == 1)
             {
-                txReceipt.StatusCode = firstItem[0];
+                statusCode = firstItem[0];
             }
             else
             {
-                txReceipt.PostTransactionState = firstItem.Length == 0 ? null : new Keccak(firstItem);
+                postTransagtionState = firstItem.Length == 0 ? null : new Keccak(firstItem);
             }
 
             if(isStorage) txReceipt.BlockHash = decoderContext.DecodeKeccak();

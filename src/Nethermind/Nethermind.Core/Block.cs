@@ -50,9 +50,9 @@ namespace Nethermind.Core
 
         public bool IsGenesis => Header.IsGenesis;
 
-        public Transaction[] Transactions => Body?.Transactions; // do not add setter here
+        public Transaction[] Transactions => Body.Transactions; // do not add setter here
 
-        public BlockHeader[] Ommers => Body?.Ommers; // do not add setter here
+        public BlockHeader[] Ommers => Body.Ommers; // do not add setter here
 
         public Keccak Hash => Header.Hash; // do not add setter here
 
