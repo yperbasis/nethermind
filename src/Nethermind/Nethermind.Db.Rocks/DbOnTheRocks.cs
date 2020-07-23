@@ -130,7 +130,9 @@ namespace Nethermind.Db.Rocks
             tableOptions.SetFilterPolicy(BloomFilterPolicy.Create(10, true));
             tableOptions.SetFormatVersion(2);
 
-            ulong blockCacheSize = ReadConfig<ulong>(dbConfig, nameof(dbConfig.BlockCacheSize));
+            // since we reuse block cache we need to pass the same number everywhere
+            // (instead nameof using ReadConfig)
+            ulong blockCacheSize = dbConfig.BlockCacheSize;
 
             tableOptions.SetBlockCache(_cache);
             
