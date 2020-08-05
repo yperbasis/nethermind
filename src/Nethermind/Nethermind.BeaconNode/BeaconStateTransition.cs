@@ -26,6 +26,7 @@ using Nethermind.Core2.Containers;
 using Nethermind.Core2.Crypto;
 using Nethermind.Core2.Types;
 using Nethermind.Logging.Microsoft;
+using Nethermind.Merkleization;
 
 namespace Nethermind.BeaconNode
 {
@@ -34,7 +35,6 @@ namespace Nethermind.BeaconNode
         private readonly IBeaconChainUtility _beaconChainUtility;
         private readonly BeaconStateAccessor _beaconStateAccessor;
         private readonly BeaconStateMutator _beaconStateMutator;
-        private readonly IDepositStore _depositStore;
         private readonly ChainConstants _chainConstants;
         private readonly ICryptographyService _cryptographyService;
         private readonly IOptionsMonitor<GweiValues> _gweiValueOptions;
@@ -56,8 +56,7 @@ namespace Nethermind.BeaconNode
             ICryptographyService cryptographyService,
             IBeaconChainUtility beaconChainUtility,
             BeaconStateAccessor beaconStateAccessor,
-            BeaconStateMutator beaconStateMutator,
-            IDepositStore depositStore)
+            BeaconStateMutator beaconStateMutator)
         {
             _logger = logger;
             _chainConstants = chainConstants;
@@ -71,7 +70,6 @@ namespace Nethermind.BeaconNode
             _beaconChainUtility = beaconChainUtility;
             _beaconStateAccessor = beaconStateAccessor;
             _beaconStateMutator = beaconStateMutator;
-            _depositStore = depositStore;
         }
 
         public (IList<Gwei> rewards, IList<Gwei> penalties) GetAttestationDeltas(BeaconState state)
@@ -410,7 +408,9 @@ namespace Nethermind.BeaconNode
 
             GweiValues gweiValues = _gweiValueOptions.CurrentValue;
 
-            bool isValid = _depositStore.Verify(deposit);
+            Root depositDataRoot = _cryptographyService.HashTreeRoot(deposit.Data);
+            Bytes32 depositRootBytes = new Bytes32(depositDataRoot.AsSpan());
+            bool isValid = MerkleTree.VerifyProof(depositRootBytes, deposit.Proof, (uint) state.Eth1DepositIndex, state.Eth1Data.DepositRoot);
             if (!isValid)
             {
                 throw new Exception($"Invalid Merkle branch for deposit for validator public key {deposit.Data.Item.PublicKey}");

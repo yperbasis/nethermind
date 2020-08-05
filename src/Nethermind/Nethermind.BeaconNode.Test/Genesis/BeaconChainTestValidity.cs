@@ -42,15 +42,10 @@ namespace Nethermind.BeaconNode.Test.Genesis
 
             int depositCount = miscellaneousParameters.MinimumGenesisActiveValidatorCount;
             IList<DepositData> deposits = TestDeposit.PrepareGenesisDeposits(testServiceProvider, depositCount, gweiValues.MaximumEffectiveBalance, signed: true);
-            IDepositStore depositStore = testServiceProvider.GetService<IDepositStore>();
-            foreach (DepositData deposit in deposits)
-            {
-                depositStore.Place(deposit);
-            }
             
             Bytes32 eth1BlockHash = new Bytes32(Enumerable.Repeat((byte)0x12, 32).ToArray());
             ulong eth1Timestamp = eth1TimestampOverride ?? miscellaneousParameters.MinimumGenesisTime;
-            BeaconState state = beaconChain.InitializeBeaconStateFromEth1(eth1BlockHash, eth1Timestamp);
+            BeaconState state = beaconChain.InitializeBeaconStateFromEth1(eth1BlockHash, eth1Timestamp, deposits);
             return state;
         }
 
@@ -120,17 +115,12 @@ namespace Nethermind.BeaconNode.Test.Genesis
 
             int depositCount = miscellaneousParameters.MinimumGenesisActiveValidatorCount + 1;
             IList<DepositData> deposits = TestDeposit.PrepareGenesisDeposits(testServiceProvider, depositCount, gweiValues.MaximumEffectiveBalance, signed: true);
-            IDepositStore depositStore = testServiceProvider.GetService<IDepositStore>();
-            foreach (DepositData deposit in deposits)
-            {
-                depositStore.Place(deposit);
-            }
             
             Bytes32 eth1BlockHash = new Bytes32(Enumerable.Repeat((byte)0x12, 32).ToArray());
             ulong eth1Timestamp = miscellaneousParameters.MinimumGenesisTime;
 
             // Act
-            BeaconState state = beaconChain.InitializeBeaconStateFromEth1(eth1BlockHash, eth1Timestamp);
+            BeaconState state = beaconChain.InitializeBeaconStateFromEth1(eth1BlockHash, eth1Timestamp, deposits);
 
             // Assert
             IsValidGenesisState(testServiceProvider, state, true);
@@ -149,17 +139,12 @@ namespace Nethermind.BeaconNode.Test.Genesis
 
             int depositCount = miscellaneousParameters.MinimumGenesisActiveValidatorCount - 1;
             IList<DepositData> deposits = TestDeposit.PrepareGenesisDeposits(testServiceProvider, depositCount, gweiValues.MaximumEffectiveBalance, signed: true);
-            IDepositStore depositStore = testServiceProvider.GetService<IDepositStore>();
-            foreach (DepositData deposit in deposits)
-            {
-                depositStore.Place(deposit);
-            }
             
             Bytes32 eth1BlockHash = new Bytes32(Enumerable.Repeat((byte)0x12, 32).ToArray());
             ulong eth1Timestamp = miscellaneousParameters.MinimumGenesisTime;
 
             // Act
-            BeaconState state = beaconChain.InitializeBeaconStateFromEth1(eth1BlockHash, eth1Timestamp);
+            BeaconState state = beaconChain.InitializeBeaconStateFromEth1(eth1BlockHash, eth1Timestamp, deposits);
 
             // Assert
             IsValidGenesisState(testServiceProvider, state, false);

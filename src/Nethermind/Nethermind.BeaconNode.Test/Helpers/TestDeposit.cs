@@ -126,8 +126,9 @@ namespace Nethermind.BeaconNode.Test.Helpers
 
             IBeaconChainUtility beaconChainUtility = testServiceProvider.GetService<IBeaconChainUtility>();
             BeaconStateAccessor beaconStateAccessor = testServiceProvider.GetService<BeaconStateAccessor>();
-            IDepositStore depositStore = testServiceProvider.GetService<IDepositStore>();
-
+            
+            ICryptographyService cryptographyService = testServiceProvider.GetService<ICryptographyService>();
+            
             byte[][] privateKeys = TestKeys.PrivateKeys(timeParameters).ToArray();
             BlsPublicKey[] publicKeys = TestKeys.PublicKeys(timeParameters).ToArray();
             byte[] privateKey = privateKeys[(int)(ulong)validatorIndex];
@@ -142,11 +143,12 @@ namespace Nethermind.BeaconNode.Test.Helpers
             }
             
             DepositData depositData = BuildDeposit(testServiceProvider, state, publicKey, privateKey, amount, withdrawalCredentials, signed);
-            Deposit deposit = depositStore.Place(depositData);
+            MerkleTree depositTree = new MerkleTree();
+            var deposit = depositData.ToDeposit(cryptographyService, depositTree);
             
             state.SetEth1DepositIndex(0);
-            state.Eth1Data.SetDepositRoot(depositStore.DepositData.Root);
-            state.Eth1Data.SetDepositCount((ulong)depositStore.Deposits.Count);
+            state.Eth1Data.SetDepositRoot(depositTree.Root);
+            state.Eth1Data.SetDepositCount(depositTree.Count);
 
             return deposit;
         }

@@ -78,6 +78,11 @@ namespace Nethermind.BeaconNode.Eth1Bridge
                 "Mocked quick start with genesis time {GenesisTime:n0} and {ValidatorCount} validators.");
 
         // 5bxx error
+        
+        public static readonly Action<ILogger, int, Exception?> Eth1GenesisFailure =
+            LoggerMessage.Define<int>(LogLevel.Error,
+                new EventId(5351, nameof(Eth1GenesisFailure)),
+                "Eth genesis failed after {CheckGenesisCount} checks.");
 
         // 8bxx finalization
 

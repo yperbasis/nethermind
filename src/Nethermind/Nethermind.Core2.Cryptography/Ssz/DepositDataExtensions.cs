@@ -43,7 +43,7 @@ namespace Nethermind.Core2.Cryptography.Ssz
 
         public static SszList ToSszList(this IEnumerable<DepositData> list, ulong limit)
         {
-            return new SszList(list.Select(x => ToSszContainer(x)), limit);
+            return new SszList(list.Select(ToSszContainer), limit);
         }
 
         private static IEnumerable<SszElement> GetValues(DepositData item)

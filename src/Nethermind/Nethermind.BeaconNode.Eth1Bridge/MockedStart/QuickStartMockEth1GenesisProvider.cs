@@ -15,7 +15,9 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -24,7 +26,6 @@ using Nethermind.Core2;
 using Nethermind.Core2.Configuration;
 using Nethermind.Core2.Containers;
 using Nethermind.Core2.Crypto;
-using Nethermind.Core2.Eth1;
 using Nethermind.Core2.Types;
 using Nethermind.Cryptography;
 using Nethermind.Logging.Microsoft;
@@ -35,7 +36,6 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
     public class QuickStartMockEth1GenesisProvider : IEth1GenesisProvider
     {
         private readonly IBeaconChainUtility _beaconChainUtility;
-        private readonly IDepositStore _depositStore;
         private readonly ChainConstants _chainConstants;
         private readonly ICryptographyService _crypto;
 
@@ -57,8 +57,7 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
             IOptionsMonitor<SignatureDomains> signatureDomainOptions,
             IOptionsMonitor<QuickStartParameters> quickStartParameterOptions,
             ICryptographyService crypto,
-            IBeaconChainUtility beaconChainUtility,
-            IDepositStore depositStore)
+            IBeaconChainUtility beaconChainUtility)
         {
             _logger = logger;
             _chainConstants = chainConstants;
@@ -69,7 +68,6 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
             _quickStartParameterOptions = quickStartParameterOptions;
             _crypto = crypto;
             _beaconChainUtility = beaconChainUtility;
-            _depositStore = depositStore;
         }
 
         public byte[] GeneratePrivateKey(ulong index)
@@ -106,7 +104,12 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
             return privateKeySpan.ToArray();
         }
         
-        public Task<Eth1GenesisData> GetEth1GenesisDataAsync(CancellationToken cancellationToken)
+        public async IAsyncEnumerable<Eth1GenesisData> GetEth1GenesisCandidatesDataAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            yield return await GetEth1GenesisCandidateDataAsync(cancellationToken);
+        }
+        
+        private Task<Eth1GenesisData> GetEth1GenesisCandidateDataAsync(CancellationToken cancellationToken)
         {
             QuickStartParameters quickStartParameters = _quickStartParameterOptions.CurrentValue;
 
@@ -121,6 +124,7 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
             // Fixed amount
             Gwei amount = gweiValues.MaximumEffectiveBalance;
             
+            IList<DepositData> deposits = new List<DepositData>((int) quickStartParameters.ValidatorCount);
             for (ulong validatorIndex = 0uL; validatorIndex < quickStartParameters.ValidatorCount; validatorIndex++)
             {
                 DepositData depositData = BuildAndSignDepositData(
@@ -128,7 +132,7 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
                     amount,
                     signatureDomains);
                 
-                _depositStore.Place(depositData);
+                deposits.Add(depositData);
             }
 
             ulong eth1Timestamp = quickStartParameters.Eth1Timestamp;
@@ -158,11 +162,10 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
                 }
             }
 
-            var eth1GenesisData = new Eth1GenesisData(quickStartParameters.Eth1BlockHash, eth1Timestamp);
+            var eth1GenesisData = new Eth1GenesisData(quickStartParameters.Eth1BlockHash, eth1Timestamp, deposits);
 
             if (_logger.IsEnabled(LogLevel.Debug))
-                LogDebug.QuickStartGenesisDataCreated(_logger, eth1GenesisData.BlockHash, eth1GenesisData.Timestamp,
-                    (uint)_depositStore.Deposits.Count, null);
+                LogDebug.QuickStartGenesisDataCreated(_logger, eth1GenesisData.BlockHash, eth1GenesisData.Timestamp, (uint)deposits.Count, null);
 
             return Task.FromResult(eth1GenesisData);
         }

@@ -57,8 +57,21 @@ namespace Nethermind.BeaconNode.Eth1Bridge
                 services.AddSingleton<IEth1GenesisProvider, QuickStartMockEth1GenesisProvider>();
                 services.AddSingleton<IEth1DataProvider, QuickStartMockEth1DataProvider>();
             }
-            else if (configuration.GetSection("Eth1Bridge:Nethermind").Exists())
+            else if (configuration.GetSection("Eth1Bridge").Exists())
             {
+                services.Configure<Eth1BridgeConfiguration>(x =>
+                {
+                    configuration.Bind("Eth1Bridge", section =>
+                    {
+                        x.EndPoint = section.GetValue<Uri>("EndPoint");
+                    });
+                });
+
+                services.AddSingleton<Eth1Provider>();
+                services.AddSingleton<IEth1GenesisProvider>(x => x.GetService<Eth1Provider>());
+                services.AddSingleton<IEth1DataProvider>(x => x.GetService<Eth1Provider>());
+                services.AddSingleton<IEth1BridgeFactory, Eth1BridgeFactory>();
+
                 // TODO: Nethermind Eth1 bridge configuration
                 // - create any needed configuration options
                 // - implement and register IEth1GenesisProvider

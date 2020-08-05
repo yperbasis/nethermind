@@ -1,7 +1,9 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using Nethermind.Core2;
 using Nethermind.Core2.Crypto;
 using Nethermind.Core2.Types;
@@ -11,7 +13,7 @@ using Nethermind.Ssz;
 
 namespace Nethermind.Merkleization
 {
-    public abstract class MerkleTree : IMerkleList
+    public class MerkleTree : IMerkleList
     {
         private const int LeafRow = 32;
         private const int LeafLevel = 0;
@@ -19,12 +21,262 @@ namespace Nethermind.Merkleization
         private const ulong FirstLeafIndexAsNodeIndex = MaxNodes / 2;
         private const ulong MaxNodes = (1ul << (TreeHeight + 1)) - 1ul;
         private const ulong MaxNodeIndex = MaxNodes - 1;
+        
+        private static ulong _countKey = ulong.MaxValue;
+        private static readonly Bytes32[] _zeroHashes = new Bytes32[32];
+        private static readonly HashAlgorithm _hashAlgorithm = SHA256.Create();
 
         private readonly IKeyValueStore<ulong, byte[]> _keyValueStore;
 
-        private static ulong _countKey = ulong.MaxValue;
+        static MerkleTree()
+        {
+            _zeroHashes[0] = new Bytes32();
+            for (int index = 1; index < 32; index++)
+            {
+                _zeroHashes[index] = new Bytes32();
+                Hash(_zeroHashes[index - 1].Unwrap(), _zeroHashes[index - 1].Unwrap(), _zeroHashes[index].Unwrap());
+            }
+        }
+        
+        public static ReadOnlyCollection<Bytes32> ZeroHashes => Array.AsReadOnly(_zeroHashes);
 
-        public readonly ref struct Index
+        public uint Count { get; set; }
+
+        public MerkleTree(IKeyValueStore<ulong, byte[]> keyValueStore)
+        {
+            _keyValueStore = keyValueStore ?? throw new ArgumentNullException(nameof(keyValueStore));
+            byte[]? countBytes = _keyValueStore[_countKey];
+            Count = countBytes == null ? 0 : BinaryPrimitives.ReadUInt32LittleEndian(countBytes);
+            Root = Root.Zero;
+        }
+
+        public MerkleTree() : this(new MemMerkleTreeStore()) 
+        {
+            
+        }
+
+        private void StoreCountInTheDb()
+        {
+            byte[] countBytes = new byte[4];
+            BinaryPrimitives.WriteUInt32LittleEndian(countBytes, Count);
+            _keyValueStore[_countKey] = countBytes;
+        }
+
+        private void SaveValue(in Index index, byte[] hashBytes)
+        {
+            _keyValueStore[index.NodeIndex] = hashBytes;
+        }
+
+        private void SaveValue(in Index index, Bytes32 hash)
+        {
+            SaveValue(index, hash.AsSpan().ToArray());
+        }
+
+        private Bytes32 LoadValue(in Index index)
+        {
+            byte[]? nodeHashBytes = _keyValueStore[index.NodeIndex];
+            return nodeHashBytes == null ? _zeroHashes[LeafRow - index.Row] : Bytes32.Wrap(nodeHashBytes);
+        }
+
+        internal static uint GetLeafIndex(in ulong nodeIndex)
+        {
+            return new Index(LeafRow, nodeIndex).IndexAtRow;
+        }
+
+        internal static ulong GetNodeIndex(in uint row, in uint indexAtRow)
+        {
+            return new Index(row, indexAtRow).NodeIndex;
+        }
+
+        internal static uint GetSiblingIndex(in uint row, in uint indexAtRow)
+        {
+            return new Index(row, indexAtRow).Sibling().IndexAtRow;
+        }
+
+        internal static void ValidateNodeIndex(ulong nodeIndex)
+        {
+            if (nodeIndex > MaxNodeIndex)
+            {
+                throw new ArgumentOutOfRangeException($"Node index should be between 0 and {MaxNodeIndex}");
+            }
+        }
+
+        private static ulong GetMinNodeIndex(in uint row)
+        {
+            return (1ul << (int) row) - 1;
+        }
+
+        private static ulong GetMaxNodeIndex(in uint row)
+        {
+            return (1ul << (int) (row + 1u)) - 2;
+        }
+
+        private static void ValidateNodeIndex(in uint row, in ulong nodeIndex)
+        {
+            ulong minNodeIndex = GetMinNodeIndex(row);
+            ulong maxNodeIndex = GetMaxNodeIndex(row);
+
+            if (nodeIndex < minNodeIndex || nodeIndex > maxNodeIndex)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(nodeIndex),
+                    $"Node index at row {row} should be in the range of " +
+                    $"[{minNodeIndex},{maxNodeIndex}] and was {nodeIndex}");
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        public void Insert(Bytes32 leaf)
+        {
+            Index index = new Index(LeafRow, Count);
+            Index siblingIndex = index.Sibling();
+            byte[] hash = leaf.Unwrap();
+            Bytes32 siblingHash = LoadValue(siblingIndex);
+
+            SaveValue(index, hash);
+
+            for (int row = LeafRow; row > 0; row--)
+            {
+                byte[] parentHash = new byte[32]; 
+                if(index.IsLeftSibling())
+                {
+                    Hash(hash.AsSpan(), siblingHash.AsSpan(), parentHash);
+                }
+                else
+                {
+                    Hash(siblingHash.AsSpan(), hash.AsSpan(), parentHash);
+                }
+
+                Index parentIndex = index.Parent();
+                SaveValue(parentIndex, parentHash);
+
+                index = parentIndex;
+                if (row != 1)
+                {
+                    siblingIndex = index.Sibling();
+                    hash = parentHash;
+
+                    // we can quickly / efficiently find out that it will be a zero hash
+                    siblingHash = LoadValue(siblingIndex);
+                }
+                else
+                {
+                    BinaryPrimitives.WriteUInt32LittleEndian(_countBytes, Count + 1);
+                    byte[] rootBytes = new byte[32];
+                    Hash(parentHash, _countBytes, rootBytes);
+                    Root = Root.Wrap(rootBytes);
+                }
+            }
+
+            Count++;
+            StoreCountInTheDb();
+        }
+
+        private readonly byte[] _countBytes = new byte[32];
+
+        /// <summary>
+        /// Check if 'leaf' at 'index' verifies against the Merkle 'root' and 'branch'
+        /// </summary>
+        public bool VerifyProof(Bytes32 leaf, IReadOnlyList<Bytes32> proof, in uint leafIndex) => VerifyProof(leaf, proof, leafIndex, Root);
+
+        /// <summary>
+        /// Check if 'leaf' at 'index' verifies against the Merkle 'root' and 'branch'
+        /// </summary>
+        public static bool VerifyProof(Bytes32 leaf, IReadOnlyList<Bytes32> proof, in uint leafIndex, Root root)
+        {
+            Index index = new Index(LeafRow, leafIndex);
+            byte[] value = leaf.Unwrap();
+            
+            for (int testDepth = 0; testDepth < TreeHeight; testDepth++)
+            {
+                Bytes32 branchValue = proof[testDepth];
+                if (index.IsLeftSibling())
+                {
+                    Hash(value.AsSpan(), branchValue.AsSpan(), value);
+                }
+                else
+                {
+                    Hash(branchValue.AsSpan(), value.AsSpan(), value);    
+                }
+
+                index = index.Parent();
+            }
+            
+            // MixIn count
+            Hash(value.AsSpan(), proof[^1].AsSpan(), value);
+            return value.AsSpan().SequenceEqual(root.AsSpan());
+        }
+
+        public IList<Bytes32> GetProof(in uint leafIndex)
+        {
+            if (leafIndex >= Count)
+            {
+                throw new InvalidOperationException("Unpexected query for a proof for a value beyond Count");
+            }
+            
+            Index index = new Index(LeafRow, leafIndex);
+            Bytes32[] proof = new Bytes32[TreeHeight + 1];
+
+            int i = 0;
+            for (int proofRow = LeafRow; proofRow > 0; proofRow--)
+            {
+                Index siblingIndex = index.Sibling();
+                proof[i++] = LoadValue(siblingIndex);
+                index = index.Parent();
+            }
+
+            byte[] indexBytes = new byte[32];
+            BinaryPrimitives.WriteUInt32LittleEndian(indexBytes, Count);
+            Bytes32 indexHash = Bytes32.Wrap(indexBytes);
+            proof[TreeHeight] = indexHash;
+            
+            return proof;
+        }
+
+        public MerkleTreeNode GetLeaf(in uint leafIndex)
+        {
+            Index index = new Index(LeafRow, leafIndex);
+            Bytes32 value = LoadValue(index);
+            return new MerkleTreeNode(value, index.NodeIndex);
+        }
+
+        public MerkleTreeNode[] GetLeaves(params uint[] leafIndexes)
+        {
+            MerkleTreeNode[] leaves = new MerkleTreeNode[leafIndexes.Length];
+            for (int i = 0; i < leafIndexes.Length; i++)
+            {
+                leaves[i] = GetLeaf(leafIndexes[i]);
+            }
+
+            return leaves;
+        }
+
+        internal static uint GetIndexAtRow(in uint row, in ulong nodeIndex)
+        {
+            return new Index(row, nodeIndex).IndexAtRow;
+        }
+
+        internal static uint GetRow(in ulong nodeIndex)
+        {
+            return new Index(nodeIndex).Row;
+        }
+
+        public static ulong GetParentIndex(in ulong nodeIndex)
+        {
+            return new Index(nodeIndex).Parent().NodeIndex;
+        }
+
+        public Root Root { get; set; }
+        
+        private static void Hash(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b, Span<byte> target)
+        {
+            Span<byte> combined = stackalloc byte[a.Length + b.Length];
+            a.CopyTo(combined);
+            b.CopyTo(combined.Slice(a.Length));
+            _hashAlgorithm.TryComputeHash(combined, target, out int _);
+        }
+        
+                public readonly ref struct Index
         {
             public Index(ulong nodeIndex)
             {
@@ -130,239 +382,5 @@ namespace Nethermind.Merkleization
                 return $"{NodeIndex} | ({Row},{IndexAtRow})";
             }
         }
-
-        static MerkleTree()
-        {
-        }
-
-        /// <summary>
-        /// Zero hashes will always be stored as 32 bytes (not truncated)
-        /// </summary>
-        protected abstract Bytes32[] ZeroHashesInternal { get; }
-
-        public uint Count { get; set; }
-
-        public MerkleTree(IKeyValueStore<ulong, byte[]> keyValueStore)
-        {
-            _keyValueStore = keyValueStore ?? throw new ArgumentNullException(nameof(keyValueStore));
-
-            byte[]? countBytes = _keyValueStore[_countKey];
-            Count = countBytes == null ? 0 : BinaryPrimitives.ReadUInt32LittleEndian(countBytes);
-        }
-
-        private void StoreCountInTheDb()
-        {
-            byte[] countBytes = new byte[4];
-            BinaryPrimitives.WriteUInt32LittleEndian(countBytes, Count);
-            _keyValueStore[_countKey] = countBytes;
-        }
-
-        private void SaveValue(in Index index, byte[] hashBytes)
-        {
-            _keyValueStore[index.NodeIndex] = hashBytes;
-        }
-
-        private void SaveValue(in Index index, Bytes32 hash)
-        {
-            SaveValue(index, hash.AsSpan().ToArray());
-        }
-
-        private Bytes32 LoadValue(in Index index)
-        {
-            byte[]? nodeHashBytes = _keyValueStore[index.NodeIndex];
-            if (nodeHashBytes == null)
-            {
-                return ZeroHashesInternal[LeafRow - index.Row];
-            }
-
-            return Bytes32.Wrap(nodeHashBytes);
-        }
-
-        internal static uint GetLeafIndex(in ulong nodeIndex)
-        {
-            return new Index(LeafRow, nodeIndex).IndexAtRow;
-        }
-
-        internal static ulong GetNodeIndex(in uint row, in uint indexAtRow)
-        {
-            return new Index(row, indexAtRow).NodeIndex;
-        }
-
-        internal static uint GetSiblingIndex(in uint row, in uint indexAtRow)
-        {
-            return new Index(row, indexAtRow).Sibling().IndexAtRow;
-        }
-
-        internal static void ValidateNodeIndex(ulong nodeIndex)
-        {
-            if (nodeIndex > MaxNodeIndex)
-            {
-                throw new ArgumentOutOfRangeException($"Node index should be between 0 and {MaxNodeIndex}");
-            }
-        }
-
-        private static ulong GetMinNodeIndex(in uint row)
-        {
-            return (1ul << (int) row) - 1;
-        }
-
-        private static ulong GetMaxNodeIndex(in uint row)
-        {
-            return (1ul << (int) (row + 1u)) - 2;
-        }
-
-        private static void ValidateNodeIndex(in uint row, in ulong nodeIndex)
-        {
-            ulong minNodeIndex = GetMinNodeIndex(row);
-            ulong maxNodeIndex = GetMaxNodeIndex(row);
-
-            if (nodeIndex < minNodeIndex || nodeIndex > maxNodeIndex)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(nodeIndex),
-                    $"Node index at row {row} should be in the range of " +
-                    $"[{minNodeIndex},{maxNodeIndex}] and was {nodeIndex}");
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.Synchronized)]
-        public void Insert(Bytes32 leaf)
-        {
-            Index index = new Index(LeafRow, Count);
-            Index siblingIndex = index.Sibling();
-            byte[] hash = leaf.Unwrap();
-            Bytes32 siblingHash = LoadValue(siblingIndex);
-
-            SaveValue(index, hash);
-
-            for (int row = LeafRow; row > 0; row--)
-            {
-                byte[] parentHash = new byte[32]; 
-                if(index.IsLeftSibling())
-                {
-                    Hash(hash.AsSpan(), siblingHash.AsSpan(), parentHash);
-                }
-                else
-                {
-                    Hash(siblingHash.AsSpan(), hash.AsSpan(), parentHash);
-                }
-
-                Index parentIndex = index.Parent();
-                SaveValue(parentIndex, parentHash);
-
-                index = parentIndex;
-                if (row != 1)
-                {
-                    siblingIndex = index.Sibling();
-                    hash = parentHash;
-
-                    // we can quickly / efficiently find out that it will be a zero hash
-                    siblingHash = LoadValue(siblingIndex);
-                }
-                else
-                {
-                    BinaryPrimitives.WriteUInt32LittleEndian(_countBytes, Count + 1);
-                    byte[] rootBytes = new byte[32];
-                    Hash(parentHash, _countBytes, rootBytes);
-                    Root = Root.Wrap(rootBytes);
-                }
-            }
-
-            Count++;
-            StoreCountInTheDb();
-        }
-
-        private byte[] _countBytes = new byte[32];
-
-        /// <summary>
-        /// Check if 'leaf' at 'index' verifies against the Merkle 'root' and 'branch'
-        /// </summary>
-        public bool VerifyProof(Bytes32 leaf, IReadOnlyList<Bytes32> proof, in uint leafIndex)
-        {
-            Index index = new Index(LeafRow, leafIndex);
-            byte[] value = leaf.Unwrap();
-            
-            for (int testDepth = 0; testDepth < TreeHeight; testDepth++)
-            {
-                Bytes32 branchValue = proof[testDepth];
-                if (index.IsLeftSibling())
-                {
-                    Hash(value.AsSpan(), branchValue.AsSpan(), value);
-                }
-                else
-                {
-                    Hash(branchValue.AsSpan(), value.AsSpan(), value);    
-                }
-
-                index = index.Parent();
-            }
-            
-            // MixIn count
-            Hash(value.AsSpan(), proof[^1].AsSpan(), value);
-            return value.AsSpan().SequenceEqual(Root.AsSpan());
-        }
-        
-        public IList<Bytes32> GetProof(in uint leafIndex)
-        {
-            if (leafIndex >= Count)
-            {
-                throw new InvalidOperationException("Unpexected query for a proof for a value beyond Count");
-            }
-            
-            Index index = new Index(LeafRow, leafIndex);
-            Bytes32[] proof = new Bytes32[TreeHeight + 1];
-
-            int i = 0;
-            for (int proofRow = LeafRow; proofRow > 0; proofRow--)
-            {
-                Index siblingIndex = index.Sibling();
-                proof[i++] = LoadValue(siblingIndex);
-                index = index.Parent();
-            }
-
-            byte[] indexBytes = new byte[32];
-            BinaryPrimitives.WriteUInt32LittleEndian(indexBytes, Count);
-            Bytes32 indexHash = Bytes32.Wrap(indexBytes);
-            proof[TreeHeight] = indexHash;
-            
-            return proof;
-        }
-
-        public MerkleTreeNode GetLeaf(in uint leafIndex)
-        {
-            Index index = new Index(LeafRow, leafIndex);
-            Bytes32 value = LoadValue(index);
-            return new MerkleTreeNode(value, index.NodeIndex);
-        }
-
-        public MerkleTreeNode[] GetLeaves(params uint[] leafIndexes)
-        {
-            MerkleTreeNode[] leaves = new MerkleTreeNode[leafIndexes.Length];
-            for (int i = 0; i < leafIndexes.Length; i++)
-            {
-                leaves[i] = GetLeaf(leafIndexes[i]);
-            }
-
-            return leaves;
-        }
-
-        internal static uint GetIndexAtRow(in uint row, in ulong nodeIndex)
-        {
-            return new Index(row, nodeIndex).IndexAtRow;
-        }
-
-        internal static uint GetRow(in ulong nodeIndex)
-        {
-            return new Index(nodeIndex).Row;
-        }
-
-        public static ulong GetParentIndex(in ulong nodeIndex)
-        {
-            return new Index(nodeIndex).Parent().NodeIndex;
-        }
-
-        public Root Root { get; set; }
-        
-        protected abstract void Hash(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b, Span<byte> target);
     }
 }

@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.IO.Abstractions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +26,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nethermind.BeaconNode.Storage;
 using Nethermind.Core2;
 using Nethermind.Core2.Configuration;
+using Nethermind.Core2.Containers;
 using Nethermind.Core2.Types;
 using Nethermind.Merkleization;
 using NSubstitute;
@@ -71,7 +73,6 @@ namespace Nethermind.BeaconNode.Test.Genesis
             });
 
             ICryptographyService cryptographyService = testServiceProvider.GetService<ICryptographyService>();
-            IDepositStore depositStore = new DepositStore(cryptographyService, chainConstants);
             
             BeaconChainUtility beaconChainUtility = new BeaconChainUtility(
                 loggerFactory.CreateLogger<BeaconChainUtility>(),
@@ -88,7 +89,7 @@ namespace Nethermind.BeaconNode.Test.Genesis
                 loggerFactory.CreateLogger<BeaconStateTransition>(),
                 chainConstants, gweiValueOptions, timeParameterOptions, stateListLengthOptions,
                 rewardsAndPenaltiesOptions, maxOperationsPerBlockOptions, signatureDomainOptions,
-                cryptographyService, beaconChainUtility, beaconStateAccessor, beaconStateMutator, depositStore);
+                cryptographyService, beaconChainUtility, beaconStateAccessor, beaconStateMutator);
             SimpleLatestMessageDrivenGreedyHeaviestObservedSubtree simpleLmdGhost =
                 new SimpleLatestMessageDrivenGreedyHeaviestObservedSubtree(
                     loggerFactory.CreateLogger<SimpleLatestMessageDrivenGreedyHeaviestObservedSubtree>(),
@@ -103,12 +104,12 @@ namespace Nethermind.BeaconNode.Test.Genesis
             GenesisChainStart genesisChainStart = new GenesisChainStart(loggerFactory.CreateLogger<GenesisChainStart>(),
                 chainConstants, miscellaneousParameterOptions, gweiValueOptions, initialValueOptions,
                 timeParameterOptions, stateListLengthOptions,
-                cryptographyService, store, beaconStateAccessor, beaconStateTransition, forkChoice, depositStore);
+                cryptographyService, store, beaconStateAccessor, beaconStateTransition, forkChoice);
 
             // Act
             Bytes32 eth1BlockHash = Bytes32.Zero;
             ulong eth1Timestamp = 106185600uL; // 1973-05-14
-            bool success = await genesisChainStart.TryGenesisAsync(eth1BlockHash, eth1Timestamp);
+            bool success = await genesisChainStart.TryGenesisAsync(eth1BlockHash, eth1Timestamp, Array.Empty<DepositData>());
 
             // Assert
             success.ShouldBeFalse();

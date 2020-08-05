@@ -14,14 +14,23 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
-using System.Threading;
-using System.Threading.Tasks;
-using Nethermind.Core2.Eth1;
+using System.Collections.Generic;
+using Nethermind.Core2.Containers;
+using Nethermind.Core2.Types;
 
-namespace Nethermind.Core2
+namespace Nethermind.BeaconNode.Eth1Bridge
 {
-    public interface IEth1GenesisProvider
+    public class Eth1GenesisData
     {
-        Task<Eth1GenesisData> GetEth1GenesisDataAsync(CancellationToken cancellationToken);
+        public Eth1GenesisData(Bytes32 blockHash, ulong timestamp, IList<DepositData> deposits)
+        {
+            BlockHash = blockHash;
+            Timestamp = timestamp;
+            Deposits = deposits;
+        }
+
+        public Bytes32 BlockHash { get; }
+        public ulong Timestamp { get; }
+        public IList<DepositData> Deposits { get; }
     }
 }

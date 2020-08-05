@@ -14,19 +14,15 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
-using Nethermind.Core2.Types;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Nethermind.Core2.Eth1
+namespace Nethermind.BeaconNode.Eth1Bridge
 {
-    public class Eth1GenesisData
+    public interface IEth1GenesisProvider
     {
-        public Eth1GenesisData(Bytes32 blockHash, ulong timestamp)
-        {
-            BlockHash = blockHash;
-            Timestamp = timestamp;
-        }
-
-        public Bytes32 BlockHash { get; }
-        public ulong Timestamp { get; }
+        IAsyncEnumerable<Eth1GenesisData> GetEth1GenesisCandidatesDataAsync([EnumeratorCancellation] CancellationToken cancellationToken = default);
     }
 }

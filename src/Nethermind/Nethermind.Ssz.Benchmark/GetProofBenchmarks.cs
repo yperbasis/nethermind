@@ -54,7 +54,7 @@ namespace Nethermind.Ssz.Benchmarks
         [Benchmark]
         public void New()
         {
-            ShaMerkleTree shaMerkleTree = new ShaMerkleTree(new MemMerkleTreeStore());
+            MerkleTree shaMerkleTree = new MerkleTree();
             for (int i = 0; i < ItemsCount; i++)
             {
                 shaMerkleTree.Insert(_bytes[i]);

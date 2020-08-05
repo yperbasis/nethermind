@@ -49,7 +49,7 @@ namespace Nethermind.Ssz.Test
 
         private MerkleTree BuildATree(IKeyValueStore<ulong,byte[]> keyValueStore = null)
         {
-            return new ShaMerkleTree(keyValueStore ?? new MemMerkleTreeStore());
+            return new MerkleTree(keyValueStore ?? new MemMerkleTreeStore());
         }
 
         [Test]
@@ -282,7 +282,7 @@ namespace Nethermind.Ssz.Test
                 }
                 else
                 {
-                    proof[proofRow].Should().Be(ShaMerkleTree.ZeroHashes[proofRow], proofRow.ToString());
+                    proof[proofRow].Should().Be(MerkleTree.ZeroHashes[proofRow], proofRow.ToString());
                 }
             }
         }

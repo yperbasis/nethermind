@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -22,6 +23,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethermind.Core2;
 using Nethermind.Core2.Configuration;
+using Nethermind.Core2.Containers;
 using Nethermind.Logging.Microsoft;
 
 namespace Nethermind.BeaconNode.Eth1Bridge
@@ -32,7 +34,6 @@ namespace Nethermind.BeaconNode.Eth1Bridge
         private readonly IClientVersion _clientVersion;
         private readonly IHostEnvironment _environment;
         private readonly IEth1Genesis _eth1Genesis;
-        private readonly IDepositStore _depositStore;
         private readonly IEth1GenesisProvider _eth1GenesisProvider;
         private static readonly TimeSpan _genesisCheckDelay = TimeSpan.FromSeconds(5);
         private readonly ILogger _logger;
@@ -42,8 +43,7 @@ namespace Nethermind.BeaconNode.Eth1Bridge
             IOptionsMonitor<AnchorState> anchorStateOptions,
             IClientVersion clientVersion,
             IEth1GenesisProvider eth1GenesisProvider,
-            IEth1Genesis eth1Genesis,
-            IDepositStore depositStore)
+            IEth1Genesis eth1Genesis)
         {
             _logger = logger;
             _environment = environment;
@@ -51,12 +51,15 @@ namespace Nethermind.BeaconNode.Eth1Bridge
             _clientVersion = clientVersion;
             _eth1GenesisProvider = eth1GenesisProvider;
             _eth1Genesis = eth1Genesis;
-            _depositStore = depositStore;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             if (_logger.IsDebug()) LogDebug.PeeringWorkerExecute(_logger, null);
+            
+            // 1. connect and validate eth1
+            
+            // 2. if genesis - load till
 
             if (_anchorStateOptions.CurrentValue.Source == AnchorStateSource.Eth1Genesis)
             {
@@ -69,26 +72,36 @@ namespace Nethermind.BeaconNode.Eth1Bridge
         public async Task ExecuteEth1GenesisAsync(CancellationToken stoppingToken)
         {
             int count = 1;
-            while (!stoppingToken.IsCancellationRequested)
+
+            try
             {
-                if (_logger.IsEnabled(LogLevel.Debug))
-                    LogDebug.CheckingForEth1Genesis(_logger, count, null);
-
-                var eth1GenesisData = await _eth1GenesisProvider.GetEth1GenesisDataAsync(stoppingToken)
-                    .ConfigureAwait(false);
-                var genesisSuccess = await _eth1Genesis.TryGenesisAsync(
-                    eth1GenesisData.BlockHash,
-                    eth1GenesisData.Timestamp).ConfigureAwait(false);
-                if (genesisSuccess)
+                await foreach (var eth1GenesisData in _eth1GenesisProvider.GetEth1GenesisCandidatesDataAsync(stoppingToken)
+                    .ConfigureAwait(false))
                 {
-                    if (_logger.IsEnabled(LogLevel.Information))
-                        Log.Eth1GenesisSuccess(_logger, eth1GenesisData.BlockHash, eth1GenesisData.Timestamp,
-                            (uint)_depositStore.Deposits.Count, count, null);
-                    break;
-                }
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                        LogDebug.CheckingForEth1Genesis(_logger, count, null);
 
-                await Task.Delay(_genesisCheckDelay);
-                count++;
+                    var genesisSuccess = await _eth1Genesis.TryGenesisAsync(eth1GenesisData.BlockHash, eth1GenesisData.Timestamp, eth1GenesisData.Deposits)
+                        .ConfigureAwait(false);
+
+                    if (genesisSuccess)
+                    {
+                        if (_logger.IsEnabled(LogLevel.Information))
+                            Log.Eth1GenesisSuccess(_logger, eth1GenesisData.BlockHash, eth1GenesisData.Timestamp, (uint)eth1GenesisData.Deposits.Count, count, null);
+                        return;
+                    }
+
+                    count++;
+                }
+                
+                if (_logger.IsEnabled(LogLevel.Error))
+                    Log.Eth1GenesisFailure(_logger, count, null);
+            }
+            catch (Exception e)
+            {
+                if (_logger.IsEnabled(LogLevel.Error))
+                    Log.Eth1GenesisFailure(_logger, count, e);
+                throw;
             }
         }
 
