@@ -60,7 +60,7 @@ namespace Nethermind.Ssz.Benchmarks
 
             Deposit deposit = new Deposit(
                 new Bytes32[Ssz.DepositContractTreeDepth + 1],
-                depositData.OrRoot);
+                depositData.OrRoot());
 
             IndexedAttestation indexedAttestation1 = new IndexedAttestation(
                 new ValidatorIndex[8],

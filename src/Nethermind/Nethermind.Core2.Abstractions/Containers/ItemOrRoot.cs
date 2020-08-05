@@ -22,6 +22,9 @@ namespace Nethermind.Core2.Containers
 {
     public class Ref<T> : IEquatable<Ref<T>> where T : class
     {
+        // for deserialization
+        public Ref() { }
+        
         public Ref(T item)
         {
             Item = item;

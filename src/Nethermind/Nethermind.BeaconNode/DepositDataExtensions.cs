@@ -26,7 +26,7 @@ namespace Nethermind.BeaconNode
     {
         public static Deposit ToDeposit(this DepositData depositData, ICryptographyService cryptographyService, IMerkleList depositTree)
         {
-            Ref<DepositData> depositDataRef = depositData.OrRoot;
+            Ref<DepositData> depositDataRef = depositData.OrRoot();
             Root leaf = cryptographyService.HashTreeRoot(depositDataRef);
             Bytes32 leafBytes = Bytes32.Wrap(leaf.Bytes);
             depositTree.Insert(leafBytes);
