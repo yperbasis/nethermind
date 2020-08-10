@@ -31,7 +31,7 @@ namespace Nethermind.Blockchain.Visitors
         private ILogger _logger;
         public bool PreventsAcceptingNewBlocks => true;
         public long StartLevelInclusive => 0;
-        public long EndLevelExclusive => 10618000;
+        public long EndLevelExclusive => 10623928;
 
         private UInt256 _genesisAllocations = UInt256.Parse("72009990499480000000000000");
         private UInt256 _uncles;
