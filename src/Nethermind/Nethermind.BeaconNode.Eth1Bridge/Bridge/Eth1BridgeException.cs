@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2018 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -13,21 +13,33 @@
 // 
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
+// 
 
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Nethermind.Core2.Containers;
-using Nethermind.Core2.Crypto;
-using Nethermind.Core2.Types;
+using System;
+using System.Runtime.Serialization;
 
-namespace Nethermind.Core2
+namespace Nethermind.BeaconNode.Eth1Bridge.Bridge
 {
-    public interface IEth1Genesis
+    [Serializable]
+    public class Eth1BridgeException : Exception
     {
-        /// <summary>
-        /// Eth1 bridge should call this with Eth1 data
-        /// </summary>
-        /// <returns>true if genesis succeeded; false if the bridge needs to continue gathering deposits</returns>
-        Task<bool> TryGenesisAsync(Bytes32 eth1BlockHash, ulong eth1Timestamp, IReadOnlyList<Deposit> deposits, Root depositRoot);
+        public Eth1BridgeException()
+        {
+        }
+
+        public Eth1BridgeException(string? message) : base(message)
+        {
+            
+        }
+
+        public Eth1BridgeException(string? message, Exception? innerException)
+            : base(message, innerException)
+        {
+        }
+
+        protected Eth1BridgeException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
+        {
+        }
     }
 }

@@ -16,8 +16,11 @@
 
 using System;
 using System.Linq;
+using System.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Nethermind.BeaconNode.Eth1Bridge.Bridge;
+using Nethermind.BeaconNode.Eth1Bridge.JsonRpc;
 using Nethermind.BeaconNode.Eth1Bridge.MockedStart;
 using Nethermind.Core2;
 using Nethermind.Core2.Configuration;
@@ -32,6 +35,7 @@ namespace Nethermind.BeaconNode.Eth1Bridge
         public static void AddBeaconNodeEth1Bridge(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddHostedService<Eth1BridgeWorker>();
+            services.AddSingleton<IDepositStore, DepositStore>();
 
             if (configuration.GetSection("QuickStart").Exists())
             {
@@ -63,14 +67,18 @@ namespace Nethermind.BeaconNode.Eth1Bridge
                 {
                     configuration.Bind("Eth1Bridge", section =>
                     {
-                        x.EndPoint = section.GetValue<Uri>("EndPoint");
+                        x.EndPoint = section.GetValue(nameof(Eth1BridgeConfiguration.EndPoint), new Uri("ws://localhost:8545"));
+                        x.ChainId = section.GetValue(nameof(Eth1BridgeConfiguration.ChainId), 1ul);
+                        x.NetworkId = section.GetValue(nameof(Eth1BridgeConfiguration.NetworkId), 1ul);
+                        x.DepositContractAddress = section.GetValue(nameof(Eth1BridgeConfiguration.DepositContractAddress), string.Empty);
+                        x.MaxLogsBatch = section.GetValue(nameof(Eth1BridgeConfiguration.MaxLogsBatch), 1000ul);
+                        x.DepositContractDeployBlock = section.GetValue(nameof(Eth1BridgeConfiguration.DepositContractDeployBlock), 12_000_000ul);
                     });
                 });
 
-                services.AddSingleton<Eth1Provider>();
-                services.AddSingleton<IEth1GenesisProvider>(x => x.GetService<Eth1Provider>());
-                services.AddSingleton<IEth1DataProvider>(x => x.GetService<Eth1Provider>());
-                services.AddSingleton<IEth1BridgeFactory, Eth1BridgeFactory>();
+                services.AddSingleton<IEth1GenesisProvider, Eth1GenesisProvider>();
+                services.AddSingleton<IJsonRpcFactory, JsonRpcFactory>();
+                services.AddSingleton<IEth1BridgeProvider, Eth1BridgeProvider>();
 
                 // TODO: Nethermind Eth1 bridge configuration
                 // - create any needed configuration options

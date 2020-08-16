@@ -35,7 +35,6 @@ namespace Nethermind.BeaconNode.Eth1Bridge
         private readonly IHostEnvironment _environment;
         private readonly IEth1Genesis _eth1Genesis;
         private readonly IEth1GenesisProvider _eth1GenesisProvider;
-        private static readonly TimeSpan _genesisCheckDelay = TimeSpan.FromSeconds(5);
         private readonly ILogger _logger;
 
         public Eth1BridgeWorker(ILogger<Eth1BridgeWorker> logger,
@@ -57,16 +56,14 @@ namespace Nethermind.BeaconNode.Eth1Bridge
         {
             if (_logger.IsDebug()) LogDebug.PeeringWorkerExecute(_logger, null);
             
-            // 1. connect and validate eth1
-            
-            // 2. if genesis - load till
-
+            // if genesis - load till genesis found
             if (_anchorStateOptions.CurrentValue.Source == AnchorStateSource.Eth1Genesis)
             {
                 await ExecuteEth1GenesisAsync(stoppingToken);
             }
-
-            // TODO: Any other work for the Eth1Bridge, e.g. maybe need IEth1Collection or similar interface that needs to be run
+            
+            // after genesis follow the chain
+            
         }
 
         public async Task ExecuteEth1GenesisAsync(CancellationToken stoppingToken)
@@ -75,32 +72,42 @@ namespace Nethermind.BeaconNode.Eth1Bridge
 
             try
             {
-                await foreach (var eth1GenesisData in _eth1GenesisProvider.GetEth1GenesisCandidatesDataAsync(stoppingToken)
-                    .ConfigureAwait(false))
+                bool genesisSuccess = false;
+                using var genesisCancellationSource = new CancellationTokenSource();
+                await using (stoppingToken.Register(() => genesisCancellationSource.Cancel()))
                 {
-                    if (_logger.IsEnabled(LogLevel.Debug))
-                        LogDebug.CheckingForEth1Genesis(_logger, count, null);
-
-                    var genesisSuccess = await _eth1Genesis.TryGenesisAsync(eth1GenesisData.BlockHash, eth1GenesisData.Timestamp, eth1GenesisData.Deposits)
-                        .ConfigureAwait(false);
-
-                    if (genesisSuccess)
+                    await foreach (var eth1GenesisData in _eth1GenesisProvider.GetEth1GenesisCandidatesDataAsync(genesisCancellationSource.Token)
+                        .ConfigureAwait(false))
                     {
-                        if (_logger.IsEnabled(LogLevel.Information))
-                            Log.Eth1GenesisSuccess(_logger, eth1GenesisData.BlockHash, eth1GenesisData.Timestamp, (uint)eth1GenesisData.Deposits.Count, count, null);
-                        return;
-                    }
+                        if (_logger.IsEnabled(LogLevel.Debug))
+                            LogDebug.CheckingForEth1Genesis(_logger, count, null);
 
-                    count++;
+                        genesisSuccess = await _eth1Genesis.TryGenesisAsync(
+                                eth1GenesisData.BlockHash, 
+                                eth1GenesisData.Timestamp,
+                                eth1GenesisData.Deposits,
+                                eth1GenesisData.DepositsRoot)
+                            .ConfigureAwait(false);
+
+                        if (genesisSuccess)
+                        {
+                            if (_logger.IsEnabled(LogLevel.Information))
+                                Log.Eth1GenesisSuccess(_logger, eth1GenesisData.BlockHash, eth1GenesisData.Timestamp, (uint)eth1GenesisData.Deposits.Count, count, null);
+                            genesisCancellationSource.Cancel();
+                        }
+
+                        count++;
+                    }
                 }
-                
-                if (_logger.IsEnabled(LogLevel.Error))
-                    Log.Eth1GenesisFailure(_logger, count, null);
+
+                if (!genesisSuccess)
+                {
+                    if (_logger.IsEnabled(LogLevel.Error)) Log.Eth1GenesisFailure(_logger, count, null);
+                }
             }
             catch (Exception e)
             {
-                if (_logger.IsEnabled(LogLevel.Error))
-                    Log.Eth1GenesisFailure(_logger, count, e);
+                if (_logger.IsEnabled(LogLevel.Error)) Log.Eth1GenesisFailure(_logger, count, e);
                 throw;
             }
         }

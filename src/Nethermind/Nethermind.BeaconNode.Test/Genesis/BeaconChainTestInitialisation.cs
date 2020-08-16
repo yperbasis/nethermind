@@ -26,6 +26,7 @@ using Nethermind.Core2;
 using Nethermind.Core2.Containers;
 using Nethermind.Core2.Crypto;
 using Nethermind.Core2.Types;
+using Nethermind.Merkleization;
 using Shouldly;
 
 namespace Nethermind.BeaconNode.Test.Genesis
@@ -48,15 +49,15 @@ namespace Nethermind.BeaconNode.Test.Genesis
 
             int depositCount = miscellaneousParameters.MinimumGenesisActiveValidatorCount;
 
-            IList<DepositData> deposits = TestDeposit.PrepareGenesisDeposits(testServiceProvider, depositCount, gweiValues.MaximumEffectiveBalance, signed: useBls);
+            var depositsInfo = TestDeposit.PrepareGenesisDeposits(testServiceProvider, depositCount, gweiValues.MaximumEffectiveBalance, signed: useBls);
             Bytes32 eth1BlockHash = new Bytes32(Enumerable.Repeat((byte)0x12, 32).ToArray());
             ulong eth1Timestamp = miscellaneousParameters.MinimumGenesisTime;
 
-            BeaconNode.GenesisChainStart beaconChain = testServiceProvider.GetService<BeaconNode.GenesisChainStart>();
+            GenesisChainStart beaconChain = testServiceProvider.GetService<GenesisChainStart>();
 
             // Act
             //# initialize beacon_state
-            BeaconState state = beaconChain.InitializeBeaconStateFromEth1(eth1BlockHash, eth1Timestamp, deposits);
+            BeaconState state = beaconChain.InitializeBeaconStateFromEth1(eth1BlockHash, eth1Timestamp, depositsInfo.Deposits, depositsInfo.DepositsRoot);
 
             // Assert
             state.GenesisTime.ShouldBe(eth1Timestamp - eth1Timestamp % timeParameters.MinimumGenesisDelay + 2 * timeParameters.MinimumGenesisDelay);

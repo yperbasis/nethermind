@@ -40,7 +40,12 @@ namespace Nethermind.BeaconNode.Eth1Bridge
             LoggerMessage.Define<int>(LogLevel.Debug,
                 new EventId(6353, nameof(CheckingForEth1Genesis)),
                 "Checking for Eth1 genesis {CheckGenesisCount}.");
-
+        
+        public static readonly Action<ILogger, ulong, ulong, int, Exception?> Eth1GenesisCandidate =
+            LoggerMessage.Define<ulong, ulong, int>(LogLevel.Debug,
+                new EventId(6354, nameof(Eth1GenesisCandidate)),
+                "Checking for Eth1 genesis block {BlockNumber} at {Timestamp} with {DepositCount} deposits.");
+        
         // 7bxx - mock
 
         public static readonly Action<ILogger, Bytes32, ulong, uint, Exception?> QuickStartGenesisDataCreated =
@@ -51,6 +56,5 @@ namespace Nethermind.BeaconNode.Eth1Bridge
             LoggerMessage.Define<ValidatorIndex, string>(LogLevel.Debug,
                 new EventId(7301, nameof(QuickStartAddValidator)),
                 "Quick start adding deposit for mocked validator {ValidatorIndex} with public key {PublicKey}.");
-
     }
 }

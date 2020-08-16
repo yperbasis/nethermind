@@ -76,7 +76,11 @@ namespace Nethermind.BeaconNode.Test.Helpers
             return depositData;
         }
 
-        public static IList<DepositData> PrepareGenesisDeposits(IServiceProvider testServiceProvider, int genesisValidatorCount, Gwei amount, bool signed)
+        public static (IReadOnlyList<Deposit> Deposits, Root DepositsRoot) PrepareGenesisDeposits(
+            IServiceProvider testServiceProvider,
+            int genesisValidatorCount,
+            Gwei amount,
+            bool signed)
         {
             ChainConstants chainConstants = testServiceProvider.GetService<ChainConstants>();
             MiscellaneousParameters miscellaneousParameters = testServiceProvider.GetService<IOptions<MiscellaneousParameters>>().Value;
@@ -87,6 +91,7 @@ namespace Nethermind.BeaconNode.Test.Helpers
             IBeaconChainUtility beaconChainUtility = testServiceProvider.GetService<IBeaconChainUtility>();
             BeaconStateAccessor beaconStateAccessor = testServiceProvider.GetService<BeaconStateAccessor>();
             BeaconStateTransition beaconStateTransition = testServiceProvider.GetService<BeaconStateTransition>();
+            ICryptographyService cryptographyService = testServiceProvider.GetService<ICryptographyService>();
 
             byte[][] privateKeys = TestKeys.PrivateKeys(timeParameters).ToArray();
             BlsPublicKey[] publicKeys;
@@ -112,7 +117,10 @@ namespace Nethermind.BeaconNode.Test.Helpers
                 depositDataList.Add(depositData);
             }
 
-            return depositDataList;
+            
+            MerkleTree merkleTree = new MerkleTree();
+            var deposits = depositDataList.Select(d => d.ToDeposit(cryptographyService, merkleTree)).ToList();
+            return (deposits, merkleTree.Root);
         }
 
         /// <summary>

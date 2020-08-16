@@ -71,7 +71,7 @@ namespace Nethermind.BeaconNode
             _store = store;
         }
 
-        public BeaconState InitializeBeaconStateFromEth1(Bytes32 eth1BlockHash, ulong eth1Timestamp, IList<DepositData> deposits)
+        public BeaconState InitializeBeaconStateFromEth1(Bytes32 eth1BlockHash, ulong eth1Timestamp, IReadOnlyList<Deposit> deposits, Root depositRoot)
         {
             if (_logger.IsInfo()) Log.InitializeBeaconState(_logger, eth1BlockHash, eth1Timestamp, (uint)deposits.Count, null);
 
@@ -99,12 +99,10 @@ namespace Nethermind.BeaconNode
                 timeParameters.SlotsPerHistoricalRoot, stateListLengths.EpochsPerHistoricalVector,
                 stateListLengths.EpochsPerSlashingsVector, _chainConstants.JustificationBitsLength);
 
-            MerkleTree depositTree = new MerkleTree();
+            state.Eth1Data.SetDepositRoot(depositRoot);
             for (int index = 0; index < deposits.Count; index++)
             {
-                DepositData depositData = deposits[index];
-                var deposit = depositData.ToDeposit(_cryptographyService, depositTree);
-                state.Eth1Data.SetDepositRoot(depositTree.Root);
+                Deposit deposit = deposits[index];
                 _beaconStateTransition.ProcessDeposit(state, deposit);
             }
 
@@ -145,11 +143,11 @@ namespace Nethermind.BeaconNode
             return true;
         }
 
-        public async Task<bool> TryGenesisAsync(Bytes32 eth1BlockHash, ulong eth1Timestamp, IList<DepositData> deposits)
+        public async Task<bool> TryGenesisAsync(Bytes32 eth1BlockHash, ulong eth1Timestamp, IReadOnlyList<Deposit> deposits, Root depositRoot)
         {
             if (_logger.IsDebug()) LogDebug.TryGenesis(_logger, eth1BlockHash, eth1Timestamp, (uint)deposits.Count, null);
 
-            BeaconState candidateState = InitializeBeaconStateFromEth1(eth1BlockHash, eth1Timestamp, deposits);
+            BeaconState candidateState = InitializeBeaconStateFromEth1(eth1BlockHash, eth1Timestamp, deposits, depositRoot);
             if (IsValidGenesisState(candidateState))
             {
                 BeaconState genesisState = candidateState;

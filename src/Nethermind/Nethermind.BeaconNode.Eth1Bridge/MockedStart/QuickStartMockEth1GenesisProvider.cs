@@ -22,6 +22,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Nethermind.BeaconNode.Eth1Bridge.Bridge;
 using Nethermind.Core2;
 using Nethermind.Core2.Configuration;
 using Nethermind.Core2.Containers;
@@ -36,6 +37,7 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
     public class QuickStartMockEth1GenesisProvider : IEth1GenesisProvider
     {
         private readonly IBeaconChainUtility _beaconChainUtility;
+        private readonly IDepositStore _depositStore;
         private readonly ChainConstants _chainConstants;
         private readonly ICryptographyService _crypto;
 
@@ -57,7 +59,8 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
             IOptionsMonitor<SignatureDomains> signatureDomainOptions,
             IOptionsMonitor<QuickStartParameters> quickStartParameterOptions,
             ICryptographyService crypto,
-            IBeaconChainUtility beaconChainUtility)
+            IBeaconChainUtility beaconChainUtility,
+            IDepositStore depositStore)
         {
             _logger = logger;
             _chainConstants = chainConstants;
@@ -68,6 +71,7 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
             _quickStartParameterOptions = quickStartParameterOptions;
             _crypto = crypto;
             _beaconChainUtility = beaconChainUtility;
+            _depositStore = depositStore;
         }
 
         public byte[] GeneratePrivateKey(ulong index)
@@ -124,15 +128,10 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
             // Fixed amount
             Gwei amount = gweiValues.MaximumEffectiveBalance;
             
-            IList<DepositData> deposits = new List<DepositData>((int) quickStartParameters.ValidatorCount);
             for (ulong validatorIndex = 0uL; validatorIndex < quickStartParameters.ValidatorCount; validatorIndex++)
             {
-                DepositData depositData = BuildAndSignDepositData(
-                    validatorIndex,
-                    amount,
-                    signatureDomains);
-                
-                deposits.Add(depositData);
+                var depositLog = BuildAndSignDepositData(validatorIndex, amount, signatureDomains);
+                _depositStore.Place(depositLog);
             }
 
             ulong eth1Timestamp = quickStartParameters.Eth1Timestamp;
@@ -162,15 +161,19 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
                 }
             }
 
-            var eth1GenesisData = new Eth1GenesisData(quickStartParameters.Eth1BlockHash, eth1Timestamp, deposits);
+            var eth1GenesisData = new Eth1GenesisData(
+                quickStartParameters.Eth1BlockHash,
+                eth1Timestamp,
+                _depositStore.Deposits,
+                _depositStore.Root);
 
             if (_logger.IsEnabled(LogLevel.Debug))
-                LogDebug.QuickStartGenesisDataCreated(_logger, eth1GenesisData.BlockHash, eth1GenesisData.Timestamp, (uint)deposits.Count, null);
+                LogDebug.QuickStartGenesisDataCreated(_logger, eth1GenesisData.BlockHash, eth1GenesisData.Timestamp, (uint)_depositStore.Deposits.Count, null);
 
             return Task.FromResult(eth1GenesisData);
         }
 
-        private DepositData BuildAndSignDepositData(ulong validatorIndex, Gwei amount, SignatureDomains signatureDomains)
+        private DepositLog BuildAndSignDepositData(ulong validatorIndex, Gwei amount, SignatureDomains signatureDomains)
         {
             InitialValues initialValues = _initialValueOptions.CurrentValue;
             byte[] privateKey = GeneratePrivateKey(validatorIndex);
@@ -212,7 +215,7 @@ namespace Nethermind.BeaconNode.Eth1Bridge.MockedStart
                 LogDebug.QuickStartAddValidator(_logger, validatorIndex, publicKey.ToString().Substring(0, 12),
                     null);
             
-            return depositData;
+            return new DepositLog(depositData, 100, validatorIndex);
         }
     }
 }

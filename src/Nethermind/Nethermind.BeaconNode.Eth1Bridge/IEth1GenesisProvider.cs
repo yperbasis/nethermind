@@ -23,6 +23,6 @@ namespace Nethermind.BeaconNode.Eth1Bridge
 {
     public interface IEth1GenesisProvider
     {
-        IAsyncEnumerable<Eth1GenesisData> GetEth1GenesisCandidatesDataAsync([EnumeratorCancellation] CancellationToken cancellationToken = default);
+        IAsyncEnumerable<Eth1GenesisData> GetEth1GenesisCandidatesDataAsync(CancellationToken cancellationToken = default);
     }
 }

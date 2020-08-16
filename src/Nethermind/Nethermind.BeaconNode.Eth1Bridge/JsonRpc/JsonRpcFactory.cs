@@ -1,27 +1,19 @@
 ﻿using System;
-using System.IO;
 using System.Net.Http;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Nethermind.BeaconNode.Eth1Bridge.JsonRpc;
 using Nethermind.Core2.Configuration;
 using StreamJsonRpc;
 
-namespace Nethermind.BeaconNode.Eth1Bridge
+namespace Nethermind.BeaconNode.Eth1Bridge.JsonRpc
 {
-    public interface IEth1BridgeFactory
+    public class JsonRpcFactory : IJsonRpcFactory
     {
-        Task<IEth1Bridge> CreateEth1BridgeAsync(Eth1BridgeConfiguration bridgeConfiguration, CancellationToken cancellationToken);
-    }
-
-    public class Eth1BridgeFactory : IEth1BridgeFactory
-    {
-        public async Task<IEth1Bridge> CreateEth1BridgeAsync(Eth1BridgeConfiguration bridgeConfiguration, CancellationToken cancellationToken)
+        public async Task<StreamJsonRpc.JsonRpc> CreateJsonRpcAsync(Eth1BridgeConfiguration bridgeConfiguration, CancellationToken cancellationToken)
         {
             var handler = await CreateMessageHandlerAsync(bridgeConfiguration, cancellationToken);
-            var jsonRpc = new StreamJsonRpc.JsonRpc(handler);
-            return jsonRpc.Attach<IEth1Bridge>();
+            return new StreamJsonRpc.JsonRpc(handler);
         }
 
         private static async Task<IJsonRpcMessageHandler> CreateMessageHandlerAsync(Eth1BridgeConfiguration bridgeConfiguration, CancellationToken cancellationToken)

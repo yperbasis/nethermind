@@ -53,13 +53,23 @@ namespace Nethermind.BeaconNode.Eth1Bridge
             LoggerMessage.Define<string, string, int>(LogLevel.Information,
                 new EventId(1350, nameof(PeeringWorkerStarting)),
                 "Eth1 bridge {ProductTokenVersion} worker starting; {Environment} environment [{ThreadId}]");
+        
+        public static readonly Action<ILogger, int, Exception?> Eth1GenesisWaitingForDeposits =
+            LoggerMessage.Define<int>(LogLevel.Information,
+                new EventId(1351, nameof(Eth1GenesisWaitingForDeposits)),
+                "Waiting for more Eth1 deposits before genesis. Current deposits {Deposits}");
+        
+        public static readonly Action<ILogger, ulong, ulong, Exception?> Eth1GenesisImportingBlocks =
+            LoggerMessage.Define<ulong, ulong>(LogLevel.Information,
+                new EventId(1352, nameof(Eth1GenesisWaitingForDeposits)),
+                "Importing Eth1 blocks from {From} to {To} for genesis.");
 
+        // 2bxx
+        
         public static readonly Action<ILogger, Bytes32, ulong, uint, int, Exception?> Eth1GenesisSuccess =
             LoggerMessage.Define<Bytes32, ulong, uint, int>(LogLevel.Information,
-                new EventId(1351, nameof(Eth1GenesisSuccess)),
+                new EventId(2351, nameof(Eth1GenesisSuccess)),
                 "Eth genesis succeeded with block hash {BlockHash}, genesis time {GenesisTime:n0}, and {DepositCount} deposits, at check {CheckGenesisCount}.");
-
-        // 2bxx 
         
         // 4bxx warning
         
@@ -76,16 +86,29 @@ namespace Nethermind.BeaconNode.Eth1Bridge
             LoggerMessage.Define<ulong, ulong>(LogLevel.Warning,
                 new EventId(4900, nameof(MockedQuickStart)),
                 "Mocked quick start with genesis time {GenesisTime:n0} and {ValidatorCount} validators.");
+        
+        public static readonly Action<ILogger, string, string, Exception?> Eth1Disconnected =
+            LoggerMessage.Define<string, string>(LogLevel.Warning,
+                new EventId(4392, nameof(Eth1Disconnected)),
+                "Lost connection to Eth1 because {Reason}. {Description}.");
 
         // 5bxx error
+        public static readonly Action<ILogger, Exception?> Eth1ConnectionFailure =
+            LoggerMessage.Define(LogLevel.Error,
+                new EventId(5352, nameof(Eth1ConnectionFailure)),
+                "Failed to connect to Eth1.");
         
-        public static readonly Action<ILogger, int, Exception?> Eth1GenesisFailure =
-            LoggerMessage.Define<int>(LogLevel.Error,
-                new EventId(5351, nameof(Eth1GenesisFailure)),
-                "Eth genesis failed after {CheckGenesisCount} checks.");
+        public static readonly Action<ILogger, Exception?> Eth1CommunicationFailure =
+            LoggerMessage.Define(LogLevel.Error,
+                new EventId(5353, nameof(Eth1CommunicationFailure)),
+                "Error communicating with Eth1.");
 
         // 8bxx finalization
 
         // 9bxx critical
+        public static readonly Action<ILogger, int, Exception?> Eth1GenesisFailure =
+            LoggerMessage.Define<int>(LogLevel.Error,
+                new EventId(9351, nameof(Eth1GenesisFailure)),
+                "Eth genesis failed after {CheckGenesisCount} checks.");
     }
 }

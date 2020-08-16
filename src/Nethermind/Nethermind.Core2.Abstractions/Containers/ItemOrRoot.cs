@@ -23,8 +23,11 @@ namespace Nethermind.Core2.Containers
     public class Ref<T> : IEquatable<Ref<T>> where T : class
     {
         // for deserialization
+        // ReSharper disable once UnusedMember.Global
+#pragma warning disable 8618
         public Ref() { }
-        
+#pragma warning restore 8618
+
         public Ref(T item)
         {
             Item = item;

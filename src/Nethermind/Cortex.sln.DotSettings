@@ -16,6 +16,7 @@
  along with the Nethermind. If not, see &lt;http://www.gnu.org/licenses/&gt;.&#xD;
 &#xD;</s:String>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=gwei/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=Keccak/@EntryIndexedValue">True</s:Boolean>
 	
 	
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Merkle/@EntryIndexedValue">True</s:Boolean>

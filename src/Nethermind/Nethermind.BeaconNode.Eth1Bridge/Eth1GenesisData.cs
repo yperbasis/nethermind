@@ -16,21 +16,24 @@
 
 using System.Collections.Generic;
 using Nethermind.Core2.Containers;
+using Nethermind.Core2.Crypto;
 using Nethermind.Core2.Types;
 
 namespace Nethermind.BeaconNode.Eth1Bridge
 {
     public class Eth1GenesisData
     {
-        public Eth1GenesisData(Bytes32 blockHash, ulong timestamp, IList<DepositData> deposits)
+        public Eth1GenesisData(Bytes32 blockHash, ulong timestamp, IReadOnlyList<Deposit> deposits, Root depositsRoot)
         {
             BlockHash = blockHash;
             Timestamp = timestamp;
             Deposits = deposits;
+            DepositsRoot = depositsRoot;
         }
 
         public Bytes32 BlockHash { get; }
         public ulong Timestamp { get; }
-        public IList<DepositData> Deposits { get; }
+        public IReadOnlyList<Deposit> Deposits { get; }
+        public Root DepositsRoot { get; }
     }
 }

@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2018 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -13,21 +13,24 @@
 // 
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
+// 
 
-using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
-using Nethermind.Core2.Containers;
-using Nethermind.Core2.Crypto;
-using Nethermind.Core2.Types;
 
-namespace Nethermind.Core2
+namespace Nethermind.BeaconNode.Eth1Bridge.Bridge
 {
-    public interface IEth1Genesis
+    [SuppressMessage("ReSharper", "VSTHRD200")]
+    public interface IEth1Bridge
     {
-        /// <summary>
-        /// Eth1 bridge should call this with Eth1 data
-        /// </summary>
-        /// <returns>true if genesis succeeded; false if the bridge needs to continue gathering deposits</returns>
-        Task<bool> TryGenesisAsync(Bytes32 eth1BlockHash, ulong eth1Timestamp, IReadOnlyList<Deposit> deposits, Root depositRoot);
+        public const int CheckDelayMs = 1000;
+        public const int FailDelayMs = 5000;
+        
+        Task<ulong> eth_chainId();
+        Task<ulong> net_version();
+        Task<ulong> eth_blockNumber();
+        Task<Block> eth_getBlockByNumber(string block, bool includeTransaction = false);
+        Task<Log[]> eth_getLogs(Filter filter);
+        Task<string> eth_call(Transaction transaction, string block);
     }
 }

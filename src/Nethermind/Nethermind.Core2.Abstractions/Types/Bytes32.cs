@@ -42,6 +42,8 @@ namespace Nethermind.Core2.Types
         {
             return _bytes;
         }
+
+        public Bytes32(string hexString) : this(Bytes.FromHexString(hexString)) { }
         
         private Bytes32(byte[] bytes)
         {
