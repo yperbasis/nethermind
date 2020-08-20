@@ -32,6 +32,9 @@ namespace Nethermind.Specs.ChainSpecStyle.Json
         public byte[] Code { get; set; }
         
         public byte[] Constructor { get; set; }
+        
+        public UInt256 Nonce { get; set; }
+        
         public Dictionary<string, string> Storage { get; set; }
 
         public Dictionary<UInt256, byte[]> GetConvertedStorage()
