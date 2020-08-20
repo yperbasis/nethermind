@@ -56,7 +56,7 @@ namespace Nethermind.Blockchain
             _dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
             _transactionProcessor = transactionProcessor ?? throw new ArgumentNullException(nameof(transactionProcessor));
         }
-        
+
         public Block Load()
         {
             Block genesis = _chainSpec.Genesis;
@@ -68,6 +68,11 @@ namespace Nethermind.Blockchain
                 {
                     Keccak codeHash = _stateProvider.UpdateCode(allocation.Code);
                     _stateProvider.UpdateCodeHash(address, codeHash, _specProvider.GenesisSpec);
+                }
+
+                for (int i = 0; i < allocation.Nonce; i++)
+                {
+                    _stateProvider.IncrementNonce(address);
                 }
 
                 if (allocation.Storage != null)
@@ -90,7 +95,7 @@ namespace Nethermind.Blockchain
                     _transactionProcessor.Execute(constructorTransaction, genesis.Header, NullTxTracer.Instance);
                 }
             }
-            
+
             // we no longer need the allocations - 0.5MB RAM, 9000 objects for mainnet
             _chainSpec.Allocations = null;
 
@@ -102,10 +107,10 @@ namespace Nethermind.Blockchain
 
             _dbProvider.StateDb.Commit();
             _dbProvider.CodeDb.Commit();
-            
+
             genesis.Header.StateRoot = _stateProvider.StateRoot;
             genesis.Header.Hash = genesis.Header.CalculateHash();
-            
+
             return genesis;
         }
     }
