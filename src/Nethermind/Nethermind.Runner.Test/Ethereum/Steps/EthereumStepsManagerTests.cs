@@ -15,13 +15,19 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions.Execution;
 using Nethermind.Config;
+using Nethermind.Core.Crypto;
 using Nethermind.Logging;
+using Nethermind.Network;
+using Nethermind.Network.Config;
+using Nethermind.Runner.Ethereum;
 using Nethermind.Runner.Ethereum.Context;
 using Nethermind.Runner.Ethereum.Steps;
+using Nethermind.Serialization.Json;
 using NUnit.Framework;
 
 namespace Nethermind.Runner.Test.Ethereum.Steps
@@ -29,6 +35,88 @@ namespace Nethermind.Runner.Test.Ethereum.Steps
     [TestFixture]
     public class EthereumStepsManagerTests
     {
+        [Test]
+        //Test source: https://github.com/ethereum/tests/blob/develop/BlockchainTests/GeneralStateTests/stMemoryTest/callDataCopyOffset.json
+        //Log file: https://hivetests.ethdevops.io/viewer.html?file=results/nethermind_latest/client-e6ba769d.log
+        public async Task Validate_genesis_from_hive_chainspec_correctly_1()
+        {
+            var configProvider = new ConfigProvider();
+            Environment.SetEnvironmentVariable("NETHERMIND_HIVE_ENABLED", "true");
+
+            var initConfig = configProvider.GetConfig<IInitConfig>();
+            initConfig.DiagnosticMode = DiagnosticMode.MemDb;
+            initConfig.HiveChainSpecPath = "chainspec/hive2.json";
+
+            Assembly stepsAssembly = Assembly.GetAssembly(typeof(IStep));
+            var serializer = new EthereumJsonSerializer();
+
+            var factory = new EthereumRunnerContextFactory(configProvider, serializer, LimboLogs.Instance);
+            factory.Context.EthereumJsonSerializer = new EthereumJsonSerializer();
+
+            INetworkConfig networkConfig = configProvider.GetConfig<INetworkConfig>();
+            var ipResolver = new IPResolver(networkConfig, LimboLogs.Instance);
+            networkConfig.ExternalIp = ipResolver.ExternalIp.ToString();
+            networkConfig.LocalIp = ipResolver.LocalIp.ToString(); 
+
+            var stepsLoader = new EthereumStepsLoader(stepsAssembly);
+            var stepsManager = new EthereumStepsManager(
+                stepsLoader,
+                factory.Context,
+                LimboLogs.Instance);
+
+            var source = new CancellationTokenSource();
+            try
+            {
+                await stepsManager.InitializeAll(source.Token);
+            }
+            catch(Exception)
+            {
+            }
+
+            Assert.AreEqual(new Keccak( "0x061298b1447e2e387dc75f913409d07e4b941aeafa0a7e292837a5cf0dcf1eb9"),factory.Context.BlockTree.Genesis.Hash);
+        }
+
+        [Test]
+        //Test source: https://github.com/ethereum/tests/blob/develop/BlockchainTests/GeneralStateTests/stCreate2/create2callPrecompiles.json
+        //Log file: https://hivetests.ethdevops.io/viewer.html?file=results/nethermind_latest/client-f2507dc6.log
+        public async Task Validate_genesis_from_hive_chainspec_correctly_2()
+        {
+            var configProvider = new ConfigProvider();
+            Environment.SetEnvironmentVariable("NETHERMIND_HIVE_ENABLED", "true");
+
+            var initConfig = configProvider.GetConfig<IInitConfig>();
+            initConfig.DiagnosticMode = DiagnosticMode.MemDb;
+            initConfig.HiveChainSpecPath = "chainspec/hive3.json";
+
+            Assembly stepsAssembly = Assembly.GetAssembly(typeof(IStep));
+            var serializer = new EthereumJsonSerializer();
+
+            var factory = new EthereumRunnerContextFactory(configProvider, serializer, LimboLogs.Instance);
+            factory.Context.EthereumJsonSerializer = new EthereumJsonSerializer();
+
+            INetworkConfig networkConfig = configProvider.GetConfig<INetworkConfig>();
+            var ipResolver = new IPResolver(networkConfig, LimboLogs.Instance);
+            networkConfig.ExternalIp = ipResolver.ExternalIp.ToString();
+            networkConfig.LocalIp = ipResolver.LocalIp.ToString(); 
+
+            var stepsLoader = new EthereumStepsLoader(stepsAssembly);
+            var stepsManager = new EthereumStepsManager(
+                stepsLoader,
+                factory.Context,
+                LimboLogs.Instance);
+
+            var source = new CancellationTokenSource();
+            try
+            {
+                await stepsManager.InitializeAll(source.Token);
+            }
+            catch(Exception)
+            {
+            }
+
+            Assert.AreEqual(new Keccak( "0x4b266132baa182ed082ae4e4635d37c3dd2ed8f6e031ab43c55067440b16dc65"),factory.Context.BlockTree.Genesis.Hash);
+        }
+
         [Test]
         public async Task When_no_assemblies_defined()
         {
