@@ -38,9 +38,9 @@ namespace Nethermind.AuRa.Test
         {
             var manualTimestamper = new ManualTimestamper(DateTime.Now);
             var calculator = new AuRaStepCalculator(GetStepDurationsForSingleStep(stepDuration), manualTimestamper, LimboLogs.Instance);
-            var step = calculator.CurrentStep;
+            var step = calculator.GetCurrentStep(0);
             manualTimestamper.Add(calculator.TimeToNextStep);
-            calculator.CurrentStep.Should().Be(step + 1, calculator.TimeToNextStep.ToString());
+            calculator.GetCurrentStep(0).Should().Be(step + 1, calculator.TimeToNextStep.ToString());
         }
         
         [TestCase(2)]
@@ -59,7 +59,7 @@ namespace Nethermind.AuRa.Test
             var time = DateTimeOffset.FromUnixTimeMilliseconds(milliSeconds);
             var timestamper = new ManualTimestamper(time.UtcDateTime);
             var calculator = new AuRaStepCalculator(GetStepDurationsForSingleStep(stepDuration), timestamper, LimboLogs.Instance);
-            calculator.CurrentStep.Should().Be(time.ToUnixTimeSeconds() / stepDuration);
+            calculator.GetCurrentStep(0).Should().Be(time.ToUnixTimeSeconds() / stepDuration);
         }
         
         [TestCase(100000060005L, 2, 50000030)]
@@ -106,7 +106,7 @@ namespace Nethermind.AuRa.Test
                 kvp => kvp.StepDuration);
             var calculator = new AuRaStepCalculator(stepDurations, timestamper, LimboLogs.Instance);
             timestamper.Add(TimeSpan.FromSeconds(second));
-            calculator.CurrentStep.Should().Be(expectedStep);
+            calculator.GetCurrentStep(0).Should().Be(expectedStep);
             calculator.TimeToNextStep.Should().Be(TimeSpan.FromSeconds(expectedSecondsToNextStep));
         }
 

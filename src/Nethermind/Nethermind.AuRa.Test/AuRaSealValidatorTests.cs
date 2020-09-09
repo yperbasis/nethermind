@@ -62,7 +62,7 @@ namespace Nethermind.AuRa.Test
             
             _ethereumEcdsa = Substitute.For<IEthereumEcdsa>();
             _currentStep = 11;
-            _auRaStepCalculator.CurrentStep.Returns(_currentStep);
+            _auRaStepCalculator.GetCurrentStep(Arg.Any<long>()).Returns(_currentStep);
 
             _reportingValidator = Substitute.For<IReportingValidator>();
             _blockTree = Substitute.For<IBlockTree>();

@@ -77,7 +77,7 @@ namespace Nethermind.AuRa.Test
         [TestCase(11, true, ExpectedResult = true, TestName = "Can seal.")]
         public bool can_seal(long auRaStep, bool validSealer)
         {
-            _auRaStepCalculator.CurrentStep.Returns(auRaStep);
+            _auRaStepCalculator.GetCurrentStep(Arg.Any<long>()).Returns(auRaStep);
             _validSealerStrategy.IsValidSealer(Arg.Any<IList<Address>>(), _address, auRaStep).Returns(validSealer);
             return _auRaSealer.CanSeal(10, _blockTree.Head.Hash);
         }
@@ -85,7 +85,7 @@ namespace Nethermind.AuRa.Test
         [Test]
         public async Task seal_can_recover_address()
         {
-            _auRaStepCalculator.CurrentStep.Returns(11);
+            _auRaStepCalculator.GetCurrentStep(Arg.Any<long>()).Returns(11);
             _validSealerStrategy.IsValidSealer(Arg.Any<IList<Address>>(), _address, 11).Returns(true);
             var block = Build.A.Block.WithHeader(Build.A.BlockHeader.WithBeneficiary(_address).WithAura(11, null).TestObject).TestObject;
             

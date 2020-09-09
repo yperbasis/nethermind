@@ -92,7 +92,7 @@ namespace Nethermind.Consensus.AuRa
                 return _validSealerStrategy.IsValidSealer(validators, _signer.Address, step);
             }
 
-            long currentStep = _auRaStepCalculator.CurrentStep;
+            long currentStep = _auRaStepCalculator.GetCurrentStep(blockNumber);
             bool stepNotYetProduced = StepNotYetProduced(currentStep);
             bool isThisNodeTurn = IsThisNodeTurn(currentStep);
             if (isThisNodeTurn)

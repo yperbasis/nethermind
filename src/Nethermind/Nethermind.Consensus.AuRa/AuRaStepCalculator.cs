@@ -35,14 +35,11 @@ namespace Nethermind.Consensus.AuRa
             _stepDurations = CreateStepDurations(stepDurations);
             _timestamper = timestamper ?? throw new ArgumentNullException(nameof(timestamper));
         }
-        
-        public long CurrentStep
+
+        public long GetCurrentStep(long blockNumber)
         {
-            get
-            {
-                var timestampSeconds = _timestamper.EpochSecondsLong;
-                return GetStepInfo(timestampSeconds).GetCurrentStep(timestampSeconds);
-            }
+            var timestampSeconds = _timestamper.EpochSecondsLong;
+            return GetStepInfo(timestampSeconds).GetCurrentStep(timestampSeconds);
         }
 
         public TimeSpan TimeToNextStep => new TimeSpan(TimeToNextStepInTicks);
@@ -148,6 +145,39 @@ namespace Nethermind.Consensus.AuRa
             long IActivatedAt<long>.Activation => TransitionTimestamp;
 
             public long GetCurrentStep(in long timestampSeconds) => TransitionStep + (timestampSeconds - TransitionTimestamp) / StepDuration;
+        }
+    }
+
+    public class FaultyAuRaStepCalculator : IAuRaStepCalculator
+    {
+        private readonly IAuRaStepCalculator _innerCalculator;
+        private readonly ISigner _signer;
+        private readonly IDictionary<Address, long> _faultyBlocksTransition;
+
+        public FaultyAuRaStepCalculator(IAuRaStepCalculator innerCalculator, ISigner signer, IDictionary<Address, long> faultyBlocksTransition)
+        {
+            _innerCalculator = innerCalculator;
+            _signer = signer;
+            _faultyBlocksTransition = faultyBlocksTransition;
+        }
+
+        public long GetCurrentStep(long blockNumber)
+        {
+            long currentStep = _innerCalculator.GetCurrentStep(blockNumber);
+
+            if (_signer != null
+                && _faultyBlocksTransition.TryGetValue(_signer.Address, out long transition)
+                && blockNumber >= transition)
+                return Math.Max(0, currentStep - 3);
+            else
+                return currentStep;
+        }
+
+        public TimeSpan TimeToNextStep => _innerCalculator.TimeToNextStep;
+
+        public TimeSpan TimeToStep(long step)
+        {
+            return _innerCalculator.TimeToStep(step);
         }
     }
 }

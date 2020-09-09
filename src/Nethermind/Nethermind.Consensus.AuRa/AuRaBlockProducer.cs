@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Blockchain.Producers;
+using Nethermind.Blockchain.Validators;
 using Nethermind.Consensus.AuRa.Config;
 using Nethermind.Consensus.AuRa.Validators;
 using Nethermind.Consensus.Transactions;
@@ -37,6 +38,7 @@ namespace Nethermind.Consensus.AuRa
         private readonly IAuRaStepCalculator _auRaStepCalculator;
         private readonly IReportingValidator _reportingValidator;
         private readonly IAuraConfig _config;
+        private readonly IHeaderValidator _headerValidator;
 
         public AuRaBlockProducer(ITxSource txSource,
             IBlockchainProcessor processor,
@@ -49,7 +51,8 @@ namespace Nethermind.Consensus.AuRa
             IReportingValidator reportingValidator,
             IAuraConfig config,
             IGasLimitCalculator gasLimitCalculator,
-            ILogManager logManager) 
+            ILogManager logManager,
+            IHeaderValidator headerValidator = null) 
             : base(
                 new ValidatedTxSource(txSource, logManager),
                 processor,
@@ -65,6 +68,7 @@ namespace Nethermind.Consensus.AuRa
             _auRaStepCalculator = auRaStepCalculator ?? throw new ArgumentNullException(nameof(auRaStepCalculator));
             _reportingValidator = reportingValidator ?? throw new ArgumentNullException(nameof(reportingValidator));
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            _headerValidator = headerValidator;
             _canProduce = _config.AllowAuRaPrivateChains ? 1 : 0;
         }
         
@@ -79,12 +83,12 @@ namespace Nethermind.Consensus.AuRa
         protected override Block PrepareBlock(BlockHeader parent)
         {
             var block = base.PrepareBlock(parent);
-            block.Header.AuRaStep = _auRaStepCalculator.CurrentStep;
+            block.Header.AuRaStep = _auRaStepCalculator.GetCurrentStep(parent.Number + 1);
             return block;
         }
 
-        protected override UInt256 CalculateDifficulty(BlockHeader parent, UInt256 timestamp) 
-            => AuraDifficultyCalculator.CalculateDifficulty(parent.AuRaStep.Value, _auRaStepCalculator.CurrentStep);
+        protected override UInt256 CalculateDifficulty(BlockHeader parent, UInt256 timestamp)
+            => AuraDifficultyCalculator.CalculateDifficulty(parent.AuRaStep.Value, _auRaStepCalculator.GetCurrentStep(parent.Number + 1));
 
         protected override bool PreparedBlockCanBeMined(Block block)
         {
@@ -134,7 +138,14 @@ namespace Nethermind.Consensus.AuRa
             _reportingValidator.TryReportSkipped(block.Header, parent);
             return base.SealBlock(block, parent, token);
         }
-        
+
+        protected override void OnBlockSealed(Block block, BlockHeader parent)
+        {
+            base.OnBlockSealed(block, parent);
+            _headerValidator?.Validate(block.Header, parent);
+
+        }
+
         // This is for debugging.
         private class ValidatedTxSource : ITxSource
         {

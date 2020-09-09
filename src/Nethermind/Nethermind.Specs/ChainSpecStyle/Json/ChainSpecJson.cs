@@ -96,6 +96,22 @@ namespace Nethermind.Specs.ChainSpecStyle.Json
             public IDictionary<long, Address> BlockGasLimitContractTransitions { get; set; } = new Dictionary<long, Address>();
             public long? TwoThirdsMajorityTransition { get; set; }
             public long? PosdaoTransition { get; set; }
+            
+            /// <summary>
+            /// A list of addresses, and block numbers at which these should be reported as malicious.
+            /// </summary>
+            /// <remarks>
+            /// FOR TESTING ONLY!!
+            /// </remarks>
+            public IDictionary<long, Address> ReportMalicious { get; set; } = new Dictionary<long, Address>();
+        
+            /// <summary>
+            /// Block at which we start producing blocks with an invalid header (wrong step number).
+            /// </summary>
+            /// <remarks>
+            /// FOR TESTING ONLY!!
+            /// </remarks>
+            public IDictionary<Address, long> FaultyBlocksTransition { get; set; } = new Dictionary<Address, long>();
 
             public class StepDurationJson : SortedDictionary<long, long> { }
         }
@@ -161,6 +177,22 @@ namespace Nethermind.Specs.ChainSpecStyle.Json
             public IDictionary<long, Address> RandomnessContractAddress => Params.RandomnessContractAddress;
 
             public IDictionary<long, Address> BlockGasLimitContractTransitions => Params.BlockGasLimitContractTransitions;
+
+            /// <summary>
+            /// A list of addresses, and block numbers at which these should be reported as malicious.
+            /// </summary>
+            /// <remarks>
+            /// FOR TESTING ONLY!!
+            /// </remarks>
+            public IDictionary<long, Address> ReportMalicious => Params.ReportMalicious;
+
+            /// <summary>
+            /// Block at which we start producing blocks with an invalid header (wrong step number).
+            /// </summary>
+            /// <remarks>
+            /// FOR TESTING ONLY!!
+            /// </remarks>
+            public IDictionary<Address, long> FaultyBlocksTransition => Params.FaultyBlocksTransition;
             
             public AuraEngineParamsJson Params { get; set; }
         }

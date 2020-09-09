@@ -19,6 +19,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Processing;
+using Nethermind.Blockchain.Validators;
 using Nethermind.Consensus;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
@@ -122,6 +123,7 @@ namespace Nethermind.Blockchain.Producers
                                 if (Logger.IsInfo) Logger.Info($"Sealed block {t.Result.ToString(Block.Format.HashNumberDiffAndTx)}");
                                 BlockTree.SuggestBlock(t.Result);
                                 Metrics.BlocksSealed++;
+                                OnBlockSealed(t.Result, parent);
                                 return true;
                             }
                             else
@@ -147,6 +149,10 @@ namespace Nethermind.Blockchain.Producers
             }
 
             return Task.FromResult(false);
+        }
+
+        protected virtual void OnBlockSealed(Block block, BlockHeader parent)
+        {
         }
 
         protected virtual Task<Block> SealBlock(Block block, BlockHeader parent, CancellationToken token) => _sealer.SealBlock(block, token);

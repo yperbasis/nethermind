@@ -13,16 +13,7 @@
         "validators": {
           "multi": {
             "0" : {
-              "list": ["0x557abc72a6594d1bd9a655a1cb58a595526416c8"]
-            },
-            "4" : {
-              "list": ["0x69399093be61566a1c86b09bd02612c6bf31214f"]
-            },
-            "8" : {
-              "list": ["0x7e99aceb5d3dba8c79732c6cf49f184b00cff69b"]
-            },
-            "12" : {
-              "safeContract": "0x8bf38d4764929064f2d4d3a56520a76ab3df415b"
+              "list": ["0x557abc72a6594d1bd9a655a1cb58a595526416c8", "0x69399093be61566a1c86b09bd02612c6bf31214f"]
             }
           }
         },
@@ -32,7 +23,13 @@
         "blockGasLimitContractTransitions": {
           "0" : "0xAB5b100cf7C8deFB3c8f3C48474223997A50fB13"
         },
-        "twoThirdsMajorityTransition": 20
+        "twoThirdsMajorityTransition": 20,
+        "reportMalicious" : {
+          "3" : "0x69399093be61566a1c86b09bd02612c6bf31214f"
+        },
+        "faultyBlocksTransition" : {
+          "0x557abc72a6594d1bd9a655a1cb58a595526416c8" : 4
+        }
       }
     }
   },

@@ -35,7 +35,8 @@ namespace Nethermind.Consensus.AuRa.Validators
         public enum MaliciousCause
         {
             DuplicateStep,
-            SiblingBlocksInSameStep
+            SiblingBlocksInSameStep,
+            Test
         }
     }
 }

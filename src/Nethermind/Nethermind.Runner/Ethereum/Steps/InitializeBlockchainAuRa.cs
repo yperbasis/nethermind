@@ -191,7 +191,8 @@ namespace Nethermind.Runner.Ethereum.Steps
             _api.ValidatorStore = new ValidatorStore(_api.DbProvider.BlockInfosDb);
 
             ValidSealerStrategy validSealerStrategy = new ValidSealerStrategy();
-            AuRaStepCalculator auRaStepCalculator = new AuRaStepCalculator(_api.ChainSpec.AuRa.StepDuration, _api.Timestamper, _api.LogManager);
+            IAuRaStepCalculator auRaStepCalculator = new AuRaStepCalculator(_api.ChainSpec.AuRa.StepDuration, _api.Timestamper, _api.LogManager);
+            auRaStepCalculator = new FaultyAuRaStepCalculator(auRaStepCalculator, _api.Signer, _api.ChainSpec.AuRa.FaultyBlocksTransition);
             _api.SealValidator = _sealValidator = new AuRaSealValidator(_api.ChainSpec.AuRa, auRaStepCalculator, _api.BlockTree, _api.ValidatorStore, validSealerStrategy, _api.EthereumEcdsa, _api.LogManager);
             _api.RewardCalculatorSource = AuRaRewardCalculator.GetSource(_api.ChainSpec.AuRa, _api.AbiEncoder);
             _api.Sealer = new AuRaSealer(_api.BlockTree, _api.ValidatorStore, auRaStepCalculator, _api.Signer, validSealerStrategy, _api.LogManager);

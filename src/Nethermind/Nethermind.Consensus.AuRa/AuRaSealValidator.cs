@@ -72,6 +72,13 @@ namespace Nethermind.Consensus.AuRa
             {
                 long step = header.AuRaStep.Value;
 
+                // Test purpose only
+                if (_parameters.ReportMalicious.TryGetValue(header.Number, out Address address))
+                {
+                    if (_logger.IsWarn) _logger.Warn($"Reporting {address} as malicious FOR TESTING PURPOSES.");
+                    ReportingValidator.ReportMalicious(address, header.Number, Array.Empty<byte>(), IReportingValidator.MaliciousCause.Test);
+                }
+                
                 if (step == parent.AuRaStep)
                 {
                     if (_logger.IsWarn) _logger.Warn($"Multiple blocks proposed for step {step}. Block {header.Number}, hash {header.Hash} is duplicate.");
@@ -96,7 +103,7 @@ namespace Nethermind.Consensus.AuRa
                     }
                 }
 
-                var currentStep = _stepCalculator.CurrentStep;
+                var currentStep = _stepCalculator.GetCurrentStep(header.Number);
 
                 if (step > currentStep + rejectedStepDrift)
                 {

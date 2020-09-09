@@ -60,6 +60,7 @@ namespace Nethermind.Runner.Ethereum.Steps
             if (logger.IsWarn) logger.Warn("Starting AuRa block producer & sealer");
 
             IAuRaStepCalculator stepCalculator = new AuRaStepCalculator(_api.ChainSpec.AuRa.StepDuration, _api.Timestamper, _api.LogManager);
+            stepCalculator = new FaultyAuRaStepCalculator(stepCalculator, _api.Signer, _api.ChainSpec.AuRa.FaultyBlocksTransition);
             BlockProducerContext producerContext = GetProducerChain();
             _api.BlockProducer = new AuRaBlockProducer(
                 producerContext.TxSource,
@@ -73,7 +74,8 @@ namespace Nethermind.Runner.Ethereum.Steps
                 _api.ReportingValidator,
                 _auraConfig,
                 CreateGasLimitCalculator(producerContext.ReadOnlyTxProcessorSource),
-                _api.LogManager);
+                _api.LogManager,
+                _api.HeaderValidator);
         }
 
         protected override BlockProcessor CreateBlockProcessor(

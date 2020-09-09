@@ -77,6 +77,22 @@ namespace Nethermind.Specs.ChainSpecStyle
         public IDictionary<long, Address> RandomnessContractAddress { get; set; }
         
         public IDictionary<long, Address> BlockGasLimitContractTransitions { get; set; }
+        
+        /// <summary>
+        /// A list of addresses, and block numbers at which these should be reported as malicious.
+        /// </summary>
+        /// <remarks>
+        /// FOR TESTING ONLY!!
+        /// </remarks>
+        public IDictionary<long, Address> ReportMalicious { get; set; }
+        
+        /// <summary>
+        /// Block at which we start producing blocks with an invalid header (wrong step number).
+        /// </summary>
+        /// <remarks>
+        /// FOR TESTING ONLY!!
+        /// </remarks>
+        public IDictionary<Address, long> FaultyBlocksTransition { get; set; }
 
         public enum ValidatorType
         {
