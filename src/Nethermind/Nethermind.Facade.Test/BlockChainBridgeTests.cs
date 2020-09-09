@@ -152,58 +152,6 @@ namespace Nethermind.Facade.Test
         [Test]
         public void Call_uses_valid_block_number()
         {
-<<<<<<< HEAD
-            /* all testing will be touching just a single storage cell */
-            var storageCell = new StorageCell(TestItem.AddressA, 1);
-            
-            /* to start with we need to create an account that we will be setting storage at */
-            _stateProvider.CreateAccount(storageCell.Address, UInt256.One);
-            _stateProvider.Commit(MuirGlacier.Instance);
-            //_stateProvider.CommitTree();
-            
-            /* at this stage we have an account with empty storage at the address that we want to test */
-
-            byte[] initialValue = new byte[] {1, 2, 3};
-            _storageProvider.Set(storageCell, initialValue);
-            _storageProvider.Commit();
-            _storageProvider.CommitTrees(0);
-            _stateProvider.Commit(MuirGlacier.Instance);
-            _stateProvider.CommitTree(0);
-
-            var retrieved =
-                _blockchainBridge.GetStorage(storageCell.Address, storageCell.Index, _stateProvider.StateRoot);
-            retrieved.Should().BeEquivalentTo(initialValue);
-            
-            /* at this stage we set the value in storage to 1,2,3 at the tested storage cell */
-            
-            /* Now we are testing scenario where the storage is being changed by the block processor.
-               To do that we create some different storage / state access stack that represents the processor.
-               It is a different stack of objects than the one that is used by the blockchain bridge. */
-            
-            byte[] newValue = new byte[] {1, 2, 3, 4, 5};
-            
-            StateProvider processorStateProvider =
-                new StateProvider(_dbProvider.StateDb, _dbProvider.CodeDb, LimboLogs.Instance);
-            processorStateProvider.StateRoot = _stateProvider.StateRoot;
-            
-            StorageProvider processorStorageProvider =
-                new StorageProvider(_dbProvider.StateDb, processorStateProvider, LimboLogs.Instance);
-            
-            processorStorageProvider.Set(storageCell, newValue);
-            processorStorageProvider.Commit();
-            processorStorageProvider.CommitTrees(0);
-            processorStateProvider.Commit(MuirGlacier.Instance);
-            processorStateProvider.CommitTree(0);
-            
-            /* At this stage the DB should have the storage value updated to 5.
-               We will try to retrieve the value by taking the state root from the processor.*/
-            
-            retrieved =
-                _blockchainBridge.GetStorage(storageCell.Address, storageCell.Index, processorStateProvider.StateRoot);
-            retrieved.Should().BeEquivalentTo(newValue);
-            
-            /* If it failed then it means that the blockchain bridge cached the previous call value */
-=======
             _timestamper.UtcNow = DateTime.MinValue;
             _timestamper.Add(TimeSpan.FromDays(123));
             BlockHeader header = Build.A.BlockHeader.WithNumber(10).TestObject;
@@ -215,7 +163,6 @@ namespace Nethermind.Facade.Test
                 tx,
                 Arg.Is<BlockHeader>(bh => bh.Number == 10),
                 Arg.Any<ITxTracer>());
->>>>>>> master
         }
     }
 }

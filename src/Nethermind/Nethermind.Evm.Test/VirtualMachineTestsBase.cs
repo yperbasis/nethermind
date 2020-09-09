@@ -122,12 +122,8 @@ namespace Nethermind.Evm.Test
         protected TestAllTracerWithOutput Execute(long blockNumber, long gasLimit, byte[] code)
         {
             (var block, var transaction) = PrepareTx(blockNumber, gasLimit, code);
-<<<<<<< HEAD
-            CallOutputTracer tracer = new CallOutputTracer();
-            // return new CallOutputTracer();
-=======
             TestAllTracerWithOutput tracer = new TestAllTracerWithOutput();
->>>>>>> master
+
             _processor.Execute(transaction, block.Header, tracer);
             return tracer;
         }
