@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2018 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -38,8 +38,8 @@ namespace Nethermind.Trie
         private const int OneNodeAvgMemoryEstimate = 384;
 
         public static readonly ICache<Keccak, byte[]> NodeCache =
-            new LruCacheWithRecycling<Keccak, byte[]>(
-                (int) (MemoryAllowance.TrieNodeCacheMemory / OneNodeAvgMemoryEstimate), "trie nodes");
+            new LruCache<Keccak, byte[]>(
+                (int)(MemoryAllowance.TrieNodeCacheMemory / OneNodeAvgMemoryEstimate), "trie nodes");
 
         /// <summary>
         ///     0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421

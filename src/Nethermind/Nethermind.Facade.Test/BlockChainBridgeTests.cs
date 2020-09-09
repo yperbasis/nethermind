@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using Nethermind.Blockchain;
@@ -26,7 +27,7 @@ using Nethermind.Core.Specs;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
 using Nethermind.Db;
-using Nethermind.Dirichlet.Numerics;
+using Nethermind.Int256;
 using Nethermind.Evm;
 using Nethermind.Evm.Tracing;
 using Nethermind.Logging;
@@ -39,21 +40,18 @@ using Nethermind.Wallet;
 using NSubstitute;
 using NUnit.Framework;
 using System.Threading;
+using Nethermind.Blockchain.Processing;
 
 namespace Nethermind.Facade.Test
 {
     public class BlockchainBridgeTests
     {
         private BlockchainBridge _blockchainBridge;
-        private IStateReader _stateReader;
-        private IStateProvider _stateProvider;
-        private IStorageProvider _storageProvider;
         private IBlockTree _blockTree;
         private ITxPool _txPool;
         private IReceiptStorage _receiptStorage;
         private IFilterStore _filterStore;
         private IFilterManager _filterManager;
-        private IWallet _wallet;
         private ITransactionProcessor _transactionProcessor;
         private IEthereumEcdsa _ethereumEcdsa;
         private IBloomStorage _bloomStorage;
@@ -65,33 +63,31 @@ namespace Nethermind.Facade.Test
         public void SetUp()
         {
             _dbProvider = new MemDbProvider();
-
-            _stateReader = new StateReader(_dbProvider.StateDb, _dbProvider.CodeDb, LimboLogs.Instance);
-            _stateProvider = new StateProvider(_dbProvider.StateDb, _dbProvider.CodeDb, LimboLogs.Instance);
-            _storageProvider = new StorageProvider(_dbProvider.StateDb, _stateProvider, LimboLogs.Instance);
-          
             _timestamper = new ManualTimestamper();
             _blockTree = Substitute.For<IBlockTree>();
             _txPool = Substitute.For<ITxPool>();
             _receiptStorage = Substitute.For<IReceiptStorage>();
             _filterStore = Substitute.For<IFilterStore>();
             _filterManager = Substitute.For<IFilterManager>();
-            _wallet = Substitute.For<IWallet>();
             _transactionProcessor = Substitute.For<ITransactionProcessor>();
             _ethereumEcdsa = Substitute.For<IEthereumEcdsa>();
             _bloomStorage = Substitute.For<IBloomStorage>();
             _specProvider = MainnetSpecProvider.Instance;
+            
+            ReadOnlyTxProcessingEnv processingEnv = new ReadOnlyTxProcessingEnv(
+                new ReadOnlyDbProvider(_dbProvider, false),
+                new ReadOnlyBlockTree(_blockTree),
+                _specProvider,
+                LimboLogs.Instance);
+
+            processingEnv.TransactionProcessor = _transactionProcessor;
+            
             _blockchainBridge = new BlockchainBridge(
-                _stateReader,
-                _stateProvider,
-                _storageProvider,
-                _blockTree,
+                processingEnv,
                 _txPool,
                 _receiptStorage,
                 _filterStore,
                 _filterManager,
-                _wallet,
-                _transactionProcessor,
                 _ethereumEcdsa,
                 _bloomStorage,
                 _timestamper,
@@ -117,8 +113,16 @@ namespace Nethermind.Facade.Test
         public void get_transaction_returns_receipt_and_transaction_when_found()
         {
             int index = 5;
-            var receipt = Build.A.Receipt.WithBlockHash(TestItem.KeccakB).WithTransactionHash(TestItem.KeccakA).WithIndex(index).TestObject;
-            var block = Build.A.Block.WithTransactions(Enumerable.Range(0, 10).Select(i => Build.A.Transaction.WithNonce((UInt256) i).TestObject).ToArray()).TestObject;
+            var receipt = Build.A.Receipt
+                .WithBlockHash(TestItem.KeccakB)
+                .WithTransactionHash(TestItem.KeccakA)
+                .WithIndex(index)
+                .TestObject;
+            IEnumerable<Transaction> transactions = Enumerable.Range(0, 10)
+                .Select(i => Build.A.Transaction.WithNonce((UInt256) i).TestObject);
+            var block = Build.A.Block
+                .WithTransactions(transactions.ToArray())
+                .TestObject;
             _blockTree.FindBlock(TestItem.KeccakB, Arg.Any<BlockTreeLookupOptions>()).Returns(block);
             _receiptStorage.FindBlockHash(TestItem.KeccakA).Returns(TestItem.KeccakB);
             _receiptStorage.Get(block).Returns(new[] {receipt});
@@ -133,20 +137,22 @@ namespace Nethermind.Facade.Test
             _timestamper.Add(TimeSpan.FromDays(123));
             BlockHeader header = Build.A.BlockHeader.WithNumber(10).TestObject;
             Transaction tx = new Transaction();
+            tx.Init = new byte[0];
             tx.GasLimit = Transaction.BaseTxGasCost;
-            
-            var gas = _blockchainBridge.EstimateGas(header, tx, default(CancellationToken));
+
+            var gas = _blockchainBridge.EstimateGas(header, tx, default);
             gas.GasSpent.Should().Be(Transaction.BaseTxGasCost);
 
             _transactionProcessor.Received().CallAndRestore(
                 tx,
-                Arg.Is<BlockHeader>(bh => bh.Number == 11 && bh.Timestamp == ((ITimestamper)_timestamper).EpochSeconds),
+                Arg.Is<BlockHeader>(bh => bh.Number == 11 && bh.Timestamp == ((ITimestamper) _timestamper).EpochSeconds),
                 Arg.Any<EstimateGasTracer>());
         }
 
         [Test]
-        public void Get_storage()
+        public void Call_uses_valid_block_number()
         {
+<<<<<<< HEAD
             /* all testing will be touching just a single storage cell */
             var storageCell = new StorageCell(TestItem.AddressA, 1);
             
@@ -197,6 +203,19 @@ namespace Nethermind.Facade.Test
             retrieved.Should().BeEquivalentTo(newValue);
             
             /* If it failed then it means that the blockchain bridge cached the previous call value */
+=======
+            _timestamper.UtcNow = DateTime.MinValue;
+            _timestamper.Add(TimeSpan.FromDays(123));
+            BlockHeader header = Build.A.BlockHeader.WithNumber(10).TestObject;
+            Transaction tx = new Transaction();
+            tx.GasLimit = Transaction.BaseTxGasCost;
+
+            _blockchainBridge.Call(header, tx);
+            _transactionProcessor.Received().CallAndRestore(
+                tx,
+                Arg.Is<BlockHeader>(bh => bh.Number == 10),
+                Arg.Any<ITxTracer>());
+>>>>>>> master
         }
     }
 }

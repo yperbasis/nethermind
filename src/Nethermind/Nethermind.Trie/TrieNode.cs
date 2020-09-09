@@ -364,7 +364,53 @@ namespace Nethermind.Trie
             return rlp;
         }
 
-        public Keccak? GetChildHash(int i)
+        private void UnresolveChild(int i)
+        {
+            TrieNode child = _data[i] as TrieNode;
+            if (child != null)
+            {
+                if (!child.IsDirty)
+                {
+                    _data[i] = new TrieNode(NodeType.Unknown, child.Keccak); // unresolved
+                }
+            }
+        }
+
+        private void ResolveChild(int i)
+        {
+            if (_rlpStream == null)
+            {
+                return;
+            }
+
+            InitData();
+            if (_data[i] == null)
+            {
+                SeekChild(i);
+                int prefix = _rlpStream.ReadByte();
+                switch (prefix)
+                {
+                    case 0:
+                    case 128:
+                        _data[i] = _nullNode;
+                        break;
+                    case 160:
+                        _rlpStream.Position--;
+                        _data[i] = new TrieNode(NodeType.Unknown, _rlpStream.DecodeKeccak());
+                        break;
+                    default:
+                    {
+                        _rlpStream.Position--;
+                        Span<byte> fullRlp = _rlpStream.PeekNextItem();
+                        TrieNode child = new TrieNode(NodeType.Unknown, fullRlp.ToArray());
+                        _data[i] = child;
+                        break;
+                    }
+                }
+            }
+        }
+
+        public Keccak GetChildHash(int i)
         {
             if (_rlpStream == null)
             {
