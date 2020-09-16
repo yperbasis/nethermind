@@ -1420,7 +1420,7 @@ namespace Nethermind.Evm
                         }
 
                         UInt256 res = (UInt256) _returnDataBuffer.Length;
-                        _logger.Warn($"RETURNDATASIZE of buffer {_returnDataBuffer?.ToHexString} is {res} at gas {gasAvailable} pc {programCounter}");
+                        _logger.Warn($"RETURNDATASIZE of buffer {_returnDataBuffer?.ToHexString()} is {res} at gas {gasAvailable} pc {programCounter}");
                         
                         stack.PushUInt256(in res);
                         break;
