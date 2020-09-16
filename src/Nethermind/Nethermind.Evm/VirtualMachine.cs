@@ -1420,6 +1420,8 @@ namespace Nethermind.Evm
                         }
 
                         UInt256 res = (UInt256) _returnDataBuffer.Length;
+                        _logger.Warn($"RETURNDATASIZE of buffer {_returnDataBuffer?.ToHexString} is {res} at gas {gasAvailable} pc {programCounter}");
+                        
                         stack.PushUInt256(in res);
                         break;
                     }
@@ -1434,9 +1436,8 @@ namespace Nethermind.Evm
                         stack.PopUInt256(out UInt256 dest);
                         stack.PopUInt256(out UInt256 src);
                         stack.PopUInt256(out UInt256 length);
-
-                        _logger.Error($"RETURNDATACOPY at gas {gasAvailable} pc {programCounter}");
-                        if (!UpdateGas(GasCostOf.VeryLow + GasCostOf.Memory * EvmPooledMemory.Div32CeilingWithLogging(length, _logger), ref gasAvailable))
+                        
+                        if (!UpdateGas(GasCostOf.VeryLow + GasCostOf.Memory * EvmPooledMemory.Div32Ceiling(length), ref gasAvailable))
                         {
                             EndInstructionTraceError(EvmExceptionType.OutOfGas);
                             return CallResult.OutOfGasException;
