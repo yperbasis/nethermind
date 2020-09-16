@@ -19,6 +19,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using Nethermind.Core.Extensions;
 using Nethermind.Int256;
+using Nethermind.Logging;
 
 namespace Nethermind.Evm
 {
@@ -218,6 +219,25 @@ namespace Nethermind.Evm
             }
             
             return (long)withCeiling;
+        }
+        
+        public static long Div32CeilingWithLogging(UInt256 length, ILogger logger)
+        {
+            UInt256 rem = length & 31;
+            logger.Warn($"rem = {length} & 31 | {rem}");
+            UInt256 result = length >> 5;
+            logger.Warn($"result = {length} >> 5 | {result}");
+            UInt256 withCeiling = result + (rem.IsZero ? 0UL : 1UL);
+            logger.Warn($"withCeiling = {result} + ({rem.IsZero} ? 0 : 1) | {withCeiling}");
+            if (withCeiling > MaxInt32)
+            {
+                Metrics.EvmExceptions++;
+                throw new OutOfGasException();
+            }
+
+            long retValue = (long)withCeiling;
+            logger.Warn($"return (long){withCeiling} | {retValue}");
+            return retValue;
         }
 
         private void UpdateSize(in UInt256 position, in UInt256 length, bool rentIfNeeded = true)

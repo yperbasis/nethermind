@@ -314,7 +314,6 @@ namespace Nethermind.Evm
             if (!isCall && notSystemTransaction)
             {
                 block.GasUsed += spentGas;
-                _logger.Error($"{transaction.Hash} {spentGas} {block.GasUsed}");
             }
 
             if (txTracer.IsTracingReceipt)
@@ -345,23 +344,15 @@ namespace Nethermind.Evm
         
         private long Refund(long gasLimit, long unspentGas, TransactionSubstate substate, Address sender, UInt256 gasPrice, IReleaseSpec spec)
         {
-            
             long spentGas = gasLimit;
             if (!substate.IsError)
             {
-                _logger.Warn($"Refund {gasLimit} {unspentGas} {substate.IsError}");
                 spentGas -= unspentGas;
                 long refund = substate.ShouldRevert ? 0 : RefundHelper.CalculateClaimableRefund(spentGas, substate.Refund + substate.DestroyList.Count * RefundOf.Destroy);
 
                 if (_logger.IsTrace) _logger.Trace("Refunding unused gas of " + unspentGas + " and refund of " + refund);
                 _stateProvider.AddToBalance(sender, (ulong) (unspentGas + refund) * gasPrice, spec);
                 spentGas -= refund;
-                
-                _logger.Warn($"After refund {gasLimit} {unspentGas} {substate.IsError} {spentGas}");
-            }
-            else
-            {
-                _logger.Error($"Refund {gasLimit} {unspentGas} {substate.IsError} {spentGas}");    
             }
 
             return spentGas;
