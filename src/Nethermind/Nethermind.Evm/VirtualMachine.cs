@@ -620,6 +620,21 @@ namespace Nethermind.Evm
                     }
                 }
             }
+            
+            void UpdateMemoryCost(in UInt256 position, in UInt256 length, ILogger logger)
+            {
+                long memoryCost = vmState.Memory.CalculateMemoryCost(in position, length);
+                if (memoryCost != 0L)
+                {
+                    logger.Warn($"Memory cost {memoryCost}");
+                    if (!UpdateGas(memoryCost, ref gasAvailable))
+                    {
+                        Metrics.EvmExceptions++;
+                        EndInstructionTraceError(EvmExceptionType.OutOfGas);
+                        throw new OutOfGasException();
+                    }
+                }
+            }
 
             if (previousCallResult != null)
             {
@@ -1440,7 +1455,8 @@ namespace Nethermind.Evm
                             return CallResult.OutOfGasException;
                         }
 
-                        UpdateMemoryCost(in dest, length);
+                        _logger.Error($"RETURNDATACOPY at gas {gasAvailable} pc {programCounter}");
+                        UpdateMemoryCost(in dest, length, _logger);
 
                         if (UInt256.AddOverflow(length, src, out UInt256 newLength) || newLength > _returnDataBuffer.Length)
                         {
