@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Numerics;
 using Nethermind.Int256;
 using NUnit.Framework;
 
@@ -56,7 +57,7 @@ namespace Nethermind.Evm.Test
         {
             EvmPooledMemory memory = new EvmPooledMemory();
             UInt256 dest = (UInt256) destination;
-            var result = memory.CalculateMemoryCost(in dest, (UInt256)memoryAllocation);
+            var result = memory.CalculateMemoryCost((Nethermind.Dirichlet.Numerics.UInt256)(BigInteger) dest, (Nethermind.Dirichlet.Numerics.UInt256)(BigInteger)(UInt256)memoryAllocation);
             TestContext.WriteLine($"Gas cost of allocating {memoryAllocation} starting from {dest}: {result}");
         }
     }

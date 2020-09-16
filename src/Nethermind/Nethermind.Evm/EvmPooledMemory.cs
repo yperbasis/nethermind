@@ -17,6 +17,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Numerics;
 using Nethermind.Core.Extensions;
 using Nethermind.Int256;
 
@@ -145,15 +146,15 @@ namespace Nethermind.Evm
             return buffer;
         }
 
-        public long CalculateMemoryCost(in UInt256 location, in UInt256 length)
+        public long CalculateMemoryCost(in Nethermind.Dirichlet.Numerics.UInt256 location, in Nethermind.Dirichlet.Numerics.UInt256 length)
         {
             if (length.IsZero)
             {
                 return 0L;
             }
 
-            CheckMemoryAccessViolation(in location, length);
-            UInt256 newSize = location + length;
+            // CheckMemoryAccessViolation(in location, length);
+            Nethermind.Dirichlet.Numerics.UInt256 newSize = location + length;
 
             if (newSize > Size)
             {
@@ -171,7 +172,7 @@ namespace Nethermind.Evm
                     return long.MaxValue;
                 }
                 
-                UpdateSize(in newSize, 0, false);
+                UpdateSize((UInt256)(BigInteger)newSize, 0, false);
 
                 return (long)cost;
             }
@@ -204,13 +205,13 @@ namespace Nethermind.Evm
             }
         }
 
-        private static UInt256 MaxInt32 = (UInt256)int.MaxValue;
+        private static Nethermind.Dirichlet.Numerics.UInt256 MaxInt32 = (Nethermind.Dirichlet.Numerics.UInt256)int.MaxValue;
         
-        public static long Div32Ceiling(UInt256 length)
+        public static long Div32Ceiling(Nethermind.Dirichlet.Numerics.UInt256 length)
         {
-            UInt256 rem = length & 31;
-            UInt256 result = length >> 5;
-            UInt256 withCeiling = result + (rem.IsZero ? 0UL : 1UL);
+            Nethermind.Dirichlet.Numerics.UInt256 rem = length & 31;
+            Nethermind.Dirichlet.Numerics.UInt256 result = length >> 5;
+            Nethermind.Dirichlet.Numerics.UInt256 withCeiling = result + (rem.IsZero ? 0UL : 1UL);
             if (withCeiling > MaxInt32)
             {
                 Metrics.EvmExceptions++;

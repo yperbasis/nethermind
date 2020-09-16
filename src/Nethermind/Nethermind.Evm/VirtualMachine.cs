@@ -609,7 +609,7 @@ namespace Nethermind.Evm
 
             void UpdateMemoryCost(in UInt256 position, in UInt256 length)
             {
-                long memoryCost = vmState.Memory.CalculateMemoryCost(in position, length);
+                long memoryCost = vmState.Memory.CalculateMemoryCost((Nethermind.Dirichlet.Numerics.UInt256)(BigInteger)position, (Nethermind.Dirichlet.Numerics.UInt256)(BigInteger)length);
                 if (memoryCost != 0L)
                 {
                     if (!UpdateGas(memoryCost, ref gasAvailable))
@@ -1208,7 +1208,7 @@ namespace Nethermind.Evm
                     {
                         stack.PopUInt256(out UInt256 memSrc);
                         stack.PopUInt256(out UInt256 memLength);
-                        if (!UpdateGas(GasCostOf.Sha3 + GasCostOf.Sha3Word * EvmPooledMemory.Div32Ceiling(memLength),
+                        if (!UpdateGas(GasCostOf.Sha3 + GasCostOf.Sha3Word * EvmPooledMemory.Div32Ceiling((Nethermind.Dirichlet.Numerics.UInt256)(BigInteger)memLength),
                             ref gasAvailable))
                         {
                             EndInstructionTraceError(EvmExceptionType.OutOfGas);
@@ -1314,7 +1314,7 @@ namespace Nethermind.Evm
                         stack.PopUInt256(out UInt256 dest);
                         stack.PopUInt256(out UInt256 src);
                         stack.PopUInt256(out UInt256 length);
-                        if (!UpdateGas(GasCostOf.VeryLow + GasCostOf.Memory * EvmPooledMemory.Div32Ceiling(length),
+                        if (!UpdateGas(GasCostOf.VeryLow + GasCostOf.Memory * EvmPooledMemory.Div32Ceiling((Nethermind.Dirichlet.Numerics.UInt256)(BigInteger)length),
                             ref gasAvailable))
                         {
                             EndInstructionTraceError(EvmExceptionType.OutOfGas);
@@ -1345,7 +1345,7 @@ namespace Nethermind.Evm
                         stack.PopUInt256(out UInt256 dest);
                         stack.PopUInt256(out UInt256 src);
                         stack.PopUInt256(out UInt256 length);
-                        if (!UpdateGas(GasCostOf.VeryLow + GasCostOf.Memory * EvmPooledMemory.Div32Ceiling(length), ref gasAvailable))
+                        if (!UpdateGas(GasCostOf.VeryLow + GasCostOf.Memory * EvmPooledMemory.Div32Ceiling((Nethermind.Dirichlet.Numerics.UInt256)(BigInteger)length), ref gasAvailable))
                         {
                             EndInstructionTraceError(EvmExceptionType.OutOfGas);
                             return CallResult.OutOfGasException;
@@ -1389,7 +1389,7 @@ namespace Nethermind.Evm
                         stack.PopUInt256(out UInt256 dest);
                         stack.PopUInt256(out UInt256 src);
                         stack.PopUInt256(out UInt256 length);
-                        if (!UpdateGas((spec.IsEip150Enabled ? GasCostOf.ExtCodeEip150 : GasCostOf.ExtCode) + GasCostOf.Memory * EvmPooledMemory.Div32Ceiling(length),
+                        if (!UpdateGas((spec.IsEip150Enabled ? GasCostOf.ExtCodeEip150 : GasCostOf.ExtCode) + GasCostOf.Memory * EvmPooledMemory.Div32Ceiling((Nethermind.Dirichlet.Numerics.UInt256)(BigInteger)length),
                             ref gasAvailable))
                         {
                             EndInstructionTraceError(EvmExceptionType.OutOfGas);
@@ -1432,7 +1432,7 @@ namespace Nethermind.Evm
                         stack.PopUInt256(out UInt256 dest);
                         stack.PopUInt256(out UInt256 src);
                         stack.PopUInt256(out UInt256 length);
-                        if (!UpdateGas(GasCostOf.VeryLow + GasCostOf.Memory * EvmPooledMemory.Div32Ceiling(length), ref gasAvailable))
+                        if (!UpdateGas(GasCostOf.VeryLow + GasCostOf.Memory * EvmPooledMemory.Div32Ceiling((Nethermind.Dirichlet.Numerics.UInt256)(BigInteger)length), ref gasAvailable))
                         {
                             EndInstructionTraceError(EvmExceptionType.OutOfGas);
                             return CallResult.OutOfGasException;
@@ -2074,7 +2074,7 @@ namespace Nethermind.Evm
                             salt = stack.PopBytes();
                         }
 
-                        long gasCost = GasCostOf.Create + (instruction == Instruction.CREATE2 ? GasCostOf.Sha3Word * EvmPooledMemory.Div32Ceiling(initCodeLength) : 0);
+                        long gasCost = GasCostOf.Create + (instruction == Instruction.CREATE2 ? GasCostOf.Sha3Word * EvmPooledMemory.Div32Ceiling((Nethermind.Dirichlet.Numerics.UInt256)(BigInteger)initCodeLength) : 0);
                         if (!UpdateGas(gasCost, ref gasAvailable))
                         {
                             EndInstructionTraceError(EvmExceptionType.OutOfGas);

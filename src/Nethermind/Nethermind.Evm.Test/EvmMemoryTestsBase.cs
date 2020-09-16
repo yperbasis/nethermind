@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System.Collections.Generic;
+using System.Numerics;
 using Nethermind.Int256;
 using NUnit.Framework;
 
@@ -79,8 +80,8 @@ namespace Nethermind.Evm.Test
         {
             IEvmMemory memory = CreateEvmMemory();
             UInt256 dest = UInt256.One;
-            long cost1 = memory.CalculateMemoryCost(in dest, UInt256.One);
-            long cost2 = memory.CalculateMemoryCost(in dest, UInt256.One);
+            long cost1 = memory.CalculateMemoryCost((Nethermind.Dirichlet.Numerics.UInt256)(BigInteger) dest, (Nethermind.Dirichlet.Numerics.UInt256)(BigInteger)UInt256.One);
+            long cost2 = memory.CalculateMemoryCost((Nethermind.Dirichlet.Numerics.UInt256)(BigInteger) dest, (Nethermind.Dirichlet.Numerics.UInt256)(BigInteger)UInt256.One);
             Assert.AreEqual(0L, cost2);
         }
         
@@ -89,7 +90,7 @@ namespace Nethermind.Evm.Test
         {
             IEvmMemory memory = CreateEvmMemory();
             UInt256 dest = long.MaxValue;
-            long cost = memory.CalculateMemoryCost(in dest, UInt256.Zero);
+            long cost = memory.CalculateMemoryCost((Nethermind.Dirichlet.Numerics.UInt256)(BigInteger) dest, (Nethermind.Dirichlet.Numerics.UInt256)(BigInteger)UInt256.Zero);
             Assert.AreEqual(0L, cost);
         }
     }
