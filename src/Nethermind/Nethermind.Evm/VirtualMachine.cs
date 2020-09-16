@@ -2288,6 +2288,7 @@ namespace Nethermind.Evm
 
                         if (env.CallDepth >= MaxCallDepth || !transferValue.IsZero && _state.GetBalance(env.ExecutingAccount) < transferValue)
                         {
+                            _logger.Error("NOT ENOUGH BALANCE AREA");
                             _returnDataBuffer = new byte[0];
                             stack.PushZero();
 
