@@ -314,6 +314,7 @@ namespace Nethermind.Evm
             if (!isCall && notSystemTransaction)
             {
                 block.GasUsed += spentGas;
+                _logger.Error($"{transaction.Hash} {spentGas} {block.GasUsed}");
             }
 
             if (txTracer.IsTracingReceipt)
