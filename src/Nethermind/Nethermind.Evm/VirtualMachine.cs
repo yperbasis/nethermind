@@ -439,6 +439,8 @@ namespace Nethermind.Evm
 
         private CallResult ExecutePrecompile(EvmState state, IReleaseSpec spec)
         {
+            _logger.Warn($"EXECUTING PRECOMPILE {state.Env.CodeInfo.Precompile.GetType().Name}");
+            
             byte[] callData = state.Env.InputData;
             UInt256 transferValue = state.Env.TransferValue;
             long gasAvailable = state.GasAvailable;
