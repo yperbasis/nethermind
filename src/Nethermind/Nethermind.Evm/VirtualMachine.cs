@@ -2052,6 +2052,8 @@ namespace Nethermind.Evm
                     case Instruction.CREATE:
                     case Instruction.CREATE2:
                     {
+                        _logger.Error("CREATE LIKE INSTRUCTION");
+                        
                         if (!spec.IsEip1014Enabled && instruction == Instruction.CREATE2)
                         {
                             EndInstructionTraceError(EvmExceptionType.BadInstruction);
@@ -2188,6 +2190,8 @@ namespace Nethermind.Evm
                     case Instruction.DELEGATECALL:
                     case Instruction.STATICCALL:
                     {
+                        _logger.Error("CALL LIKE INSTRUCTION");
+                        
                         Metrics.Calls++;
 
                         if (instruction == Instruction.DELEGATECALL && !spec.IsEip7Enabled ||
