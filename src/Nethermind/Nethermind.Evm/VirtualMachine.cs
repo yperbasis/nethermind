@@ -2103,6 +2103,7 @@ namespace Nethermind.Evm
                         UInt256 balance = _state.GetBalance(env.ExecutingAccount);
                         if (value > balance)
                         {
+                            _logger.Warn("VALUE > BALANCE");
                             stack.PushZero();
                             break;
                         }
@@ -2131,6 +2132,7 @@ namespace Nethermind.Evm
                         {
                             /* we get the snapshot before this as there is a possibility with that we will touch an empty account and remove it even if the REVERT operation follows */
                             if (isTrace) _logger.Trace($"Contract collision at {contractAddress}");
+                            _logger.Warn("CONTRACT COLLISION");
                             stack.PushZero();
                             break;
                         }
