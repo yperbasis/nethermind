@@ -1433,6 +1433,7 @@ namespace Nethermind.Evm
                         stack.PopUInt256(out UInt256 src);
                         stack.PopUInt256(out UInt256 length);
 
+                        _logger.Error($"RETURNDATACOPY at gas {gasAvailable} pc {programCounter}");
                         if (!UpdateGas(GasCostOf.VeryLow + GasCostOf.Memory * EvmPooledMemory.Div32CeilingWithLogging(length, _logger), ref gasAvailable))
                         {
                             EndInstructionTraceError(EvmExceptionType.OutOfGas);
