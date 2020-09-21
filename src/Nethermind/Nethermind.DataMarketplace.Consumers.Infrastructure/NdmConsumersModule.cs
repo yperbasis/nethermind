@@ -225,8 +225,8 @@ namespace Nethermind.DataMarketplace.Consumers.Infrastructure
             
 
             services.RequiredServices.RpcModuleProvider.Register(
-                new SingletonModulePool<INdmRpcConsumerModule>(new NdmRpcConsumerModule(consumerService,
-                    depositReportService, jsonRpcNdmConsumerChannel, ethRequestService, ethPriceService,
+                new SingletonModulePool<INdmRpcConsumerModule>(new NdmRpcConsumerModule( blockchainBridge,
+                    consumerService, depositReportService, jsonRpcNdmConsumerChannel, ethRequestService, ethPriceService,
                     gasPriceService, consumerTransactionsService, gasLimitService, wallet, timestamper), true));
 
             if (!backgroundServicesDisabled)

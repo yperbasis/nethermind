@@ -43,6 +43,7 @@ namespace Nethermind.DataMarketplace.Consumers.Infrastructure.Rpc
 {
     public class NdmRpcConsumerModule : INdmRpcConsumerModule
     {
+        private readonly INdmBlockchainBridge _blockchainBridge;
         private readonly IConsumerService _consumerService;
         private readonly IDepositReportService _depositReportService;
         private readonly IJsonRpcNdmConsumerChannel _jsonRpcNdmConsumerChannel;
@@ -55,6 +56,7 @@ namespace Nethermind.DataMarketplace.Consumers.Infrastructure.Rpc
         private readonly ITimestamper _timestamper;
 
         public NdmRpcConsumerModule(
+            INdmBlockchainBridge blockchainBridge,
             IConsumerService consumerService,
             IDepositReportService depositReportService,
             IJsonRpcNdmConsumerChannel jsonRpcNdmConsumerChannel,
@@ -66,6 +68,7 @@ namespace Nethermind.DataMarketplace.Consumers.Infrastructure.Rpc
             IWallet personalBridge,
             ITimestamper timestamper)
         {
+            _blockchainBridge = blockchainBridge ?? throw new ArgumentNullException(nameof(blockchainBridge));
             _consumerService = consumerService ?? throw new ArgumentNullException(nameof(consumerService));
             _depositReportService = depositReportService ?? throw new ArgumentNullException(nameof(depositReportService));
             _jsonRpcNdmConsumerChannel = jsonRpcNdmConsumerChannel ?? throw new ArgumentNullException(nameof(jsonRpcNdmConsumerChannel));
@@ -76,6 +79,11 @@ namespace Nethermind.DataMarketplace.Consumers.Infrastructure.Rpc
             _gasLimitsService = gasLimitsService ?? throw new ArgumentNullException(nameof(gasLimitsService));
             _wallet = personalBridge ?? throw new ArgumentNullException(nameof(personalBridge));
             _timestamper = timestamper ?? throw new ArgumentNullException(nameof(timestamper));
+        }
+
+        public async Task<ResultWrapper<long>> ndm_blockNumber()
+        {
+            return ResultWrapper<long>.Success(await _blockchainBridge.GetLatestBlockNumberAsync());
         }
 
         public ResultWrapper<AccountForRpc[]> ndm_listAccounts()

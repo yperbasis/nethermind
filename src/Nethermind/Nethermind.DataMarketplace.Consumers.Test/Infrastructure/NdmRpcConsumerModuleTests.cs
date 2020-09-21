@@ -65,6 +65,7 @@ namespace Nethermind.DataMarketplace.Consumers.Test.Infrastructure
         private ITimestamper _timestamper;
         private const uint DepositExpiryTime = 1546393600;
         private static readonly DateTime Date = new DateTime(2019, 1, 2); //1546383600
+        private INdmBlockchainBridge _blockChainBridge;
 
         [SetUp]
         public void Setup()
@@ -77,9 +78,10 @@ namespace Nethermind.DataMarketplace.Consumers.Test.Infrastructure
             _gasPriceService = Substitute.For<IGasPriceService>();
             _gasLimitsService = Substitute.For<IConsumerGasLimitsService>();
             _consumerTransactionsService = Substitute.For<IConsumerTransactionsService>();
+            _blockChainBridge = Substitute.For<INdmBlockchainBridge>();
             _wallet = Substitute.For<IWallet>();
             _timestamper = new Timestamper(Date);
-            _rpc = new NdmRpcConsumerModule(_consumerService, _depositReportService, _jsonRpcNdmConsumerChannel,
+            _rpc = new NdmRpcConsumerModule(_blockChainBridge, _consumerService, _depositReportService, _jsonRpcNdmConsumerChannel,
                 _ethRequestService, _ethPriceService, _gasPriceService, _consumerTransactionsService, _gasLimitsService,
                 _wallet, _timestamper);
         }
@@ -107,6 +109,7 @@ namespace Nethermind.DataMarketplace.Consumers.Test.Infrastructure
         public void given_null_wallet_list_accounts_should_return_no_accounts()
         {
             _rpc = new NdmRpcConsumerModule(
+                _blockChainBridge,
                 _consumerService,
                 _depositReportService,
                 _jsonRpcNdmConsumerChannel,

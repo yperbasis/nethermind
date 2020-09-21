@@ -32,6 +32,7 @@ namespace Nethermind.DataMarketplace.Consumers.Infrastructure.Rpc
     [RpcModule(ModuleType.NdmConsumer)]
     public interface INdmRpcConsumerModule : IModule
     {
+        Task<ResultWrapper<long>> ndm_blockNumber();
         ResultWrapper<AccountForRpc[]> ndm_listAccounts();
         ResultWrapper<Address> ndm_getConsumerAddress();
         Task<ResultWrapper<Address>> ndm_changeConsumerAddress(Address address);
