@@ -37,7 +37,6 @@ namespace Nethermind.Network
 
         public SessionMonitor(INetworkConfig config, ILogManager logManager)
         {
-            
             _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             _networkConfig = config ?? throw new ArgumentNullException(nameof(config));
 
@@ -74,15 +73,14 @@ namespace Nethermind.Network
 
         private void SendPingMessages()
         {
-            Task task = Task.Run(SendPingMessagesAsync).ContinueWith(x =>
+            try
             {
-                if (x.IsFaulted && _logger.IsError)
-                {
-                    if (_logger.IsDebug) _logger.Error($"DEBUG/ERROR Error during send ping messages: {x.Exception}");
-                }
-            });
-
-            task.Wait();
+                SendPingMessagesAsync().Wait();
+            }
+            catch (Exception x)
+            {
+                if (_logger.IsDebug) _logger.Error($"DEBUG/ERROR Error during send ping messages: {x}");
+            }
         }
 
         private async Task SendPingMessagesAsync()
@@ -104,7 +102,7 @@ namespace Nethermind.Network
                 if (_logger.IsTrace) _logger.Trace($"Sent ping messages to {tasks.Length} peers. Received {successes} pongs.");
                 if (failures > tasks.Length / 3)
                 {
-                    decimal percentage = (decimal)failures/(successes + failures);
+                    decimal percentage = (decimal) failures / (successes + failures);
                     if (_logger.IsInfo) _logger.Info($"{percentage:P0} of nodes did not respond to a Ping message - {failures}/{successes + failures}");
                 }
 
@@ -142,7 +140,7 @@ namespace Nethermind.Network
 
                     return true;
                 }
-                
+
                 session.LastPongUtc = DateTime.UtcNow;
                 return true;
             }

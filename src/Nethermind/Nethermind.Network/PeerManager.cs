@@ -51,7 +51,7 @@ namespace Nethermind.Network
         private readonly PeerComparer _peerComparer;
         private readonly PeerEqualityComparer _peerEqualityComparer;
         private readonly LocalPeerPool _peerPool;
-        
+
         private int _pending;
         private int _tryCount;
         private int _newActiveNodes;
@@ -60,15 +60,15 @@ namespace Nethermind.Network
 
         private System.Timers.Timer _peerPersistenceTimer;
         private System.Timers.Timer _peerUpdateTimer;
-        
+
         private bool _isStarted;
         private int _logCounter = 1;
         private Task _storageCommitTask;
         private Task _peerUpdateLoopTask;
-        
+
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private static int _parallelism = Environment.ProcessorCount;
-        
+
         private readonly ConcurrentDictionary<PublicKey, Peer> _activePeers = new ConcurrentDictionary<PublicKey, Peer>();
 
         public PeerManager(
@@ -125,10 +125,10 @@ namespace Nethermind.Network
         {
             _peerPool.GetOrAdd(node, false);
         }
-        
+
         public bool RemovePeer(NetworkNode node)
         {
-            bool removed =_peerPool.TryRemove(node.NodeId, out Peer peer);
+            bool removed = _peerPool.TryRemove(node.NodeId, out Peer peer);
             if (removed)
             {
                 peer.IsAwaitingConnection = false;
@@ -265,7 +265,7 @@ namespace Nethermind.Network
                         break;
                     }
 
-                    int currentPosition = 0;                    
+                    int currentPosition = 0;
                     while (true)
                     {
                         if (_cancellationTokenSource.IsCancellationRequested)
@@ -278,7 +278,7 @@ namespace Nethermind.Network
                         {
                             break;
                         }
-                        
+
                         ActionBlock<Peer> workerBlock = new ActionBlock<Peer>(
                             SetupPeerConnection,
                             new ExecutionDataflowBlockOptions
@@ -368,7 +368,7 @@ namespace Nethermind.Network
             Interlocked.Increment(ref _pending);
             bool result = await InitializePeerConnection(peer);
             // for some time we will have a peer in active that has no session assigned - analyze this?
-            
+
             Interlocked.Decrement(ref _pending);
             if (_logger.IsTrace) _logger.Trace($"Connecting to {_stats.GetCurrentReputation(peer.Node)} rep node - {result}, ACTIVE: {_activePeers.Count}, CAND: {_peerPool.CandidatePeerCount}");
 
@@ -414,7 +414,7 @@ namespace Nethermind.Network
 
         private void DeactivatePeerIfDisconnected(Peer peer, string reason)
         {
-            if(_logger.IsTrace) _logger.Trace($"DEACTIVATING IF DISCONNECTED {peer}");
+            if (_logger.IsTrace) _logger.Trace($"DEACTIVATING IF DISCONNECTED {peer}");
             if (!IsConnected(peer) && !peer.IsAwaitingConnection)
             {
                 // dropping references to sessions so they can be garbage collected
@@ -439,14 +439,14 @@ namespace Nethermind.Network
 
             return result;
         }
-        
+
         private void SelectAndRankCandidates()
         {
             if (AvailableActivePeersCount <= 0)
             {
                 return;
             }
-            
+
             _currentSelection.PreCandidates.Clear();
             _currentSelection.Candidates.Clear();
             _currentSelection.Incompatible.Clear();
@@ -460,10 +460,10 @@ namespace Nethermind.Network
             {
                 // node can be connected but a candidate (for some short times)
                 // [describe when]
-                
+
                 // node can be active but not connected (for some short times between sending connection request and
                 // establishing a session)
-                if(peer.IsAwaitingConnection || IsConnected(peer) || _activePeers.TryGetValue(peer.Node.Id, out _))
+                if (peer.IsAwaitingConnection || IsConnected(peer) || _activePeers.TryGetValue(peer.Node.Id, out _))
                 {
                     continue;
                 }
@@ -553,7 +553,7 @@ namespace Nethermind.Network
         {
             try
             {
-                if(_logger.IsTrace) _logger.Trace($"CONNECTING TO {candidate}");
+                if (_logger.IsTrace) _logger.Trace($"CONNECTING TO {candidate}");
                 candidate.IsAwaitingConnection = true;
                 await _rlpxPeer.ConnectAsync(candidate.Node);
                 return true;
@@ -573,7 +573,7 @@ namespace Nethermind.Network
         private void ProcessOutgoingConnection(ISession session)
         {
             PublicKey id = session.RemoteNodeId;
-            if(_logger.IsTrace) _logger.Trace($"PROCESS OUTGOING {id}");
+            if (_logger.IsTrace) _logger.Trace($"PROCESS OUTGOING {id}");
 
             if (!_activePeers.TryGetValue(id, out Peer peer))
             {
@@ -588,7 +588,7 @@ namespace Nethermind.Network
 
         private ConnectionDirection ChooseDirectionToKeep(PublicKey remoteNode)
         {
-            if(_logger.IsTrace) _logger.Trace($"CHOOSING DIRECTION {remoteNode}");
+            if (_logger.IsTrace) _logger.Trace($"CHOOSING DIRECTION {remoteNode}");
             byte[] localKey = _rlpxPeer.LocalNodeId.Bytes;
             byte[] remoteKey = remoteNode.Bytes;
             for (int i = 0; i < remoteNode.Bytes.Length; i++)
@@ -609,7 +609,7 @@ namespace Nethermind.Network
 
         private void ProcessIncomingConnection(ISession session)
         {
-            if(_logger.IsTrace) _logger.Trace($"INCOMING {session}");
+            if (_logger.IsTrace) _logger.Trace($"INCOMING {session}");
             // if we have already initiated connection before
             if (_activePeers.TryGetValue(session.RemoteNodeId, out Peer existingActivePeer))
             {
@@ -645,7 +645,7 @@ namespace Nethermind.Network
 
         private void AddSession(ISession session, Peer peer)
         {
-            if(_logger.IsTrace) _logger.Trace($"ADDING {session} {peer}");
+            if (_logger.IsTrace) _logger.Trace($"ADDING {session} {peer}");
             bool newSessionIsIn = session.Direction == ConnectionDirection.In;
             bool newSessionIsOut = !newSessionIsIn;
             bool peerIsDisconnected = !IsConnected(peer);
@@ -798,7 +798,7 @@ namespace Nethermind.Network
             }
 
             Peer newPeer = _peerPool.Replace(session);
-            
+
             RemoveActivePeer(session.ObsoleteRemoteNodeId, $"handshake difference old: {session.ObsoleteRemoteNodeId}, new: {session.RemoteNodeId}");
             AddActivePeer(session.RemoteNodeId, newPeer, $"handshake difference old: {session.ObsoleteRemoteNodeId}, new: {session.RemoteNodeId}");
             if (_logger.IsTrace) _logger.Trace($"RemoteNodeId was updated due to handshake difference, old: {session.ObsoleteRemoteNodeId}, new: {session.RemoteNodeId}, new peer not present in candidate collection");
@@ -806,7 +806,7 @@ namespace Nethermind.Network
 
         private int _maxPeerPoolLength;
         private int _lastPeerPoolLength;
-        
+
         private void OnNodeDiscovered(object sender, NodeEventArgs nodeEventArgs)
         {
             if (_logger.IsTrace) _logger.Trace($"|NetworkTrace| {nodeEventArgs.Node:e} node discovered");
@@ -820,7 +820,7 @@ namespace Nethermind.Network
                 if (_lastPeerPoolLength > _maxPeerPoolLength + 100)
                 {
                     _maxPeerPoolLength = _lastPeerPoolLength;
-                    if(_logger.IsDebug) _logger.Debug($"Peer pool size is: {_lastPeerPoolLength}");
+                    if (_logger.IsDebug) _logger.Debug($"Peer pool size is: {_lastPeerPoolLength}");
                 }
             }
 
@@ -859,7 +859,7 @@ namespace Nethermind.Network
             {
                 AutoReset = false
             };
-            
+
             _peerPersistenceTimer.Elapsed += (sender, e) =>
             {
                 try
@@ -908,21 +908,8 @@ namespace Nethermind.Network
                     return;
                 }
 
-                _storageCommitTask = Task.Run(() =>
-                {
-                    _peerStorage.Commit();
-                    _peerStorage.StartBatch();
-                });
-
-
-                Task task = _storageCommitTask.ContinueWith(x =>
-                {
-                    if (x.IsFaulted && _logger.IsError)
-                    {
-                        _logger.Error($"Error during peer storage commit: {x.Exception}");
-                    }
-                });
-                task.Wait();
+                _peerStorage.Commit();
+                _peerStorage.StartBatch();
                 _storageCommitTask = null;
             }
             catch (Exception ex)
@@ -941,7 +928,7 @@ namespace Nethermind.Network
                 {
                     continue;
                 }
-                
+
                 Peer peer = _peerPool.GetOrAdd(node, false);
                 long newRep = _stats.GetNewPersistedReputation(peer.Node);
                 if (newRep != node.Reputation)
@@ -999,8 +986,8 @@ namespace Nethermind.Network
             {
                 Peer[] otherToRemove = otherCandidates.Take(remainingCount).ToArray();
                 nodesToRemove = nodesToRemove.Length == 0
-                    ? otherToRemove :
-                    nodesToRemove.Concat(otherToRemove).ToArray();
+                    ? otherToRemove
+                    : nodesToRemove.Concat(otherToRemove).ToArray();
             }
 
             if (nodesToRemove.Length > 0)
