@@ -229,5 +229,14 @@ namespace Nethermind.JsonRpc.Test.Modules
             RpcTest.TestSerializedRequest(module, "debug_resetHead", TestItem.KeccakA.ToString());
             debugBridge.Received().UpdateHeadBlock(TestItem.KeccakA);
         }
+        
+        [Test]
+        public void Get_config()
+        {
+            debugBridge.UpdateHeadBlock(Arg.Any<Keccak>());
+            IDebugModule module = new DebugModule(LimboLogs.Instance, debugBridge, jsonRpcConfig);
+            RpcTest.TestSerializedRequest(module, "debug_getConfigValue", "JsonRpc", "Enabled");
+            debugBridge.Received().GetConfigValue("JsonRpc", "Enabled");
+        }
     }
 }
