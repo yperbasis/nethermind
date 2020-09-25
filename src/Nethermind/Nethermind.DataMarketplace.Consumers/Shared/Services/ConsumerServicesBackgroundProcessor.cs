@@ -15,22 +15,16 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using Nethermind.Blockchain;
 using Nethermind.Blockchain.Processing;
-using Nethermind.Core;
 using Nethermind.Core.Crypto;
-using Nethermind.DataMarketplace.Consumers.Deposits;
 using Nethermind.DataMarketplace.Consumers.Deposits.Domain;
 using Nethermind.DataMarketplace.Consumers.Deposits.Queries;
 using Nethermind.DataMarketplace.Consumers.Deposits.Repositories;
 using Nethermind.DataMarketplace.Consumers.Notifiers;
-using Nethermind.DataMarketplace.Consumers.Refunds;
-using Nethermind.DataMarketplace.Consumers.Shared.Services.Models;
+using Nethermind.DataMarketplace.Consumers.Shared.Background;
 using Nethermind.DataMarketplace.Core.Domain;
 using Nethermind.DataMarketplace.Core.Services;
 using Nethermind.Facade.Proxy;
@@ -46,10 +40,9 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Services
         private readonly IConsumerNotifier _consumerNotifier;
         private readonly bool _useDepositTimer;
         private readonly IEthJsonRpcClientProxy? _ethJsonRpcClientProxy;
-        private readonly IAccountService _accountService;
-        private readonly IRefundClaimant _refundClaimant;
-        private readonly IDepositConfirmationService _depositConfirmationService;
         private readonly IEthPriceService _ethPriceService;
+        private readonly IBackgroundDepositService _backgroundDepositService;
+        private readonly IBackgroundRefundService _backgroundRefundService;
         private readonly IGasPriceService _gasPriceService;
         private readonly IBlockProcessor _blockProcessor;
         private readonly ILogger _logger;
@@ -60,10 +53,9 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Services
         private long _currentBlockNumber;
 
         public ConsumerServicesBackgroundProcessor(
-            IAccountService accountService,
-            IRefundClaimant refundClaimant,
-            IDepositConfirmationService depositConfirmationService,
             IEthPriceService ethPriceService,
+            IBackgroundDepositService backgroundDepositService,
+            IBackgroundRefundService backgroundRefundService,
             IGasPriceService gasPriceService,
             IBlockProcessor blockProcessor,
             IDepositDetailsRepository depositRepository,
@@ -73,10 +65,9 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Services
             IEthJsonRpcClientProxy? ethJsonRpcClientProxy = null,
             uint depositTimer = 10000)
         {
-            _accountService = accountService;
-            _refundClaimant = refundClaimant;
-            _depositConfirmationService = depositConfirmationService;
             _ethPriceService = ethPriceService;
+            _backgroundDepositService = backgroundDepositService;
+            _backgroundRefundService = backgroundRefundService;
             _gasPriceService = gasPriceService;
             _blockProcessor = blockProcessor;
             _depositRepository = depositRepository;
@@ -161,7 +152,7 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Services
                 Results = int.MaxValue
             });
 
-            await TryConfirmDepositsAsync(depositsToConfirm.Items);
+            await _backgroundDepositService.TryConfirmDepositsAsync(depositsToConfirm.Items);
             PagedResult<DepositDetails> depositsToRefund = await _depositRepository.BrowseAsync(new GetDeposits
             {
                 EligibleToRefund = true,
@@ -169,7 +160,7 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Services
                 Results = int.MaxValue
             });
 
-            await TryClaimRefundsAsync(depositsToRefund.Items);
+            await _backgroundRefundService.TryClaimRefundsAsync(depositsToRefund.Items);
             await _ethPriceService.UpdateAsync();
             await _consumerNotifier.SendEthUsdPriceAsync(_ethPriceService.UsdPrice, _ethPriceService.UpdatedAt);
             await _gasPriceService.UpdateAsync();
@@ -177,49 +168,6 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Services
             if (_gasPriceService.Types != null)
             {
                 await _consumerNotifier.SendGasPriceAsync(_gasPriceService.Types);
-            }
-        }
-
-        private async Task TryConfirmDepositsAsync(IReadOnlyList<DepositDetails> deposits)
-        {
-            if (!deposits.Any())
-            {
-                if (_logger.IsInfo) _logger.Info("No deposits to be verified have been found.");
-                return;
-            }
-
-            foreach (DepositDetails deposit in deposits)
-            {
-                await _depositConfirmationService.TryConfirmAsync(deposit);
-            }
-        }
-
-        private async Task TryClaimRefundsAsync(IReadOnlyList<DepositDetails> deposits)
-        {
-            if (!deposits.Any())
-            {
-                if (_logger.IsInfo) _logger.Info("No claimable refunds have been found.");
-                return;
-            }
-
-            if (_logger.IsInfo) _logger.Info($"Found {deposits.Count} claimable refunds.");
-
-            foreach (DepositDetails deposit in deposits)
-            {
-                Address refundTo = _accountService.GetAddress();
-                RefundClaimStatus earlyRefundClaimStatus = await _refundClaimant.TryClaimEarlyRefundAsync(deposit, refundTo);
-                if (earlyRefundClaimStatus.IsConfirmed)
-                {
-                    await _consumerNotifier.SendClaimedEarlyRefundAsync(deposit.Id, deposit.DataAsset.Name,
-                        earlyRefundClaimStatus.TransactionHash!);
-                }
-
-                RefundClaimStatus refundClaimStatus = await _refundClaimant.TryClaimRefundAsync(deposit, refundTo);
-                if (refundClaimStatus.IsConfirmed)
-                {
-                    await _consumerNotifier.SendClaimedRefundAsync(deposit.Id, deposit.DataAsset.Name,
-                        refundClaimStatus.TransactionHash!);
-                }
             }
         }
 

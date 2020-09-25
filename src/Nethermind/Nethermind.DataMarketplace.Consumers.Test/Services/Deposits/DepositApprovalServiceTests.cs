@@ -31,7 +31,6 @@ using Nethermind.DataMarketplace.Consumers.Providers.Services;
 using Nethermind.DataMarketplace.Core.Domain;
 using Nethermind.DataMarketplace.Core.Services;
 using Nethermind.Logging;
-using Nethermind.Serialization.Rlp;
 using NSubstitute;
 using NUnit.Framework;
 

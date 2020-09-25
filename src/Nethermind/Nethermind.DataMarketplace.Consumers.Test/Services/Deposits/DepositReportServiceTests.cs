@@ -18,14 +18,12 @@ using FluentAssertions;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Test.Builders;
-using Nethermind.DataMarketplace.Consumers.Deposits;
 using Nethermind.DataMarketplace.Consumers.Deposits.Domain;
 using Nethermind.DataMarketplace.Consumers.Deposits.Queries;
 using Nethermind.DataMarketplace.Consumers.Deposits.Services;
 using Nethermind.DataMarketplace.Consumers.Infrastructure.Persistence.InMemory.Databases;
 using Nethermind.DataMarketplace.Consumers.Infrastructure.Persistence.InMemory.Repositories;
 using Nethermind.DataMarketplace.Core.Domain;
-using Nethermind.Wallet;
 using NUnit.Framework;
 
 namespace Nethermind.DataMarketplace.Consumers.Test.Services.Deposits

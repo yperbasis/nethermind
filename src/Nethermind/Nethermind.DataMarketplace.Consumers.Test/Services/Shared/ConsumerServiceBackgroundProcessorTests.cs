@@ -14,20 +14,17 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
-using Nethermind.Blockchain;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Test.Builders;
-using Nethermind.DataMarketplace.Consumers.Deposits;
 using Nethermind.DataMarketplace.Consumers.Deposits.Domain;
 using Nethermind.DataMarketplace.Consumers.Deposits.Repositories;
 using Nethermind.DataMarketplace.Consumers.Infrastructure.Persistence.InMemory.Databases;
 using Nethermind.DataMarketplace.Consumers.Infrastructure.Persistence.InMemory.Repositories;
 using Nethermind.DataMarketplace.Consumers.Notifiers;
 using Nethermind.DataMarketplace.Consumers.Notifiers.Services;
-using Nethermind.DataMarketplace.Consumers.Refunds;
-using Nethermind.DataMarketplace.Consumers.Shared;
+using Nethermind.DataMarketplace.Consumers.Shared.Background;
 using Nethermind.DataMarketplace.Consumers.Shared.Services;
 using Nethermind.DataMarketplace.Core.Domain;
 using Nethermind.DataMarketplace.Core.Services;
@@ -55,16 +52,16 @@ namespace Nethermind.DataMarketplace.Consumers.Test.Services.Shared
             _deposit = new Deposit(Keccak.Zero, 1, 2, 3);
             _details = new DepositDetails(_deposit, _asset, Address.Zero, new byte[0], 1, new TransactionInfo[0]);
 
-            IAccountService accountService = Substitute.For<IAccountService>();
-            IRefundClaimant refundClaimant = Substitute.For<IRefundClaimant>();
-            IDepositConfirmationService depositConfirmationService = Substitute.For<IDepositConfirmationService>();
+            IBackgroundDepositService backgroundDepositService = Substitute.For<IBackgroundDepositService>();
+            IBackgroundRefundService backgroundRefundService = Substitute.For<IBackgroundRefundService>();
             IEthPriceService ethPriceService = Substitute.For<IEthPriceService>();
             IGasPriceService gasPriceService = Substitute.For<IGasPriceService>();
             _blockProcessor = Substitute.For<IBlockProcessor>();
             IConsumerNotifier notifier = new ConsumerNotifier(Substitute.For<INdmNotifier>());
             IDepositDetailsRepository repository = new DepositDetailsInMemoryRepository(new DepositsInMemoryDb());
             repository.AddAsync(_details);
-            _processor = new ConsumerServicesBackgroundProcessor(accountService, refundClaimant, depositConfirmationService, ethPriceService, gasPriceService, _blockProcessor, repository, notifier, LimboLogs.Instance);
+            _processor = new ConsumerServicesBackgroundProcessor(ethPriceService, backgroundDepositService,
+                backgroundRefundService, gasPriceService, _blockProcessor, repository, notifier, LimboLogs.Instance);
         }
 
         [TearDown]
