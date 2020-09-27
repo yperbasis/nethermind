@@ -92,10 +92,6 @@ namespace Nethermind.Runner.Ethereum.Steps
             }
             else
             {
-                // lets add threads to support parallel eth_getLogs
-                ThreadPool.GetMinThreads(out var workerThreads, out var completionPortThreads);
-                ThreadPool.SetMinThreads(workerThreads + Environment.ProcessorCount, completionPortThreads + Environment.ProcessorCount);
-                
                 EthModuleFactory ethModuleFactory = new EthModuleFactory(
                     _api.DbProvider,
                     _api.TxPool,
