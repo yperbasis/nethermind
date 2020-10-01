@@ -158,7 +158,7 @@ namespace Nethermind.Consensus.Clique
                             string parentDetails = $"{parentTurnDescription} {parent.TimestampDate:HH:mm:ss} {parent.ToString(BlockHeader.Format.Short)} sealed by {KnownAddresses.GetDescription(parentSigner)}";
                             
                             if (_logger.IsInfo) _logger.Info($"Suggesting own {turnDescription} {_scheduledBlock.TimestampDate:HH:mm:ss} {scheduledBlock.ToString(Block.Format.HashNumberDiffAndTx)} based on {parentDetails} after the delay of {wiggle}");
-                            _blockTree.SuggestBlock(scheduledBlock);
+                            // _blockTree.SuggestBlock(scheduledBlock);
                         }
                     }
                     else

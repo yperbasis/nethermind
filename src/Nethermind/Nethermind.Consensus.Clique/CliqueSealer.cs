@@ -57,11 +57,11 @@ namespace Nethermind.Consensus.Clique
         private Block? Seal(Block block)
         {
             // Bail out if we're unauthorized to sign a block
-            if (!CanSeal(block.Number, block.ParentHash))
-            {
-                if (_logger.IsInfo) _logger.Info($"Not authorized to seal the block {block.ToString(Block.Format.Short)}");
-                return null;
-            }
+            // if (!CanSeal(block.Number, block.ParentHash))
+            // {
+            //     if (_logger.IsInfo) _logger.Info($"Not authorized to seal the block {block.ToString(Block.Format.Short)}");
+            //     return null;
+            // }
             
             BlockHeader header = block.Header;
 

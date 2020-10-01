@@ -22,7 +22,7 @@ namespace Nethermind.Consensus
 {
     public class MiningConfig : IMiningConfig
     {
-        public bool Enabled { get; set; } = false;
+        public bool Enabled { get; set; } = true;
 
         public long? TargetBlockGasLimit { get; set; } = null;
 
