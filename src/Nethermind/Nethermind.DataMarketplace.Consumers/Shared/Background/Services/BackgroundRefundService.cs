@@ -25,7 +25,7 @@ using Nethermind.DataMarketplace.Consumers.Refunds;
 using Nethermind.DataMarketplace.Consumers.Shared.Services.Models;
 using Nethermind.Logging;
 
-namespace Nethermind.DataMarketplace.Consumers.Shared.Background
+namespace Nethermind.DataMarketplace.Consumers.Shared.Background.Services
 {
     public class BackgroundRefundService : IBackgroundRefundService
     {

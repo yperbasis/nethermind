@@ -38,6 +38,7 @@ using Nethermind.Facade;
 using Nethermind.JsonRpc;
 using Nethermind.JsonRpc.Modules.Personal;
 using Nethermind.Wallet;
+using Polly;
 
 namespace Nethermind.DataMarketplace.Consumers.Infrastructure.Rpc
 {
@@ -165,7 +166,12 @@ namespace Nethermind.DataMarketplace.Consumers.Infrastructure.Rpc
 
         public async Task<ResultWrapper<string>> ndm_sendDataRequest(Keccak depositId)
         {
-            DataRequestResult result = await _consumerService.SendDataRequestAsync(depositId);
+            // DataRequestResult result = await _consumerService.SendDataRequestAsync(depositId);
+                
+            DataRequestResult result = await Policy.Handle<Exception>()
+                .WaitAndRetryAsync(10, retryAttempt => TimeSpan.FromSeconds(1))
+                .ExecuteAsync(async () => await _consumerService.SendDataRequestAsync(depositId));
+            
             return ResultWrapper<string>.Success(result.ToString());
         }
 

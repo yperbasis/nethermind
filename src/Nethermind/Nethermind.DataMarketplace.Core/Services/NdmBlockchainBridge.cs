@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Find;
 using Nethermind.Core;
@@ -62,7 +63,7 @@ namespace Nethermind.DataMarketplace.Core.Services
         {
             return Task.FromResult<Block?>(_blockTree.FindBlock(blockHash));   
         }
-
+        
         public Task<Block?> FindBlockAsync(long blockNumber) =>
             Task.FromResult<Block?>(_blockTree.FindBlock(blockNumber));
 
@@ -79,18 +80,44 @@ namespace Nethermind.DataMarketplace.Core.Services
             return Task.FromResult(_stateReader.GetNonce(_blockchainBridge.BeamHead.StateRoot, address));   
         }
 
-        public Task<NdmTransaction?> GetTransactionAsync(Keccak transactionHash)
+        public async Task<NdmTransaction?> GetTransactionAsync(Keccak transactionHash)
         {
-            (TxReceipt receipt, Transaction transaction) = _blockchainBridge.GetTransaction(transactionHash);
-            if (transaction is null)
+            if (transactionHash is null)
             {
-                return Task.FromResult<NdmTransaction?>(null);
+                return null;
             }
 
-            var isPending = receipt is null;
-
-            return Task.FromResult<NdmTransaction?>(new NdmTransaction(transaction, isPending, receipt?.BlockNumber ?? 0,
-                receipt?.BlockHash, receipt?.GasUsed ?? 0));
+            var latestBlock = await GetLatestBlockAsync();
+            var transaction = latestBlock?.Transactions.SingleOrDefault(tx => tx.Hash == transactionHash);
+            bool isPending;
+            if (transaction is null)
+            {
+                if (latestBlock is {})
+                {
+                    var latestBlockNumber = latestBlock.Number;
+                    for (var i =  latestBlockNumber - 1; i > latestBlockNumber - 6; i--)
+                    {
+                        latestBlock = await FindBlockAsync(latestBlock.ParentHash);
+                        if (latestBlock is null)
+                        {
+                            return null;
+                        }
+                        transaction = latestBlock?.Transactions.SingleOrDefault(tx => tx.Hash == transactionHash);
+                        if (transaction is {})
+                        {
+                            isPending = false;
+                            return new NdmTransaction(transaction, isPending, latestBlock?.Number ?? 0,
+                                latestBlock?.Hash, transaction.GasLimit);
+                        }
+                    }
+                }
+                
+                isPending = true;
+                return null;
+            }
+            isPending = false;
+            return new NdmTransaction(transaction, isPending, latestBlock?.Number ?? 0,
+            latestBlock?.Hash, transaction.GasLimit);
         }
 
         public Task<int> GetNetworkIdAsync() => Task.FromResult(_blockchainBridge.GetNetworkId());
@@ -104,6 +131,19 @@ namespace Nethermind.DataMarketplace.Core.Services
         public Task<byte[]> CallAsync(Transaction transaction, long blockNumber)
         {
             var block = _blockTree.FindBlock(blockNumber);
+            if (block is null)
+            {
+                return Task.FromResult(Array.Empty<byte>());
+            }
+
+            var callOutput = _blockchainBridge.Call(block.Header, transaction);
+
+            return Task.FromResult(callOutput.OutputData ?? new byte[] {0});
+        }
+
+        public Task<byte[]> CallAsync(Transaction transaction, Keccak blockHash)
+        {
+            var block = _blockTree.FindBlock(blockHash);
             if (block is null)
             {
                 return Task.FromResult(Array.Empty<byte>());

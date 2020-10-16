@@ -15,10 +15,6 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Timers;
-using Nethermind.Blockchain.Processing;
 using Nethermind.Core.Crypto;
 using Nethermind.DataMarketplace.Consumers.Deposits.Domain;
 using Nethermind.DataMarketplace.Consumers.Deposits.Queries;
@@ -28,8 +24,8 @@ using Nethermind.DataMarketplace.Consumers.Shared.Background;
 using Nethermind.DataMarketplace.Core.Domain;
 using Nethermind.DataMarketplace.Core.Services;
 using Nethermind.Facade.Proxy;
-using Nethermind.Facade.Proxy.Models;
 using Nethermind.Logging;
+using Polly;
 using Timer = System.Timers.Timer;
 
 namespace Nethermind.DataMarketplace.Consumers.Shared.Services
@@ -38,13 +34,13 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Services
     {
         private readonly IDepositDetailsRepository _depositRepository;
         private readonly IConsumerNotifier _consumerNotifier;
+        private readonly INewBlockListener _newBlockListener;
         private readonly bool _useDepositTimer;
         private readonly IEthJsonRpcClientProxy? _ethJsonRpcClientProxy;
         private readonly IEthPriceService _ethPriceService;
         private readonly IBackgroundDepositService _backgroundDepositService;
         private readonly IBackgroundRefundService _backgroundRefundService;
         private readonly IGasPriceService _gasPriceService;
-        private readonly IBlockProcessor _blockProcessor;
         private readonly ILogger _logger;
 
         private Timer? _depositTimer;
@@ -57,10 +53,10 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Services
             IBackgroundDepositService backgroundDepositService,
             IBackgroundRefundService backgroundRefundService,
             IGasPriceService gasPriceService,
-            IBlockProcessor blockProcessor,
             IDepositDetailsRepository depositRepository,
             IConsumerNotifier consumerNotifier,
             ILogManager logManager,
+            INewBlockListener newBlockListener,
             bool useDepositTimer = false,
             IEthJsonRpcClientProxy? ethJsonRpcClientProxy = null,
             uint depositTimer = 10000)
@@ -69,9 +65,9 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Services
             _backgroundDepositService = backgroundDepositService;
             _backgroundRefundService = backgroundRefundService;
             _gasPriceService = gasPriceService;
-            _blockProcessor = blockProcessor;
             _depositRepository = depositRepository;
             _consumerNotifier = consumerNotifier;
+            _newBlockListener = newBlockListener;
             _useDepositTimer = useDepositTimer;
             _ethJsonRpcClientProxy = ethJsonRpcClientProxy;
             _logger = logManager.GetClassLogger();
@@ -88,12 +84,13 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Services
                 {
                     if (_ethJsonRpcClientProxy == null)
                     {
-                        if (_logger.IsError) _logger.Error("Cannot find any configured ETH proxy to run deposit timer.");
+                        if (_logger.IsError)
+                            _logger.Error("Cannot find any configured ETH proxy to run deposit timer.");
                         return;
                     }
 
                     _depositTimer = new Timer(_depositTimerPeriod);
-                    _depositTimer.Elapsed += DepositTimerOnElapsed;
+                    // _depositTimer.Elapsed += DepositTimerOnElapsed;
                     _depositTimer.Start();
                 }
 
@@ -101,63 +98,19 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Services
             }
             else
             {
-                _blockProcessor.BlockProcessed += OnBlockProcessed;
+                _newBlockListener.BlockArrived += OnBlockArrived;
             }
         }
 
-        private void DepositTimerOnElapsed(object sender, ElapsedEventArgs e)
-            => _ethJsonRpcClientProxy?.eth_getBlockByNumber(BlockParameterModel.Latest)
-                .ContinueWith(async t =>
-                {
-                    if (t.IsFaulted && _logger.IsError)
-                    {
-                        _logger.Error("Fetching the latest block via proxy has failed.", t.Exception);
-                        return;
-                    }
-
-                    BlockModel<Keccak>? block = t.Result?.IsValid == true ? t.Result.Result : null;
-                    if (block is null)
-                    {
-                        _logger.Error("Latest block fetched via proxy is null.", t.Exception);
-                        return;
-                    }
-
-                    if (_currentBlockNumber == block.Number)
-                    {
-                        return;
-                    }
-
-                    await ProcessBlockAsync((long) block.Number, (long) block.Timestamp);
-                });
-
-
-        private void OnBlockProcessed(object? sender, BlockProcessedEventArgs e)
-            => ProcessBlockAsync(e.Block.Number, (long) e.Block.Timestamp).ContinueWith(t =>
-            {
-                if (t.IsFaulted && _logger.IsError)
-                {
-                    _logger.Error($"Processing the block {e.Block.Number} has failed.", t.Exception);
-                }
-            });
-
-        private async Task ProcessBlockAsync(long number, long timestamp)
+        private async void OnBlockArrived(long blockNumber, Keccak blockHash)
         {
-            Interlocked.Exchange(ref _currentBlockNumber, number);
-            Interlocked.Exchange(ref _currentBlockTimestamp, timestamp);
-            await _consumerNotifier.SendBlockProcessedAsync(number);
-            PagedResult<DepositDetails> depositsToConfirm = await _depositRepository.BrowseAsync(new GetDeposits
-            {
-                OnlyUnconfirmed = true,
-                OnlyNotRejected = true,
-                Results = int.MaxValue
-            });
-
-            await _backgroundDepositService.TryConfirmDepositsAsync(depositsToConfirm.Items);
+            await _consumerNotifier.SendBlockProcessedAsync(blockNumber);
+            PagedResult<DepositDetails> depositsToConfirm = await _depositRepository.BrowseAsync(new GetDeposits());
+            
+            await _backgroundDepositService.TryConfirmDepositsAsync(depositsToConfirm.Items, blockHash);
             PagedResult<DepositDetails> depositsToRefund = await _depositRepository.BrowseAsync(new GetDeposits
             {
-                EligibleToRefund = true,
-                CurrentBlockTimestamp = _currentBlockTimestamp,
-                Results = int.MaxValue
+                EligibleToRefund = true, CurrentBlockTimestamp = _currentBlockTimestamp, Results = int.MaxValue
             });
 
             await _backgroundRefundService.TryClaimRefundsAsync(depositsToRefund.Items);

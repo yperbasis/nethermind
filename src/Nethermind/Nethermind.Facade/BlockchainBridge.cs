@@ -200,7 +200,8 @@ namespace Nethermind.Facade
             {
                 if (transaction.Nonce == 0)
                 {
-                    transaction.Nonce = GetNonce(_stateProvider.StateRoot, transaction.SenderAddress);
+                    // transaction.Nonce = GetNonce(_stateProvider.StateRoot, transaction.SenderAddress);
+                    transaction.Nonce = _stateProvider.GetNonce(transaction.SenderAddress);
                 }
 
                 BlockHeader callHeader = new BlockHeader(
@@ -226,7 +227,7 @@ namespace Nethermind.Facade
         {
             return _blockTree.ChainId;
         }
-        
+
         private UInt256 GetNonce(Keccak stateRoot, Address address)
         {
             return _stateReader.GetNonce(stateRoot, address);

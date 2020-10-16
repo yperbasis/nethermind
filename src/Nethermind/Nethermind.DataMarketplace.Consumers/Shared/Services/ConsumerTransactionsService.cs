@@ -84,7 +84,7 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Services
         {
             if (gasPrice == 0)
             {
-                if (_logger.IsError) _logger.Error($"Gas price cannot be 0.");
+                if (_logger.IsError) _logger.Error("Gas price cannot be 0.");
                 return new UpdatedTransactionInfo(UpdatedTransactionStatus.InvalidGasPrice);
             }
             

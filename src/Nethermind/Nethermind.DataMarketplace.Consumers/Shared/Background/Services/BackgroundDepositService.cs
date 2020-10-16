@@ -18,11 +18,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Nethermind.Core.Crypto;
 using Nethermind.DataMarketplace.Consumers.Deposits;
 using Nethermind.Logging;
 using Nethermind.DataMarketplace.Consumers.Deposits.Domain;
 
-namespace Nethermind.DataMarketplace.Consumers.Shared.Background
+namespace Nethermind.DataMarketplace.Consumers.Shared.Background.Services
 {
     public class BackgroundDepositService : IBackgroundDepositService
     {
@@ -35,7 +36,7 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Background
             _depositConfirmationService = depositConfirmationService;
         }
 
-        public async Task TryConfirmDepositsAsync(IReadOnlyList<DepositDetails> deposits)
+        public async Task TryConfirmDepositsAsync(IReadOnlyList<DepositDetails> deposits, Keccak blockHash)
         {
             if (!deposits.Any())
             {
@@ -45,7 +46,7 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Background
 
             foreach (DepositDetails deposit in deposits)
             {
-                await _depositConfirmationService.TryConfirmAsync(deposit);
+                await _depositConfirmationService.TryConfirmAsync(deposit, blockHash);
             }
         }
     }

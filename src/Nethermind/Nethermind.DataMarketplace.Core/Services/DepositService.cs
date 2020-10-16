@@ -15,16 +15,19 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Nethermind.Abi;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
+using Nethermind.Crypto;
 using Nethermind.DataMarketplace.Core.Domain;
 using Nethermind.DataMarketplace.Core.Services.Models;
 using Nethermind.Int256;
 using Nethermind.Wallet;
+using Polly;
 
 namespace Nethermind.DataMarketplace.Core.Services
 {
@@ -45,7 +48,7 @@ namespace Nethermind.DataMarketplace.Core.Services
         }
         
         public ulong GasLimit { get; } = 70000;
-        
+
         public async Task<UInt256> ReadDepositBalanceAsync(Address onBehalfOf, Keccak depositId)
         {
             var txData = _abiEncoder.Encode(AbiEncodingStyle.IncludeSignature, ContractData.DepositBalanceAbiSig,
@@ -97,32 +100,46 @@ namespace Nethermind.DataMarketplace.Core.Services
                 Data = txData,
                 To = _contractAddress,
                 SenderAddress = onBehalfOf,
-                GasLimit = (long) GasLimit,
+                GasLimit = (long)GasLimit,
                 GasPrice = gasPrice,
                 Nonce = nonce
             };
             // check  
             _wallet.Sign(transaction, await _blockchainBridge.GetNetworkIdAsync());
+            
+            var transactionHash = await Policy.Handle<Exception>()
+                .WaitAndRetryForeverAsync(retryAttempt => TimeSpan.FromSeconds(1))
+                .ExecuteAsync(async () => await _blockchainBridge.SendOwnTransactionAsync(transaction));
 
-            return await _blockchainBridge.SendOwnTransactionAsync(transaction);
+            return transactionHash;
         }
 
         public async Task<uint> VerifyDepositAsync(Address onBehalfOf, Keccak depositId)
         {
+            //do testow
             var transaction = await GetTransactionAsync(onBehalfOf, depositId);
-            var data = await _blockchainBridge.CallAsync(transaction);
-
+            
+            var data = await Policy.Handle<Exception>()
+                .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(2))
+                .ExecuteAsync(async () => await _blockchainBridge.CallAsync(transaction));
+            
             return data.AsSpan().ReadEthUInt32();
         }
 
-        public async Task<uint> VerifyDepositAsync(Address onBehalfOf, Keccak depositId, long blockNumber)
+        public async Task<uint> VerifyDepositAsync(Address onBehalfOf, Keccak depositId, Keccak blockHash)
         {
             var transaction = await GetTransactionAsync(onBehalfOf, depositId);
-            var data = await _blockchainBridge.CallAsync(transaction, blockNumber);
-
+            byte[] data;
+            do
+            { 
+                data = await Policy.Handle<Exception>()
+                    .WaitAndRetryForeverAsync(retryAttempt => TimeSpan.FromSeconds(1))
+                    .ExecuteAsync(async () => await _blockchainBridge.CallAsync(transaction, blockHash));
+            } while (data.Length == 0);
+            
             return data.AsSpan().ReadEthUInt32();
         }
-
+    
         private async Task<Transaction> GetTransactionAsync(Address onBehalfOf, Keccak depositId)
             => new Transaction
             {
@@ -133,7 +150,7 @@ namespace Nethermind.DataMarketplace.Core.Services
                 SenderAddress = onBehalfOf,
                 GasLimit = 100000,
                 GasPrice = 0.GWei(),
-                Nonce = await _blockchainBridge.GetNonceAsync(onBehalfOf)
+                Nonce = 0
             };
     }
 }

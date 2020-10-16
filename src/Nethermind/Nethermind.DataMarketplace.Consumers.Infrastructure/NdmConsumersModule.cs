@@ -45,6 +45,7 @@ using Nethermind.DataMarketplace.Consumers.Sessions.Repositories;
 using Nethermind.DataMarketplace.Consumers.Sessions.Services;
 using Nethermind.DataMarketplace.Consumers.Shared;
 using Nethermind.DataMarketplace.Consumers.Shared.Background;
+using Nethermind.DataMarketplace.Consumers.Shared.Background.Services;
 using Nethermind.DataMarketplace.Consumers.Shared.Services;
 using Nethermind.DataMarketplace.Core.Configs;
 using Nethermind.DataMarketplace.Infrastructure;
@@ -201,6 +202,7 @@ namespace Nethermind.DataMarketplace.Consumers.Infrastructure
                 dataAssetService, kycVerifier, providerService, abiEncoder, cryptoRandom, wallet, gasPriceService,
                 depositRepository, timestamper, logManager, requiredBlockConfirmations,
                 disableSendingDepositTransaction);
+            INewBlockListener newBlockListener = new NewBlockListener(blockchainBridge);
 
             if (instantDepositVerificationEnabled)
             {
@@ -246,8 +248,8 @@ namespace Nethermind.DataMarketplace.Consumers.Infrastructure
                 bool useDepositTimer = ndmConfig.ProxyEnabled;
                 ConsumerServicesBackgroundProcessor consumerServicesBackgroundProcessor =
                     new ConsumerServicesBackgroundProcessor(ethPriceService, backgroundDepositService,
-                        backgroundRefundService, gasPriceService, blockProcessor, depositRepository, consumerNotifier,
-                        logManager, useDepositTimer, ethJsonRpcClientProxy);
+                        backgroundRefundService, gasPriceService, depositRepository, consumerNotifier,
+                        logManager, newBlockListener, useDepositTimer, ethJsonRpcClientProxy);
                 consumerServicesBackgroundProcessor.Init();
             }
 

@@ -58,10 +58,11 @@ namespace Nethermind.DataMarketplace.Consumers.Test.Services.Shared
             IGasPriceService gasPriceService = Substitute.For<IGasPriceService>();
             _blockProcessor = Substitute.For<IBlockProcessor>();
             IConsumerNotifier notifier = new ConsumerNotifier(Substitute.For<INdmNotifier>());
+            INewBlockListener newBlockListener = new NewBlockListener(Substitute.For<INdmBlockchainBridge>());
             IDepositDetailsRepository repository = new DepositDetailsInMemoryRepository(new DepositsInMemoryDb());
             repository.AddAsync(_details);
             _processor = new ConsumerServicesBackgroundProcessor(ethPriceService, backgroundDepositService,
-                backgroundRefundService, gasPriceService, _blockProcessor, repository, notifier, LimboLogs.Instance);
+                backgroundRefundService, gasPriceService, repository, notifier, LimboLogs.Instance, newBlockListener);
         }
 
         [TearDown]

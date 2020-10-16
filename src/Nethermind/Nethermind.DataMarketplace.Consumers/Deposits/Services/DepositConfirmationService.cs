@@ -14,6 +14,7 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Nethermind.Core;
@@ -24,6 +25,7 @@ using Nethermind.DataMarketplace.Consumers.Notifiers;
 using Nethermind.DataMarketplace.Core.Domain;
 using Nethermind.DataMarketplace.Core.Services;
 using Nethermind.Logging;
+using Polly;
 
 namespace Nethermind.DataMarketplace.Consumers.Deposits.Services
 {
@@ -48,7 +50,7 @@ namespace Nethermind.DataMarketplace.Consumers.Deposits.Services
             _requiredBlockConfirmations = requiredBlockConfirmations;
         }
         
-        public async Task TryConfirmAsync(DepositDetails deposit)
+        public async Task TryConfirmAsync(DepositDetails deposit, Keccak blockHash)
         {
             if (deposit.Confirmed || deposit.Rejected || deposit.Cancelled || deposit.Transaction is null)
             {
@@ -113,8 +115,7 @@ namespace Nethermind.DataMarketplace.Consumers.Deposits.Services
                 return;
             }
             
-            long headNumber = await _blockchainBridge.GetLatestBlockNumberAsync();
-            (uint confirmations, bool rejected) = await VerifyDepositConfirmationsAsync(deposit, transactionDetails!, headNumber);
+            (uint confirmations, bool rejected) = await VerifyDepositConfirmationsAsync(deposit, transactionDetails!, blockHash);
             if (rejected)
             {
                 deposit.Reject();
@@ -141,16 +142,11 @@ namespace Nethermind.DataMarketplace.Consumers.Deposits.Services
         }
         
         private async Task<(uint confirmations, bool rejected)> VerifyDepositConfirmationsAsync(DepositDetails deposit,
-            NdmTransaction transaction, long headNumber)
+            NdmTransaction transaction, Keccak blockHash)
         {
-            if (headNumber <= transaction.BlockNumber)
-            {
-                return (0, false);
-            }
-            
             Keccak? transactionHash = deposit.Transaction?.Hash;
             uint confirmations = 0u;
-            Block? block = await _blockchainBridge.FindBlockAsync(headNumber);
+            Block? block = await _blockchainBridge.FindBlockAsync(blockHash);
             do
             {
                 if (block is null)
@@ -159,7 +155,7 @@ namespace Nethermind.DataMarketplace.Consumers.Deposits.Services
                     return (0, false);
                 }
 
-                uint confirmationTimestamp = await _depositService.VerifyDepositAsync(deposit.Consumer, deposit.Id, block.Header.Number);
+                uint confirmationTimestamp = await _depositService.VerifyDepositAsync(deposit.Consumer, deposit.Id, blockHash);
                 if (confirmationTimestamp > 0)
                 {
                     confirmations++;

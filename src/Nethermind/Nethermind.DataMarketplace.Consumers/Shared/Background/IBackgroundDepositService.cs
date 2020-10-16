@@ -17,12 +17,13 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Nethermind.Core.Crypto;
 using Nethermind.DataMarketplace.Consumers.Deposits.Domain;
 
 namespace Nethermind.DataMarketplace.Consumers.Shared.Background
 {
     public interface IBackgroundDepositService
     {
-        Task TryConfirmDepositsAsync(IReadOnlyList<DepositDetails> deposits);
+        Task TryConfirmDepositsAsync(IReadOnlyList<DepositDetails> deposits, Keccak blockHash);
     }
 }

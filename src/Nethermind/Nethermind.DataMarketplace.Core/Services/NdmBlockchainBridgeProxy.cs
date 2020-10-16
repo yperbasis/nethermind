@@ -112,6 +112,11 @@ namespace Nethermind.DataMarketplace.Core.Services
             return result?.IsValid == true ? result.Result ?? Array.Empty<byte>() : Array.Empty<byte>();
         }
 
+        public Task<byte[]> CallAsync(Transaction transaction, Keccak blockHash)
+        {
+            throw new NotImplementedException();
+        }
+
         public async ValueTask<Keccak?> SendOwnTransactionAsync(Transaction transaction)
         {
             var data = Rlp.Encode(transaction).Bytes;
