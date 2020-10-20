@@ -694,5 +694,198 @@ namespace Nethermind.Trie.Test
             restoredLeaf1.ResolveNode(trieStore);
             restoredLeaf1.Value.Should().BeEquivalentTo(leaf1.Value);
         }
+
+        [Test]
+        public void When_parent_is_persisted_and_a_dirty_child_is_connected_then_the_child_gets_marked_as_persisted_in_object_case()
+        {
+            TrieStore trieStore = new TrieStore(new MemDb(), LimboLogs.Instance);
+            TrieNode child = new TrieNode(NodeType.Leaf);
+            TrieNode trieNode = new TrieNode(NodeType.Extension);
+            trieNode.IsPersisted = true;
+            trieNode.SetChild(0, child);
+            trieNode.GetChild(trieStore, 0);
+            child.IsPersisted.Should().BeTrue();
+        }
+
+        [Test]
+        public void Encode_decode_extension()
+        {
+            TrieStore trieStore = new TrieStore(new MemDb(), LimboLogs.Instance);
+            TrieNode child = new TrieNode(NodeType.Leaf);
+            child.Key= HexPrefix.Leaf("cc");
+            child.Value = Bytes.FromHexString("aaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccdddd");
+            TrieNode trieNode = new TrieNode(NodeType.Extension);
+            trieNode.SetChild(0, child);
+            trieNode.Key = HexPrefix.Extension("aaaa");
+            trieNode.ResolveKey(trieStore, false);
+            byte[] rlp = trieNode.RlpEncode(trieStore);
+
+            TrieNode trieNodeFromDb = new TrieNode(NodeType.Unknown, rlp);
+            trieNodeFromDb.ResolveNode(trieStore);
+            trieNodeFromDb.IsExtension.Should().BeTrue();
+        }
+
+        [Test]
+        public void When_parent_is_persisted_and_a_dirty_child_is_connected_then_the_child_gets_marked_as_persisted_in_rlp_case()
+        {
+            IDb memDb = new MemDb();
+            TrieStore trieStore = new TrieStore(memDb, LimboLogs.Instance);
+            TrieNode child = new TrieNode(NodeType.Leaf, TestItem.KeccakA);
+            TrieNode trieNode = new TrieNode(NodeType.Extension);
+            trieNode.SetChild(0, child);
+            trieNode.Key = HexPrefix.Extension("aaaa");
+            trieNode.ResolveKey(trieStore, false);
+            byte[] rlp = trieNode.RlpEncode(trieStore);
+            memDb[trieNode.Keccak!.Bytes] = rlp;
+
+            trieStore.CommitNode(1, new NodeCommitInfo(child));
+            
+            TrieNode trieNodeFromDb = new TrieNode(NodeType.Unknown, trieNode.Keccak);
+            trieNodeFromDb.ResolveNode(trieStore);
+            TrieNode childViaDb = trieNodeFromDb.GetChild(trieStore, 0);
+            childViaDb.Should().BeSameAs(child);
+            childViaDb!.IsPersisted.Should().BeTrue();
+        }
+        
+        [Test]
+        public void Cannot_replace_child_with_null()
+        {
+            IDb memDb = new MemDb();
+            TrieStore trieStore = new TrieStore(memDb, LimboLogs.Instance);
+            TrieNode child = new TrieNode(NodeType.Leaf, TestItem.KeccakA);
+            TrieNode trieNode = new TrieNode(NodeType.Extension);
+            trieNode.SetChild(0, child);
+            Assert.Throws<ArgumentNullException>(() => trieNode.ReplaceChildRef(0, null));
+        }
+        
+        [Test]
+        public void Can_replace_child()
+        {
+            IDb memDb = new MemDb();
+            TrieStore trieStore = new TrieStore(memDb, LimboLogs.Instance);
+            TrieNode child = new TrieNode(NodeType.Leaf, TestItem.KeccakA);
+            TrieNode child2 = new TrieNode(NodeType.Leaf, TestItem.KeccakA);
+            TrieNode trieNode = new TrieNode(NodeType.Extension);
+            trieNode.SetChild(0, child);
+            trieNode.ReplaceChildRef(0, child2);
+            trieNode.GetChild(trieStore, 0).Should().BeSameAs(child2);
+        }
+
+        [Test]
+        public void Two_children_store_encode()
+        {
+            TrieNode node = new TrieNode(NodeType.Branch);
+            node.SetChild(0, new TrieNode(NodeType.Leaf, TestItem.KeccakA));
+            node.SetChild(1, new TrieNode(NodeType.Leaf, TestItem.KeccakB));
+            ITrieNodeResolver tree = BuildATreeFromNode(node);
+            TrieNode decoded = new TrieNode(NodeType.Unknown, node.Keccak);
+            decoded.ResolveNode(tree);
+            decoded.RlpEncode(tree);
+        }
+
+        [Test]
+        public void Two_children_store_resolve_encode()
+        {
+            TrieNode node = new TrieNode(NodeType.Branch);
+            node.SetChild(0, new TrieNode(NodeType.Leaf, TestItem.KeccakA));
+            node.SetChild(1, new TrieNode(NodeType.Leaf, TestItem.KeccakB));
+            ITrieNodeResolver tree = BuildATreeFromNode(node);
+            TrieNode decoded = new TrieNode(NodeType.Unknown, node.Keccak);
+            decoded.ResolveNode(tree);
+            decoded.RlpEncode(tree);
+        }
+
+        [Test]
+        public void Two_children_store_resolve_get1_encode()
+        {
+            TrieNode node = new TrieNode(NodeType.Branch);
+            node.SetChild(0, new TrieNode(NodeType.Leaf, TestItem.KeccakA));
+            node.SetChild(1, new TrieNode(NodeType.Leaf, TestItem.KeccakB));
+            ITrieNodeResolver tree = BuildATreeFromNode(node);
+            TrieNode decoded = new TrieNode(NodeType.Unknown, node.Keccak);
+            decoded.ResolveNode(tree);
+            TrieNode child0 = decoded.GetChild(tree, 0);
+            decoded.RlpEncode(tree);
+        }
+
+        [Test]
+        public void Two_children_store_resolve_getnull_encode()
+        {
+            TrieNode node = new TrieNode(NodeType.Branch);
+            node.SetChild(0, new TrieNode(NodeType.Leaf, TestItem.KeccakA));
+            node.SetChild(1, new TrieNode(NodeType.Leaf, TestItem.KeccakB));
+            ITrieNodeResolver tree = BuildATreeFromNode(node);
+            TrieNode decoded = new TrieNode(NodeType.Unknown, node.Keccak);
+            decoded.ResolveNode(tree);
+            TrieNode child = decoded.GetChild(tree, 3);
+            decoded.RlpEncode(tree);
+        }
+
+        [Test]
+        public void Two_children_store_resolve_update_encode()
+        {
+            TrieNode node = new TrieNode(NodeType.Branch);
+            node.SetChild(0, new TrieNode(NodeType.Leaf, TestItem.KeccakA));
+            node.SetChild(1, new TrieNode(NodeType.Leaf, TestItem.KeccakB));
+            ITrieNodeResolver tree = BuildATreeFromNode(node);
+            TrieNode decoded = new TrieNode(NodeType.Unknown, node.Keccak);
+            decoded.ResolveNode(tree);
+            decoded = decoded.Clone();
+            decoded.SetChild(0, new TrieNode(NodeType.Leaf, TestItem.KeccakC));
+            decoded.RlpEncode(tree);
+        }
+
+        [Test]
+        public void Two_children_store_resolve_update_null_encode()
+        {
+            TrieNode node = new TrieNode(NodeType.Branch);
+            node.SetChild(0, new TrieNode(NodeType.Leaf, TestItem.KeccakA));
+            node.SetChild(1, new TrieNode(NodeType.Leaf, TestItem.KeccakB));
+            ITrieNodeResolver tree = BuildATreeFromNode(node);
+            TrieNode decoded = new TrieNode(NodeType.Unknown, node.Keccak);
+            decoded.ResolveNode(tree);
+            decoded = decoded.Clone();
+            decoded.SetChild(4, new TrieNode(NodeType.Leaf, TestItem.KeccakC));
+            decoded.SetChild(5, new TrieNode(NodeType.Leaf, TestItem.KeccakD));
+            decoded.RlpEncode(tree);
+        }
+
+        [Test]
+        public void Two_children_store_resolve_delete_and_add_encode()
+        {
+            TrieNode node = new TrieNode(NodeType.Branch);
+            node.SetChild(0, new TrieNode(NodeType.Leaf, TestItem.KeccakA));
+            node.SetChild(1, new TrieNode(NodeType.Leaf, TestItem.KeccakB));
+            ITrieNodeResolver tree = BuildATreeFromNode(node);
+            TrieNode decoded = new TrieNode(NodeType.Unknown, node.Keccak);
+            decoded.ResolveNode(tree);
+            decoded = decoded.Clone();
+            decoded.SetChild(0, null);
+            decoded.SetChild(4, new TrieNode(NodeType.Leaf, TestItem.KeccakC));
+            decoded.RlpEncode(tree);
+        }
+
+        [Test]
+        public void Child_and_value_store_encode()
+        {
+            TrieNode node = new TrieNode(NodeType.Branch);
+            node.SetChild(0, new TrieNode(NodeType.Leaf, TestItem.KeccakA));
+            ITrieNodeResolver tree = BuildATreeFromNode(node);
+            TrieNode decoded = new TrieNode(NodeType.Unknown, node.Keccak);
+            decoded.ResolveNode(tree);
+            decoded.RlpEncode(tree);
+        }
+
+        private static ITrieNodeResolver BuildATreeFromNode(TrieNode node)
+        {
+            byte[] rlp = node.RlpEncode(null);
+            node.ResolveKey(null, true);
+
+            MemDb memDb = new MemDb();
+            memDb[node.Keccak.Bytes] = rlp;
+
+            // ITrieNodeResolver tree = new PatriciaTree(memDb, node.Keccak, false, true);
+            return new TrieStore(memDb, NullLogManager.Instance);
+        }
     }
 }

@@ -51,7 +51,7 @@ namespace Nethermind.Trie
             {
                 throw new ArgumentNullException(nameof(keccak));
             }
-            
+
             NodeType = nodeType;
             Keccak = keccak;
             if (nodeType == NodeType.Unknown)
@@ -66,15 +66,6 @@ namespace Nethermind.Trie
             FullRlp = rlp;
             _rlpStream = rlp.AsRlpStream();
         }
-
-        /// <summary>
-        /// Ethereum Patricia Trie specification allows for branch values,
-        /// although branched never have values as all the keys are of equal length.
-        /// Keys are of length 64 for TxTrie and ReceiptsTrie and StateTrie.
-        ///
-        /// We leave this switch for testing purposes.
-        /// </summary>
-        public static bool AllowBranchValues { private get; set; }
 
         /// <summary>
         /// Sealed node is the one that is already immutable except for reference counting and resolving existing data
@@ -120,12 +111,7 @@ namespace Nethermind.Trie
                     }
                 }
 
-                if (AllowBranchValues)
-                {
-                    nonEmptyNodes += (Value?.Length ?? 0) > 0 ? 1 : 0;
-                }
-
-                return nonEmptyNodes > 2;
+                return false;
             }
         }
 
@@ -167,26 +153,8 @@ namespace Nethermind.Trie
                     return (byte[]) _data![1];
                 }
 
-                if (!AllowBranchValues)
-                {
-                    // branches that we use for state will never have value set as all the keys are equal length
-                    return Array.Empty<byte>();
-                }
-
-                if (_data![16] is null)
-                {
-                    if (_rlpStream == null)
-                    {
-                        _data[16] = Array.Empty<byte>();
-                    }
-                    else
-                    {
-                        SeekChild(16);
-                        _data![16] = _rlpStream!.DecodeByteArray();
-                    }
-                }
-
-                return (byte[]) _data[16];
+                // branches that we use for state will never have value set as all the keys are equal length
+                return Array.Empty<byte>();
             }
 
             set
@@ -198,7 +166,7 @@ namespace Nethermind.Trie
                 }
 
                 InitData();
-                if (IsBranch && !AllowBranchValues)
+                if (IsBranch)
                 {
                     // in Ethereum all paths are of equal length, hence branches will never have values
                     // so we decided to save 1/17th of the array size in memory
@@ -398,14 +366,20 @@ namespace Nethermind.Trie
              */
             childIndex = IsExtension ? childIndex + 1 : childIndex;
             ResolveChild(tree, childIndex);
-            return ReferenceEquals(_data![childIndex], _nullNode) ? null : (TrieNode) _data[childIndex];
+            TrieNode child = ReferenceEquals(_data![childIndex], _nullNode) ? null : (TrieNode) _data[childIndex];
+            if (IsPersisted && child != null && !child.IsPersisted)
+            {
+                child.MarkPersistedRecursively(tree, NullLogger.Instance);
+            }
+
+            return child;
         }
 
         public void ReplaceChildRef(int i, TrieNode child)
         {
             if (child == null)
             {
-                throw new InvalidOperationException();
+                throw new ArgumentNullException();
             }
 
             InitData();
@@ -541,45 +515,16 @@ namespace Nethermind.Trie
 
         private TrieNode? _storageRoot;
 
-        /// <summary>
-        /// There are two similar methods and we should see how they can be merged
-        /// (probably by adding some parameters)
-        /// This one is force-fixing the IsPersisted state and the other one is allowing external caller to persist
-        /// this node and its descendants.
-        /// </summary>
-        /// <param name="cache"></param>
-        /// <param name="logger"></param>
         private void MarkPersistedRecursively(ITrieNodeResolver cache, ILogger logger)
         {
-            if (!IsLeaf)
-            {
-                if (_data != null)
-                {
-                    for (int i = 0; i < _data.Length; i++)
-                    {
-                        object o = _data[i];
-                        if (o is TrieNode child)
-                        {
-                            if (logger.IsTrace) logger.Trace($"Mark persisted on child {i} {child} of {this}");
-                            child.MarkPersistedRecursively(cache, logger);
-                        }
-                    }
-                }
-            }
-            else if (TryResolveStorageRoot(cache))
-            {
-                if (logger.IsTrace) logger.Trace($"Mark persisted recursively on storage root {_storageRoot} of {this}");
-                _storageRoot?.MarkPersistedRecursively(cache, logger);
-            }
-
-            IsPersisted = true;
+            PersistRecursively(tn => tn.IsPersisted = true, cache, logger);
         }
 
         public void PersistRecursively(Action<TrieNode> action, ITrieNodeResolver resolver, ILogger logger)
         {
             if (IsPersisted)
             {
-                if (logger.IsTrace) logger.Trace($"Ignoring {this} - alredy persisted");
+                if (logger.IsTrace) logger.Trace($"Ignoring {this} - already persisted");
                 return;
             }
 
@@ -653,7 +598,7 @@ namespace Nethermind.Trie
                     case NodeType.Unknown:
                         throw new InvalidOperationException($"Cannot resolve children of an {nameof(NodeType.Unknown)} node");
                     case NodeType.Branch:
-                        _data = new object[AllowBranchValues ? 17 : 16];
+                        _data = new object[16];
                         break;
                     default:
                         _data = new object[2];
@@ -706,12 +651,6 @@ namespace Nethermind.Trie
                         Keccak keccak = _rlpStream.DecodeKeccak();
                         TrieNode cachedOrUnknown = tree.FindCachedOrUnknown(keccak);
                         _data![i] = cachedOrUnknown;
-
-                        if (IsPersisted && !cachedOrUnknown.IsPersisted)
-                        {
-                            cachedOrUnknown.MarkPersistedRecursively(tree, NullLogger.Instance);
-                        }
-                        
                         break;
                     default:
                     {

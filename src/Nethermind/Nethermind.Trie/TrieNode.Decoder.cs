@@ -114,14 +114,7 @@ namespace Nethermind.Trie
                 int position = Rlp.StartSequence(result, 0, contentLength);
                 WriteChildrenRlp(tree, item, resultSpan.Slice(position, contentLength - valueRlpLength));
                 position = sequenceLength - valueRlpLength;
-                if (AllowBranchValues)
-                {
-                    Rlp.Encode(result, position, item.Value);
-                }
-                else
-                {
-                    result[position] = 128;
-                }
+                result[position] = 128; // branch values not allowed in state trie
 
                 return result;
             }

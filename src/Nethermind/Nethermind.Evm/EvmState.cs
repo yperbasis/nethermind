@@ -29,6 +29,8 @@ namespace Nethermind.Evm
     {
         private class StackPool
         {
+            
+            
             public (byte[], int[]) RentStacks()
             {
                 return (RentDataStack(), RentReturnStack());
