@@ -23,5 +23,6 @@ namespace Nethermind.DataMarketplace.Consumers.Deposits
     public interface IDepositConfirmationService
     {
         Task TryConfirmAsync(DepositDetails deposit, Keccak blockHash);
+        Task TryConfirmOnBeamSyncAsync(DepositDetails deposit, Keccak blockHash);
     }
 }

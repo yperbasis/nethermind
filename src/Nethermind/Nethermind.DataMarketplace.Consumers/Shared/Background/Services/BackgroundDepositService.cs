@@ -46,7 +46,8 @@ namespace Nethermind.DataMarketplace.Consumers.Shared.Background.Services
 
             foreach (DepositDetails deposit in deposits)
             {
-                await _depositConfirmationService.TryConfirmAsync(deposit, blockHash);
+                await _depositConfirmationService.TryConfirmOnBeamSyncAsync(deposit, blockHash);
+                // await _depositConfirmationService.TryConfirmAsync(deposit, blockHash);
             }
         }
     }

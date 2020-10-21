@@ -50,6 +50,93 @@ namespace Nethermind.DataMarketplace.Consumers.Deposits.Services
             _requiredBlockConfirmations = requiredBlockConfirmations;
         }
         
+        public async Task TryConfirmOnBeamSyncAsync(DepositDetails deposit, Keccak blockHash)
+        {
+            if (deposit.Confirmed || deposit.Rejected || deposit.Cancelled || deposit.Transaction is null)
+            {
+                return;
+            }
+
+            TransactionInfo includedTransaction = deposit.Transactions.SingleOrDefault(t => t.State == TransactionState.Included);
+            IOrderedEnumerable<TransactionInfo> pendingTransactions = deposit.Transactions
+                .Where(t => t.State == TransactionState.Pending)
+                .OrderBy(t => t.Timestamp);
+
+            if (_logger.IsInfo) _logger.Info($"Deposit: '{deposit.Id}' pending transactions: {string.Join(", ", pendingTransactions.Select(t => $"{t.Hash} [{t.Type}]"))}");
+            
+            if (includedTransaction is null)
+            {
+                foreach (TransactionInfo transaction in pendingTransactions)
+                {
+                    Keccak? transactionHash = transaction.Hash;
+                    if (transactionHash is null)
+                    {
+                        if (_logger.IsInfo) _logger.Info($"Transaction was not found for hash: '{null}' for deposit: '{deposit.Id}' to be confirmed.");
+                        continue;
+                    }
+                    
+
+                    deposit.SetIncludedTransaction(transactionHash);
+                    if (_logger.IsInfo) _logger.Info($"Transaction with hash: '{transactionHash}', type: '{transaction.Type}' for deposit: '{deposit.Id}' was included into block: {blockHash}.");
+                    await _depositRepository.UpdateAsync(deposit);
+                    includedTransaction = transaction;
+                    break;
+                }
+            }
+            else if (includedTransaction.Type == TransactionType.Cancellation)
+            {
+                return;
+            }
+            // else
+            // {
+            //     transactionDetails = includedTransaction.Hash == null ? null : await _blockchainBridge.GetTransactionAsync(includedTransaction.Hash);
+            //     if (transactionDetails is null)
+            //     {
+            //         if (_logger.IsWarn) _logger.Warn($"Transaction (set as included) was not found for hash: '{includedTransaction.Hash}' for deposit: '{deposit.Id}'.");
+            //         return;
+            //     }
+            // }
+
+            if (includedTransaction is null)
+            {
+                return;
+            }
+            
+            var confirmationTimestamp = await _depositService.VerifyDepositAsync(deposit.Consumer, deposit.Id, blockHash);
+            uint confirmations = 0u;
+            bool confirmed = false;
+            if (confirmationTimestamp > 0)
+            {
+                if (deposit.ConfirmationTimestamp == 0)
+                {
+                    deposit.SetConfirmationTimestamp(confirmationTimestamp);
+                    await _depositRepository.UpdateAsync(deposit);
+                }
+                
+                confirmed = true;
+                confirmations = _requiredBlockConfirmations;
+                deposit.SetConfirmations(confirmations);
+                await _depositRepository.UpdateAsync(deposit);
+            }
+            // if (rejected)
+            // {
+            //     deposit.Reject();
+            //     await _depositRepository.UpdateAsync(deposit);
+            //     await _consumerNotifier.SendDepositRejectedAsync(deposit.Id);
+            //     return;
+            // }
+
+            // if (_logger.IsInfo) _logger.Info($"Deposit: '{deposit.Id}' has {confirmations} confirmations (required at least {_requiredBlockConfirmations}) for transaction hash: '{includedTransaction.Hash}' to be confirmed.");
+            // bool confirmed = confirmations >= _requiredBlockConfirmations;
+            // if (confirmed)
+            // {
+            //     if (_logger.IsInfo) _logger.Info($"Deposit with id: '{deposit.Deposit.Id}' has been confirmed.");
+            // }
+
+            await _consumerNotifier.SendDepositConfirmationsStatusAsync(deposit.Id, deposit.DataAsset.Name,
+                confirmations, _requiredBlockConfirmations, confirmationTimestamp, confirmed);
+        }
+        
         public async Task TryConfirmAsync(DepositDetails deposit, Keccak blockHash)
         {
             if (deposit.Confirmed || deposit.Rejected || deposit.Cancelled || deposit.Transaction is null)

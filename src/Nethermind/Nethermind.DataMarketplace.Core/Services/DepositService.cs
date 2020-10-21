@@ -117,7 +117,7 @@ namespace Nethermind.DataMarketplace.Core.Services
         public async Task<uint> VerifyDepositAsync(Address onBehalfOf, Keccak depositId)
         {
             //do testow
-            var transaction = await GetTransactionAsync(onBehalfOf, depositId);
+            var transaction = await BuildVerifyDepositCallTransaction(onBehalfOf, depositId);
             
             var data = await Policy.Handle<Exception>()
                 .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(2))
@@ -128,7 +128,7 @@ namespace Nethermind.DataMarketplace.Core.Services
 
         public async Task<uint> VerifyDepositAsync(Address onBehalfOf, Keccak depositId, Keccak blockHash)
         {
-            var transaction = await GetTransactionAsync(onBehalfOf, depositId);
+            var transaction = await BuildVerifyDepositCallTransaction(onBehalfOf, depositId);
             byte[] data;
             do
             { 
@@ -140,7 +140,7 @@ namespace Nethermind.DataMarketplace.Core.Services
             return data.AsSpan().ReadEthUInt32();
         }
     
-        private async Task<Transaction> GetTransactionAsync(Address onBehalfOf, Keccak depositId)
+        private async Task<Transaction> BuildVerifyDepositCallTransaction(Address onBehalfOf, Keccak depositId)
             => new Transaction
             {
                 Value = 0,
