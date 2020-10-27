@@ -16,120 +16,65 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Abstractions;
-using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using FluentAssertions.Execution;
-using log4net.Core;
+using Nethermind.Api;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Config;
-using Nethermind.DataMarketplace.Channels;
-using Nethermind.DataMarketplace.Core;
-using Nethermind.DataMarketplace.Initializers;
-using Nethermind.Db.Rocks;
+using Nethermind.Core.Test.IO;
 using Nethermind.Db.Rocks.Config;
 using Nethermind.EthStats;
-using Nethermind.Grpc;
 using Nethermind.JsonRpc;
 using Nethermind.JsonRpc.Modules;
 using Nethermind.KeyStore.Config;
 using Nethermind.Logging;
-using Nethermind.Monitoring;
 using Nethermind.Network.Config;
 using Nethermind.PubSub.Kafka;
 using Nethermind.Runner.Ethereum;
 using Nethermind.Serialization.Json;
 using Nethermind.Stats;
 using Nethermind.Db.Blooms;
+using Nethermind.Runner.Ethereum.Api;
 using Nethermind.TxPool;
-using Nethermind.WebSockets;
-using NSubstitute;
 using NUnit.Framework;
-using NUnit.Framework.Constraints;
-using YamlDotNet.Serialization.TypeInspectors;
 
 namespace Nethermind.Runner.Test
 {
-    [TestFixture, Parallelizable(ParallelScope.None)]
+    [TestFixture, Parallelizable(ParallelScope.All)]
     public class EthereumRunnerTests
     {
         public static IEnumerable ChainSpecRunnerTests
         {
             get
             {
-                ISet<string> ignoredConfigs = new HashSet<string>()
+                string[] files = Directory.GetFiles("configs");
+                for (var index = 0; index < files.Length; index++)
                 {
-                };
-
-                foreach (var config in Directory.GetFiles("configs").Where(c => !ignoredConfigs.Contains(Path.GetFileName(c))))
-                {
-                    yield return new TestCaseData(config);
+                    var config = files[index];
+                    yield return new TestCaseData(config, index);
                 }
             }
         }
 
         [TestCaseSource(nameof(ChainSpecRunnerTests))]
-        // [Timeout(30000)] // just to make sure we are not on infinite loop on steps because of incorrect dependencies
-        public async Task Smoke(string chainSpecPath)
+        [Timeout(300000)] // just to make sure we are not on infinite loop on steps because of incorrect dependencies
+        public async Task Smoke(string chainSpecPath, int testIndex)
         {
-            Type type1 = typeof(ITxPoolConfig);
-            Type type2 = typeof(INetworkConfig);
-            Type type3 = typeof(IKeyStoreConfig);
-            Type type4 = typeof(IDbConfig);
-            Type type5 = typeof(IStatsConfig);
-            Type type6 = typeof(IKafkaConfig);
-            Type type7 = typeof(IEthStatsConfig);
-            Type type8 = typeof(ISyncConfig);
-            Type type9 = typeof(IBloomConfig);
-
-            var configProvider = new ConfigProvider();
-            configProvider.AddSource(new JsonConfigSource(chainSpecPath));
-
-            Console.WriteLine(type1.Name);
-            Console.WriteLine(type2.Name);
-            Console.WriteLine(type3.Name);
-            Console.WriteLine(type4.Name);
-            Console.WriteLine(type5.Name);
-            Console.WriteLine(type6.Name);
-            Console.WriteLine(type7.Name);
-            Console.WriteLine(type8.Name);
-            Console.WriteLine(type9.Name);
-
-            var tempPath = Path.Combine(Path.GetTempPath(), "test_" + Guid.NewGuid());
-            Directory.CreateDirectory(tempPath);
-
-            try
-            {
-                configProvider.GetConfig<IInitConfig>().BaseDbPath = tempPath;
-
-                EthereumRunner runner = new EthereumRunner(
-                    new RpcModuleProvider(new FileSystem(), new JsonRpcConfig(), LimboLogs.Instance),
-                    configProvider,
-                    TestLogManager.Instance,
-                    Substitute.For<IGrpcServer>(),
-                    Substitute.For<INdmConsumerChannelManager>(),
-                    Substitute.For<INdmDataPublisher>(),
-                    Substitute.For<INdmInitializer>(),
-                    Substitute.For<IWebSocketsManager>(),
-                    new EthereumJsonSerializer(),
-                    Substitute.For<IMonitoringService>());
-
-                await runner.Start(CancellationToken.None);
-                await runner.StopAsync();
-            }
-            finally
-            {
-                // rocks db still has a lock on a file called "LOCK".
-                Directory.Delete(tempPath, true);
-            }
+            await SmokeTest(chainSpecPath, testIndex, 30330);
         }
+        
         [TestCaseSource(nameof(ChainSpecRunnerTests))]
         [Timeout(30000)] // just to make sure we are not on infinite loop on steps because of incorrect dependencies
-        public async Task Smoke_cancel(string chainSpecPath)
+        public async Task Smoke_cancel(string chainSpecPath, int testIndex)
+        {
+            await SmokeTest(chainSpecPath, testIndex, 30430, true);
+        }
+
+        private static async Task SmokeTest(string chainSpecPath, int testIndex, int basePort, bool cancel = false)
         {
             Type type1 = typeof(ITxPoolConfig);
             Type type2 = typeof(INetworkConfig);
@@ -154,48 +99,77 @@ namespace Nethermind.Runner.Test
             Console.WriteLine(type8.Name);
             Console.WriteLine(type9.Name);
 
-            var tempPath = Path.Combine(Path.GetTempPath(), "test_" + Guid.NewGuid());
-            Directory.CreateDirectory(tempPath);
+            var tempPath = TempPath.GetTempDirectory();
+            Directory.CreateDirectory(tempPath.Path);
 
-            EthereumRunner runner = null;
+            Exception exception = null;
             try
             {
-                configProvider.GetConfig<IInitConfig>().BaseDbPath = tempPath;
+                IInitConfig initConfig = configProvider.GetConfig<IInitConfig>();
+                initConfig.BaseDbPath = tempPath.Path;
+                initConfig.ChainSpecPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, initConfig.ChainSpecPath);
 
-                runner = new EthereumRunner(
-                    new RpcModuleProvider(new FileSystem(), new JsonRpcConfig(), LimboLogs.Instance),
-                    configProvider,
-                    TestLogManager.Instance,
-                    Substitute.For<IGrpcServer>(),
-                    Substitute.For<INdmConsumerChannelManager>(),
-                    Substitute.For<INdmDataPublisher>(),
-                    Substitute.For<INdmInitializer>(),
-                    Substitute.For<IWebSocketsManager>(),
-                    new EthereumJsonSerializer(),
-                    Substitute.For<IMonitoringService>());
+                INetworkConfig networkConfig = configProvider.GetConfig<INetworkConfig>();
+                int port = basePort + testIndex;
+                networkConfig.P2PPort = port;
+                networkConfig.DiscoveryPort = port;
 
-                CancellationTokenSource cts = new CancellationTokenSource();
-                Task task = runner.Start(cts.Token);
-                cts.Cancel();
+                INethermindApi nethermindApi = new ApiBuilder(configProvider, TestLogManager.Instance).Create();
+                nethermindApi.RpcModuleProvider = new RpcModuleProvider(new FileSystem(), new JsonRpcConfig(), TestLogManager.Instance);
+                EthereumRunner runner = new EthereumRunner(nethermindApi);
 
-
+                using CancellationTokenSource cts = new CancellationTokenSource();
+                
                 try
                 {
+                    Task task = runner.Start(cts.Token);
+                    if (cancel)
+                    {
+                        cts.Cancel();
+                    }
+
                     await task;
                 }
                 catch (Exception e)
                 {
-                    if (!(e is OperationCanceledException))
+                    exception = e;
+                }
+                finally
+                {
+                    try
                     {
-                        throw new AssertionFailedException($"Exception should be {nameof(OperationCanceledException)}");
+                        await runner.StopAsync();
+                    }
+                    catch (Exception e)
+                    {
+                        if (exception != null)
+                        {
+                            await TestContext.Error.WriteLineAsync(e.ToString());
+                        }
+                        else
+                        {
+                            throw;
+                        }
                     }
                 }
             }
             finally
             {
-                await (runner?.StopAsync() ?? Task.CompletedTask);
-                // rocks db still has a lock on a file called "LOCK".
-                Directory.Delete(tempPath, true);
+                try
+                {
+                    tempPath.Dispose();
+                }
+                catch (Exception e)
+                {
+                    if (exception != null)
+                    {
+                        await TestContext.Error.WriteLineAsync(e.ToString());
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
             }
         }
     }

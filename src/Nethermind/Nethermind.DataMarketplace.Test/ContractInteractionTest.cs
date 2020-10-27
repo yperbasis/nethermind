@@ -127,7 +127,7 @@ namespace Nethermind.DataMarketplace.Test
             TxReceipt receipt = await DeployContract(Bytes.FromHexString(ContractData.GetInitCode(_feeAccount)));
             ((NdmConfig) _ndmConfig).ContractAddress = receipt.ContractAddress.ToString();
             _contractAddress = receipt.ContractAddress;
-            _txPool = new TxPool.TxPool(new InMemoryTxStorage(), Timestamper.Default,
+            _txPool = new TxPool.TxPool(new InMemoryTxStorage(),
                 new EthereumEcdsa(specProvider.ChainId, _logManager), specProvider, new TxPoolConfig(), _state, _logManager);
             _ndmBridge = new NdmBlockchainBridge(_bridge, _bridge, _bridge, _bridge);
         }
@@ -242,7 +242,7 @@ namespace Nethermind.DataMarketplace.Test
 
             public TxReceipt GetReceipt(Keccak txHash) => _receiptsTracer.TxReceipts.Single(r => r?.TxHash == txHash);
 
-            public Facade.BlockchainBridge.CallOutput Call(BlockHeader blockHeader, Transaction transaction)
+            public Facade.BlockchainBridge.CallOutput Call(BlockHeader blockHeader, Transaction transaction, CancellationToken cancellationToken)
             {
                 CallOutputTracer tracer = new CallOutputTracer();
                 _processor.Execute(transaction, Head?.Header, tracer);
@@ -256,7 +256,7 @@ namespace Nethermind.DataMarketplace.Test
 
             public long GetChainId()
             {
-                throw new NotImplementedException();
+                return 1;
             }
 
             public byte[] GetCode(Address address)
@@ -367,12 +367,17 @@ namespace Nethermind.DataMarketplace.Test
                 throw new NotImplementedException();
             }
 
-            public IEnumerable<FilterLog> GetLogs(BlockParameter fromBlock, BlockParameter toBlock, object address, IEnumerable<object> topics)
+            public IEnumerable<FilterLog> GetLogs(BlockParameter fromBlock, BlockParameter toBlock, object address, IEnumerable<object> topics = null, CancellationToken cancellationToken = default)
             {
                 throw new NotImplementedException();
             }
 
             public void RunTreeVisitor(ITreeVisitor treeVisitor, Keccak stateRoot)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IEnumerable<FilterLog> FindLogs(LogFilter filter, CancellationToken cancellationToken = default)
             {
                 throw new NotImplementedException();
             }

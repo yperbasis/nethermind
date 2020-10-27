@@ -14,33 +14,26 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
-using System;
-using System.IO;
 using System.IO.Abstractions;
 using System.Net;
-using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
+using Nethermind.Api;
 using Nethermind.Config;
-using Nethermind.Consensus;
-using Nethermind.Core;
 using Nethermind.Crypto;
 using Nethermind.KeyStore;
 using Nethermind.KeyStore.Config;
-using Nethermind.Logging;
-using Nethermind.Network;
 using Nethermind.Network.Config;
-using Nethermind.Runner.Ethereum.Api;
 using Nethermind.Wallet;
 
 namespace Nethermind.Runner.Ethereum.Steps
 {
-    [RunnerStepDependencies]
+    [RunnerStepDependencies(typeof(ResolveIps))]
     public class SetupKeyStore : IStep
     {
-        private readonly NethermindApi _api;
+        private readonly INethermindApi _api;
 
-        public SetupKeyStore(NethermindApi api)
+        public SetupKeyStore(INethermindApi api)
         {
             _api = api;
         }
@@ -62,7 +55,8 @@ namespace Nethermind.Runner.Ethereum.Steps
                     _api.EthereumJsonSerializer,
                     encrypter,
                     _api.CryptoRandom,
-                    _api.LogManager);
+                    _api.LogManager,
+                    new PrivateKeyStoreIOSettingsProvider(keyStoreConfig));
 
                 _api.Wallet = _api.Config<IInitConfig>() switch
                 {
@@ -71,9 +65,12 @@ namespace Nethermind.Runner.Ethereum.Steps
                     _ => new ProtectedKeyStoreWallet(_api.KeyStore, new ProtectedPrivateKeyFactory(_api.CryptoRandom, _api.Timestamper), _api.Timestamper, _api.LogManager),
                 };
 
-                new AccountUnlocker(keyStoreConfig, _api.Wallet, new FileSystem(), _api.LogManager).UnlockAccounts();
+                new AccountUnlocker(keyStoreConfig, _api.Wallet, _api.LogManager, new KeyStorePasswordProvider(keyStoreConfig)).UnlockAccounts();
 
-                INodeKeyManager nodeKeyManager = new NodeKeyManager(_api.CryptoRandom, _api.KeyStore, keyStoreConfig, _api.LogManager);
+                var passwordProvider = new KeyStorePasswordProvider(keyStoreConfig) { Account = keyStoreConfig.BlockAuthorAccount }
+                                        .OrReadFromConsole($"Provide password for validator account { keyStoreConfig.BlockAuthorAccount}");
+
+                INodeKeyManager nodeKeyManager = new NodeKeyManager(_api.CryptoRandom, _api.KeyStore, keyStoreConfig, _api.LogManager, passwordProvider);
                 _api.NodeKey = nodeKeyManager.LoadNodeKey();
                 _api.OriginalSignerKey = nodeKeyManager.LoadSignerKey();
                 _api.Enode = new Enode(_api.NodeKey.PublicKey, IPAddress.Parse(networkConfig.ExternalIp), networkConfig.P2PPort);

@@ -16,6 +16,7 @@
 
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Filters;
+using Nethermind.Blockchain.Find;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Blockchain.Receipts;
 using Nethermind.Core;
@@ -43,14 +44,12 @@ namespace Nethermind.DataMarketplace.Consumers.Test.Services.Deposits
             MemDbProvider memDbProvider = new MemDbProvider();
             StateReader stateReader = new StateReader(memDbProvider.StateDb, memDbProvider.CodeDb, LimboLogs.Instance);
             StateProvider stateProvider = new StateProvider(memDbProvider.StateDb, memDbProvider.CodeDb, LimboLogs.Instance);
-            StorageProvider storageProvider = new StorageProvider(memDbProvider.StateDb, stateProvider, LimboLogs.Instance);
             IEthereumEcdsa ecdsa = new EthereumEcdsa(ChainId.Mainnet, LimboLogs.Instance);
-            ITxPool txPool = new TxPool.TxPool(new InMemoryTxStorage(), Timestamper.Default, ecdsa, MainnetSpecProvider.Instance, new TxPoolConfig(), stateProvider, LimboLogs.Instance);
-            // BlockTree blockTree = new BlockTree(memDbProvider.BlocksDb, memDbProvider.HeadersDb, memDbProvider.BlockInfosDb, new ChainLevelInfoRepository(memDbProvider.BlockInfosDb), MainnetSpecProvider.Instance, txPool, NullBloomStorage.Instance, new SyncConfig(), LimboLogs.Instance);
+            ITxPool txPool = new TxPool.TxPool(new InMemoryTxStorage(), ecdsa, MainnetSpecProvider.Instance, new TxPoolConfig(), stateProvider, LimboLogs.Instance);
             BlockTree blockTree = Build.A.BlockTree().OfChainLength(1).TestObject;
             IWallet wallet = new DevWallet(new WalletConfig(), LimboLogs.Instance);
-            VirtualMachine virtualMachine = new VirtualMachine(stateProvider, storageProvider, new BlockhashProvider(blockTree, LimboLogs.Instance), MainnetSpecProvider.Instance, LimboLogs.Instance);
-            TransactionProcessor processor = new TransactionProcessor(MainnetSpecProvider.Instance, stateProvider, storageProvider, virtualMachine, LimboLogs.Instance);
+            ReceiptsRecovery receiptsRecovery = new ReceiptsRecovery(ecdsa, MainnetSpecProvider.Instance);
+            LogFinder logFinder = new LogFinder(blockTree, new InMemoryReceiptStorage(), NullBloomStorage.Instance, LimboLogs.Instance, receiptsRecovery, 1024);
 
             ReadOnlyTxProcessingEnv processingEnv = new ReadOnlyTxProcessingEnv(
                 new ReadOnlyDbProvider(memDbProvider, false),
@@ -63,12 +62,11 @@ namespace Nethermind.DataMarketplace.Consumers.Test.Services.Deposits
                 NullFilterStore.Instance,
                 NullFilterManager.Instance,
                 ecdsa,
-                NullBloomStorage.Instance,
                 Timestamper.Default,
-                LimboLogs.Instance,
+                logFinder,
                 false,
                 false);
-            
+
             WalletTxSigner txSigner = new WalletTxSigner(wallet, ChainId.Mainnet);
             ITxSealer txSealer0 = new TxSealer(txSigner, Timestamper.Default);
             ITxSealer txSealer1 = new NonceReservingTxSealer(txSigner, Timestamper.Default, txPool);

@@ -16,6 +16,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nethermind.Blockchain;
@@ -49,6 +50,13 @@ namespace Nethermind.JsonRpc.Test.Modules
         {
             _test = await TestRpcBlockchain.ForTest(SealEngineType.NethDev).Build();
             _auraTest = await TestRpcBlockchain.ForTest(SealEngineType.AuRa).Build();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            _test.Dispose();
+            _auraTest.Dispose();
         }
 
         [TestCase("earliest", "0x3635c9adc5dea00000")]
@@ -273,7 +281,7 @@ namespace Nethermind.JsonRpc.Test.Modules
         public async Task Eth_get_logs(string parameter)
         {
             IBlockchainBridge bridge = Substitute.For<IBlockchainBridge>();
-            bridge.GetLogs(Arg.Any<BlockParameter>(), Arg.Any<BlockParameter>(), Arg.Any<object>(), Arg.Any<IEnumerable<object>>()).Returns(new[] {new FilterLog(1, 0, 1, TestItem.KeccakA, 1, TestItem.KeccakB, TestItem.AddressA, new byte[] {1, 2, 3}, new[] {TestItem.KeccakC, TestItem.KeccakD})});
+            bridge.GetLogs(Arg.Any<BlockParameter>(), Arg.Any<BlockParameter>(), Arg.Any<object>(), Arg.Any<IEnumerable<object>>(), Arg.Any<CancellationToken>()).Returns(new[] {new FilterLog(1, 0, 1, TestItem.KeccakA, 1, TestItem.KeccakB, TestItem.AddressA, new byte[] {1, 2, 3}, new[] {TestItem.KeccakC, TestItem.KeccakD})});
             bridge.FilterExists(1).Returns(true);
 
             _test = await TestRpcBlockchain.ForTest(SealEngineType.NethDev).WithBlockchainBridge(bridge).Build();
