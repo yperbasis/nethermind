@@ -57,6 +57,10 @@ namespace Nethermind.DataMarketplace.Consumers.Deposits.Services
                 return;
             }
 
+            NdmTransaction? transactionDetails = null;
+            uint confirmationTimestamp = 0u;
+            uint confirmations = 0u;
+            bool confirmed = false;
             TransactionInfo includedTransaction = deposit.Transactions.SingleOrDefault(t => t.State == TransactionState.Included);
             IOrderedEnumerable<TransactionInfo> pendingTransactions = deposit.Transactions
                 .Where(t => t.State == TransactionState.Pending)
@@ -74,7 +78,6 @@ namespace Nethermind.DataMarketplace.Consumers.Deposits.Services
                         if (_logger.IsInfo) _logger.Info($"Transaction was not found for hash: '{null}' for deposit: '{deposit.Id}' to be confirmed.");
                         continue;
                     }
-                    
 
                     deposit.SetIncludedTransaction(transactionHash);
                     if (_logger.IsInfo) _logger.Info($"Transaction with hash: '{transactionHash}', type: '{transaction.Type}' for deposit: '{deposit.Id}' was included into block: {blockHash}.");
@@ -87,24 +90,44 @@ namespace Nethermind.DataMarketplace.Consumers.Deposits.Services
             {
                 return;
             }
-            // else
-            // {
-            //     transactionDetails = includedTransaction.Hash == null ? null : await _blockchainBridge.GetTransactionAsync(includedTransaction.Hash);
-            //     if (transactionDetails is null)
-            //     {
-            //         if (_logger.IsWarn) _logger.Warn($"Transaction (set as included) was not found for hash: '{includedTransaction.Hash}' for deposit: '{deposit.Id}'.");
-            //         return;
-            //     }
-            // }
+            else
+            {
+                transactionDetails = includedTransaction.Hash == null ? null : await _blockchainBridge.GetTransactionAsync(includedTransaction.Hash);
+                if (transactionDetails is null)
+                {
+                    confirmationTimestamp = await _depositService.VerifyDepositAsync(deposit.Consumer, deposit.Id, blockHash);
+
+                    if (confirmationTimestamp > 0)
+                    {
+                        if (deposit.ConfirmationTimestamp == 0)
+                        {
+                            deposit.SetConfirmationTimestamp(confirmationTimestamp);
+                            await _depositRepository.UpdateAsync(deposit);
+                        }
+                
+                        confirmed = true;
+                        confirmations = _requiredBlockConfirmations;
+                        deposit.SetConfirmations(confirmations);
+                        await _depositRepository.UpdateAsync(deposit);
+                        
+                        await _consumerNotifier.SendDepositConfirmationsStatusAsync(deposit.Id, deposit.DataAsset.Name,
+                            confirmations, _requiredBlockConfirmations, confirmationTimestamp, confirmed);
+                        return;
+                    }
+
+                    if (_logger.IsWarn) _logger.Warn($"Transaction (set as included) was not found for hash: '{includedTransaction.Hash}' for deposit: '{deposit.Id}'.");
+                    return;
+                }
+            }
 
             if (includedTransaction is null)
             {
                 return;
             }
             
-            var confirmationTimestamp = await _depositService.VerifyDepositAsync(deposit.Consumer, deposit.Id, blockHash);
-            uint confirmations = 0u;
-            bool confirmed = false;
+            confirmationTimestamp = await _depositService.VerifyDepositAsync(deposit.Consumer, deposit.Id, blockHash);
+            confirmations = 0u;
+            confirmed = false;
             if (confirmationTimestamp > 0)
             {
                 if (deposit.ConfirmationTimestamp == 0)
@@ -128,10 +151,10 @@ namespace Nethermind.DataMarketplace.Consumers.Deposits.Services
 
             // if (_logger.IsInfo) _logger.Info($"Deposit: '{deposit.Id}' has {confirmations} confirmations (required at least {_requiredBlockConfirmations}) for transaction hash: '{includedTransaction.Hash}' to be confirmed.");
             // bool confirmed = confirmations >= _requiredBlockConfirmations;
-            // if (confirmed)
-            // {
-            //     if (_logger.IsInfo) _logger.Info($"Deposit with id: '{deposit.Deposit.Id}' has been confirmed.");
-            // }
+            if (confirmed)
+            {
+                if (_logger.IsInfo) _logger.Info($"Deposit with id: '{deposit.Deposit.Id}' has been confirmed.");
+            }
 
             await _consumerNotifier.SendDepositConfirmationsStatusAsync(deposit.Id, deposit.DataAsset.Name,
                 confirmations, _requiredBlockConfirmations, confirmationTimestamp, confirmed);

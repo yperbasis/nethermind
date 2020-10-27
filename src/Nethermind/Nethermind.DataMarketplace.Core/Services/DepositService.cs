@@ -106,40 +106,38 @@ namespace Nethermind.DataMarketplace.Core.Services
             };
             // check  
             _wallet.Sign(transaction, await _blockchainBridge.GetNetworkIdAsync());
-            
-            var transactionHash = await Policy.Handle<Exception>()
-                .WaitAndRetryForeverAsync(retryAttempt => TimeSpan.FromSeconds(1))
-                .ExecuteAsync(async () => await _blockchainBridge.SendOwnTransactionAsync(transaction));
 
-            return transactionHash;
+            try
+            {
+                return await Policy.Handle<Exception>()
+                    .WaitAndRetryAsync(10, retryAttempt => TimeSpan.FromSeconds(1))
+                    .ExecuteAsync(async () => await _blockchainBridge.SendOwnTransactionAsync(transaction));
+            }
+            catch
+            {
+                return null;
+            }
         }
 
-        public async Task<uint> VerifyDepositAsync(Address onBehalfOf, Keccak depositId)
+        public async Task<uint> VerifyDepositAsync(Address onBehalfOf, Keccak depositId, Keccak? blockHash = null)
         {
-            //do testow
-            var transaction = await BuildVerifyDepositCallTransaction(onBehalfOf, depositId);
+            var policy = Policy.Handle<Exception>()
+                .WaitAndRetryForeverAsync(retryAttempt => TimeSpan.FromSeconds(1));
             
-            var data = await Policy.Handle<Exception>()
-                .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(2))
-                .ExecuteAsync(async () => await _blockchainBridge.CallAsync(transaction));
-            
-            return data.AsSpan().ReadEthUInt32();
-        }
-
-        public async Task<uint> VerifyDepositAsync(Address onBehalfOf, Keccak depositId, Keccak blockHash)
-        {
             var transaction = await BuildVerifyDepositCallTransaction(onBehalfOf, depositId);
             byte[] data;
-            do
-            { 
-                data = await Policy.Handle<Exception>()
-                    .WaitAndRetryForeverAsync(retryAttempt => TimeSpan.FromSeconds(1))
-                    .ExecuteAsync(async () => await _blockchainBridge.CallAsync(transaction, blockHash));
-            } while (data.Length == 0);
             
+            do
+            {
+                data = await policy.ExecuteAsync(async () =>
+                    blockHash is null
+                        ? await _blockchainBridge.CallAsync(transaction)
+                        : await _blockchainBridge.CallAsync(transaction, blockHash));
+            } while (data.Length == 0);
+
             return data.AsSpan().ReadEthUInt32();
         }
-    
+
         private async Task<Transaction> BuildVerifyDepositCallTransaction(Address onBehalfOf, Keccak depositId)
             => new Transaction
             {
