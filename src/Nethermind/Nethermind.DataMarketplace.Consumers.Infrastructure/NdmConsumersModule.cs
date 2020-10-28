@@ -249,10 +249,6 @@ namespace Nethermind.DataMarketplace.Consumers.Infrastructure
                 dataConsumerService, dataStreamService, depositManager, depositApprovalService, providerService,
                 receiptService, refundService, sessionService, proxyService);
 
-            ConsumerTransactionsService consumerTransactionsService = new ConsumerTransactionsService(
-                transactionService, depositRepository,
-                timestamper, logManager);
-
             ConsumerGasLimitsService gasLimitService = new ConsumerGasLimitsService(depositService, refundService);
 
             BackgroundDepositService backgroundDepositService =
