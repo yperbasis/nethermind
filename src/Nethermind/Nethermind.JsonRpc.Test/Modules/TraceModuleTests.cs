@@ -86,7 +86,7 @@ namespace Nethermind.JsonRpc.Test.Modules
             _stateProvider.Commit(specProvider.GenesisSpec);
             _stateProvider.CommitTree();
 
-            ITxPool txPool = new TxPool.TxPool(txStorage, Timestamper.Default, ethereumEcdsa, specProvider, new TxPoolConfig(), _stateProvider, LimboLogs.Instance);
+            ITxPool txPool = new TxPool.TxPool(txStorage, ethereumEcdsa, specProvider, new TxPoolConfig(), _stateProvider, LimboLogs.Instance);
             IChainLevelInfoRepository chainLevels = new ChainLevelInfoRepository(dbProvider);
             IBlockTree blockTree = new BlockTree(dbProvider, chainLevels, specProvider, txPool, NullBloomStorage.Instance, LimboLogs.Instance);
 
@@ -106,7 +106,7 @@ namespace Nethermind.JsonRpc.Test.Modules
                 receiptStorage,
                 LimboLogs.Instance);
 
-            var signatureRecovery = new TxSignaturesRecoveryStep(ethereumEcdsa, txPool, LimboLogs.Instance);
+            var signatureRecovery = new TxSignaturesRecoveryStep(ethereumEcdsa, txPool, specProvider, LimboLogs.Instance);
             BlockchainProcessor blockchainProcessor = new BlockchainProcessor(blockTree, blockProcessor, signatureRecovery, LimboLogs.Instance, BlockchainProcessor.Options.Default);
             
             blockchainProcessor.Start();
@@ -150,7 +150,7 @@ namespace Nethermind.JsonRpc.Test.Modules
                 previousBlock = block;
             }
 
-            IReceiptsRecovery receiptsRecovery = new ReceiptsRecovery();
+            ReceiptsRecovery receiptsRecovery = new ReceiptsRecovery(new EthereumEcdsa(specProvider.ChainId, LimboLogs.Instance), specProvider);
             IReceiptFinder receiptFinder = new FullInfoReceiptFinder(receiptStorage, receiptsRecovery, blockTree);
 
             resetEvent.Wait(2000);
@@ -171,12 +171,12 @@ namespace Nethermind.JsonRpc.Test.Modules
         [Test]
         public void trace_timeout_is_separate_for_rpc_calls()
         {
-            _jsonRpcConfig.TracerTimeout = 25;
+            _jsonRpcConfig.Timeout = 25;
             
             var searchParameter = new BlockParameter(number: 0); 
             Assert.DoesNotThrow(() => _traceModule.trace_block(searchParameter)); 
 
-            Thread.Sleep(_jsonRpcConfig.TracerTimeout + 25); //additional second just to show that in this time span timeout should occur if given one for whole class 
+            Thread.Sleep(_jsonRpcConfig.Timeout + 25); //additional second just to show that in this time span timeout should occur if given one for whole class 
 
             Assert.DoesNotThrow(() => _traceModule.trace_block(searchParameter));
         }

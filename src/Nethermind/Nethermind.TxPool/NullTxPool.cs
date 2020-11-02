@@ -15,18 +15,13 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Int256;
 
 namespace Nethermind.TxPool
 {
-    public interface ITxPoolPeer
-    {
-        public PublicKey Id { get; }
-        void SendNewTransaction(Transaction tx, bool isPriority);
-    }
-    
     public class NullTxPool : ITxPool
     {
         private NullTxPool()
@@ -38,6 +33,7 @@ namespace Nethermind.TxPool
         public Transaction[] GetPendingTransactions() => Array.Empty<Transaction>();
         
         public Transaction[] GetOwnPendingTransactions() => Array.Empty<Transaction>();
+        public IDictionary<Address, Transaction[]> GetPendingTransactionsBySender() => new Dictionary<Address, Transaction[]>();
 
         public void AddPeer(ITxPoolPeer peer)
         {
@@ -60,6 +56,11 @@ namespace Nethermind.TxPool
         }
         
         public UInt256 ReserveOwnTransactionNonce(Address address) => UInt256.Zero;
+        public event EventHandler<TxEventArgs> NewDiscovered        
+        {
+            add { }
+            remove { }
+        }
 
         public event EventHandler<TxEventArgs> NewPending
         {

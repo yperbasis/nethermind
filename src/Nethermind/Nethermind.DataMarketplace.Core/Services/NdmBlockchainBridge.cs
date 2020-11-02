@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Find;
 using Nethermind.Core;
@@ -48,7 +49,7 @@ namespace Nethermind.DataMarketplace.Core.Services
 
         public Task<long> GetLatestBlockNumberAsync()
         {
-            var head = _blockTree.Head;
+            var head = _blockchainBridge.BeamHead;
             return head is null ? Task.FromResult(0L) : Task.FromResult(head.Number);
         }
 
@@ -68,7 +69,7 @@ namespace Nethermind.DataMarketplace.Core.Services
 
         public Task<Block?> GetLatestBlockAsync()
         {
-            Block head = _blockTree.Head;
+            Block head = _blockchainBridge.BeamHead;
             return head is null
                 ? Task.FromResult<Block?>(null)
                 : Task.FromResult<Block?>(_blockTree.FindBlock(head.Hash));
@@ -76,7 +77,7 @@ namespace Nethermind.DataMarketplace.Core.Services
 
         public Task<UInt256> GetNonceAsync(Address address)
         {
-            return Task.FromResult(_stateReader.GetNonce(_blockTree.Head.StateRoot, address));   
+            return Task.FromResult(_stateReader.GetNonce(_blockchainBridge.BeamHead.StateRoot, address));   
         }
 
         public Task<NdmTransaction?> GetTransactionAsync(Keccak transactionHash)
@@ -93,11 +94,11 @@ namespace Nethermind.DataMarketplace.Core.Services
                 receipt?.BlockHash, receipt?.GasUsed ?? 0));
         }
 
-        public Task<int> GetNetworkIdAsync() => Task.FromResult(_blockchainBridge.GetNetworkId());
+        public Task<long> GetNetworkIdAsync() => Task.FromResult(_blockchainBridge.GetChainId());
 
         public Task<byte[]> CallAsync(Transaction transaction)
         {
-            var callOutput = _blockchainBridge.Call(_blockTree.Head?.Header, transaction);
+            var callOutput = _blockchainBridge.Call(_blockchainBridge.BeamHead?.Header, transaction, CancellationToken.None);
             return Task.FromResult(callOutput.OutputData ?? new byte[] {0});
         }
 
@@ -109,7 +110,7 @@ namespace Nethermind.DataMarketplace.Core.Services
                 return Task.FromResult(Array.Empty<byte>());
             }
 
-            var callOutput = _blockchainBridge.Call(block.Header, transaction);
+            var callOutput = _blockchainBridge.Call(block.Header, transaction, CancellationToken.None);
 
             return Task.FromResult(callOutput.OutputData ?? new byte[] {0});
         }

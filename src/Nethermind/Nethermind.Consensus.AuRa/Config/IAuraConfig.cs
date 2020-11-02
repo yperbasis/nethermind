@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using Nethermind.Config;
+using Nethermind.Core;
 
 namespace Nethermind.Consensus.AuRa.Config
 {
@@ -28,5 +29,16 @@ namespace Nethermind.Consensus.AuRa.Config
         
         [ConfigItem(Description = "If 'true' then when using BlockGasLimitContractTransitions if the contract returns less than 2mln gas, then 2 mln gas is used.", DefaultValue = "false")]
         bool Minimum2MlnGasPerBlockWhenUsingBlockGasLimitContract { get; set; }
+        
+        [ConfigItem(Description = "If set then transaction priority contract is used when selecting transactions from transaction pool. " +
+                                  "See more at https://github.com/poanetwork/posdao-contracts/blob/master/contracts/TxPriority.sol",
+            DefaultValue = "null")]
+        
+        string TxPriorityContractAddress { get; set; }
+
+        [ConfigItem(Description = "If set then transaction priority rules are used when selecting transactions from transaction pool. This has higher priority then on chain contract rules. " +
+                                  "See more at contract details https://github.com/poanetwork/posdao-contracts/blob/master/contracts/TxPriority.sol",
+            DefaultValue = "null")]
+        string TxPriorityConfigFilePath { get; set; }
     }
 }

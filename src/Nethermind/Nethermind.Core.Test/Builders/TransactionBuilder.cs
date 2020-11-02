@@ -22,7 +22,7 @@ using Nethermind.Logging;
 
 namespace Nethermind.Core.Test.Builders
 {
-    public class TransactionBuilder<T> : BuilderBase<Transaction> where T : Transaction, new()
+    public class TransactionBuilder<T> : BuilderBase<T> where T : Transaction, new()
     {   
         public TransactionBuilder()
         {
@@ -103,6 +103,12 @@ namespace Nethermind.Core.Test.Builders
         public TransactionBuilder<T> WithSenderAddress(Address address)
         {
             TestObjectInternal.SenderAddress = address;
+            return this;
+        }
+        
+        public TransactionBuilder<T> WithSignature(Signature signature)
+        {
+            TestObjectInternal.Signature = signature;
             return this;
         }
         

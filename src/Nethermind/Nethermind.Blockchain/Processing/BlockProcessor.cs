@@ -33,6 +33,7 @@ using Nethermind.Specs.Forks;
 using Nethermind.State;
 using Nethermind.State.Proofs;
 using Nethermind.TxPool;
+using Org.BouncyCastle.Asn1;
 
 namespace Nethermind.Blockchain.Processing
 {
@@ -104,13 +105,14 @@ namespace Nethermind.Blockchain.Processing
             {
                 for (int i = 0; i < suggestedBlocks.Count; i++)
                 {
-                    processedBlocks[i] = ProcessOne(suggestedBlocks[i], options, blockTracer);
+                    var (processedBlock, receipts) = ProcessOne(suggestedBlocks[i], options, blockTracer);
+                    processedBlocks[i] = processedBlock;
 
                     // be cautious here as AuRa depends on processing
                     PreCommitBlock(newBranchStateRoot); // only needed if we plan to read state root?
                     if (!readOnly)
                     {
-                        BlockProcessed?.Invoke(this, new BlockProcessedEventArgs(processedBlocks[i]));
+                        BlockProcessed?.Invoke(this, new BlockProcessedEventArgs(processedBlock, receipts));
                     }
                 }
 
@@ -208,7 +210,7 @@ namespace Nethermind.Blockchain.Processing
             return _receiptsTracer.TxReceipts;
         }
 
-        private Block ProcessOne(Block suggestedBlock, ProcessingOptions options, IBlockTracer blockTracer)
+        private (Block Block, TxReceipt[] Receipts) ProcessOne(Block suggestedBlock, ProcessingOptions options, IBlockTracer blockTracer)
         {
             ApplyDaoTransition(suggestedBlock);
             Block block = PrepareBlockForProcessing(suggestedBlock);
@@ -219,7 +221,7 @@ namespace Nethermind.Blockchain.Processing
                 StoreTxReceipts(block, receipts);
             }
 
-            return block;
+            return (block, receipts);
         }
 
         private void ValidateProcessedBlock(Block suggestedBlock, ProcessingOptions options, Block block, TxReceipt[] receipts)
@@ -233,22 +235,19 @@ namespace Nethermind.Blockchain.Processing
 
         protected virtual TxReceipt[] ProcessBlock(Block block, IBlockTracer blockTracer, ProcessingOptions options)
         {
+            IReleaseSpec releaseSpec = _specProvider.GetSpec(block.Number);
             TxReceipt[] receipts = ProcessTransactions(block, options, blockTracer);
-            SetReceiptsRoot(block, receipts);
+            
+            block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(releaseSpec, block.ReceiptsRoot);
             ApplyMinerRewards(block, blockTracer);
 
-            _stateProvider.Commit(_specProvider.GetSpec(block.Number));
+            _stateProvider.Commit(releaseSpec);
             _stateProvider.RecalculateStateRoot();
+            
             block.Header.StateRoot = _stateProvider.StateRoot;
             block.Header.Hash = block.Header.CalculateHash();
 
             return receipts;
-        }
-
-        private void SetReceiptsRoot(Block block, TxReceipt[] txReceipts)
-        {
-            ReceiptTrie receiptTrie = new ReceiptTrie(block.Number, _specProvider, txReceipts);
-            block.Header.ReceiptsRoot = receiptTrie.RootHash;
         }
 
         private void StoreTxReceipts(Block block, TxReceipt[] txReceipts)
@@ -283,7 +282,8 @@ namespace Nethermind.Blockchain.Processing
                 TxRoot = bh.TxRoot,
                 TotalDifficulty = bh.TotalDifficulty,
                 AuRaStep = bh.AuRaStep,
-                AuRaSignature = bh.AuRaSignature
+                AuRaSignature = bh.AuRaSignature,
+                ReceiptsRoot = bh.ReceiptsRoot
             };
 
             return new Block(header, suggestedBlock.Transactions, suggestedBlock.Ommers);

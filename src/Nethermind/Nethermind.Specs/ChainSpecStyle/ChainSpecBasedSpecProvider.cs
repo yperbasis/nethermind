@@ -18,7 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Int256;
 
@@ -92,7 +91,7 @@ namespace Nethermind.Specs.ChainSpecStyle
             foreach (long releaseStartBlock in transitionBlocks)
             {
                 ReleaseSpec releaseSpec = new ReleaseSpec();
-                releaseSpec.MaximumUncleCount = (_chainSpec.AuRa?.MaximumUncleCountTransition ?? long.MaxValue) >= releaseStartBlock ? _chainSpec.AuRa?.MaximumUncleCount ?? 2 : 2; 
+                releaseSpec.MaximumUncleCount = (int) (releaseStartBlock >= (_chainSpec.AuRa?.MaximumUncleCountTransition ?? long.MaxValue) ? _chainSpec.AuRa?.MaximumUncleCount ?? 2 : 2); 
                 releaseSpec.IsTimeAdjustmentPostOlympic = true; // TODO: this is Duration, review
                 releaseSpec.MaximumExtraDataSize = _chainSpec.Parameters.MaximumExtraDataSize;
                 releaseSpec.MinGasLimit = _chainSpec.Parameters.MinGasLimit;
@@ -126,6 +125,8 @@ namespace Nethermind.Specs.ChainSpecStyle
                 releaseSpec.IsEip1884Enabled = (_chainSpec.Parameters.Eip1884Transition ?? long.MaxValue) <= releaseStartBlock;
                 releaseSpec.IsEip2028Enabled = (_chainSpec.Parameters.Eip2028Transition ?? long.MaxValue) <= releaseStartBlock;
                 releaseSpec.IsEip2200Enabled = (_chainSpec.Parameters.Eip2200Transition ?? long.MaxValue) <= releaseStartBlock || (_chainSpec.Parameters.Eip1706Transition ?? long.MaxValue) <= releaseStartBlock && releaseSpec.IsEip1283Enabled;
+                releaseSpec.ValidateChainId = (_chainSpec.Parameters.ValidateChainIdTransition ?? 0) <= releaseStartBlock; 
+                releaseSpec.ValidateReceipts = ((_chainSpec.Parameters.ValidateReceiptsTransition > 0) ? Math.Max(_chainSpec.Parameters.ValidateReceiptsTransition ?? 0, _chainSpec.Parameters.Eip658Transition ?? 0) : 0) <= releaseStartBlock;
                 
                 if (_chainSpec.Ethash != null)
                 {

@@ -27,9 +27,7 @@ using Nethermind.Crypto;
 using Nethermind.Int256;
 using Nethermind.Evm;
 using Nethermind.Evm.Tracing;
-using Nethermind.Logging;
 using Nethermind.State;
-using Nethermind.Db.Blooms;
 using Nethermind.Trie;
 using Nethermind.TxPool;
 using Block = Nethermind.Core.Block;
@@ -38,6 +36,11 @@ using Nethermind.Blockchain.Processing;
 
 namespace Nethermind.Facade
 {
+    public interface IBlockchainBridgeFactory
+    {
+        IBlockchainBridge CreateBlockchainBridge();
+    }
+    
     [Todo(Improve.Refactor, "I want to remove BlockchainBridge, split it into something with logging, state and tx processing. Then we can start using independent modules.")]
     public class BlockchainBridge : IBlockchainBridge
     {
@@ -48,6 +51,7 @@ namespace Nethermind.Facade
         private readonly IStateReader _stateReader;
         private readonly IEthereumEcdsa _ecdsa;
         private readonly ITimestamper _timestamper;
+        private readonly bool _isBeamSyncing;
         private readonly IFilterManager _filterManager;
         private readonly IStateProvider _stateProvider;
         private readonly IReceiptFinder _receiptFinder;
@@ -61,40 +65,49 @@ namespace Nethermind.Facade
             IFilterStore filterStore,
             IFilterManager filterManager,
             IEthereumEcdsa ecdsa,
-            IBloomStorage bloomStorage,
             ITimestamper timestamper,
-            ILogManager logManager,
+            ILogFinder logFinder,
             bool isMining,
-            int findLogBlockDepthLimit = 1000,
-            CancellationToken cancellationToken = default(CancellationToken))
+            bool isBeamSyncing)
         {
             _processingEnv = processingEnv ?? throw new ArgumentNullException(nameof(processingEnv));
             _stateReader = processingEnv.StateReader ?? throw new ArgumentNullException(nameof(processingEnv.StateReader));
             _stateProvider = processingEnv.StateProvider ?? throw new ArgumentNullException(nameof(processingEnv.StateProvider));
             _blockTree = processingEnv.BlockTree ?? throw new ArgumentNullException(nameof(processingEnv.BlockTree));
-            _transactionProcessor = processingEnv.TransactionProcessor ?? throw new ArgumentException(nameof(processingEnv.TransactionProcessor));
+            _transactionProcessor = processingEnv.TransactionProcessor ?? throw new ArgumentNullException(nameof(processingEnv.TransactionProcessor));
             _txPool = txPool ?? throw new ArgumentNullException(nameof(_txPool));
             _receiptFinder = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
-            _filterStore = filterStore ?? throw new ArgumentException(nameof(filterStore));
-            _filterManager = filterManager ?? throw new ArgumentException(nameof(filterManager));
+            _filterStore = filterStore ?? throw new ArgumentNullException(nameof(filterStore));
+            _filterManager = filterManager ?? throw new ArgumentNullException(nameof(filterManager));
             _ecdsa = ecdsa ?? throw new ArgumentNullException(nameof(ecdsa));
             _timestamper = timestamper ?? throw new ArgumentNullException(nameof(timestamper));
+            _logFinder = logFinder ?? throw new ArgumentNullException(nameof(logFinder));
+            _isBeamSyncing = isBeamSyncing;
             IsMining = isMining;
-            _logFinder = new LogFinder(_blockTree, _receiptFinder, bloomStorage, logManager, new ReceiptsRecovery(), findLogBlockDepthLimit);
         }
         
         public Block BeamHead
         {
             get
             {
-                bool headIsGenesis = _blockTree.Head?.IsGenesis ?? false;
+                Block result;
+                if (_isBeamSyncing)
+                {
+                    bool headIsGenesis = _blockTree.Head?.IsGenesis ?? false;
 
-                /*
-                 * when we are in the process of synchronising state
-                 * head remains Genesis block
-                 * and we want to allow users to use the API
-                 */
-                return headIsGenesis ? _blockTree.BestSuggestedBody : _blockTree.Head;
+                    /*
+                     * when we are in the process of synchronising state in beam sync
+                     * head remains Genesis block
+                     * and we want to allow users to use the API
+                     */
+                    result = headIsGenesis ? _blockTree.BestSuggestedBody : _blockTree.Head;
+                }
+                else
+                {
+                    result = _blockTree.Head;    
+                }
+                
+                return result;
             }
         }
 
@@ -144,10 +157,17 @@ namespace Nethermind.Facade
             public long GasSpent { get; set; }
         }
 
-        public CallOutput Call(BlockHeader blockHeader, Transaction transaction)
+        public CallOutput Call(BlockHeader blockHeader, Transaction transaction, CancellationToken cancellationToken)
         {
             CallOutputTracer callOutputTracer = new CallOutputTracer();
-            CallAndRestore(blockHeader, blockHeader.Number, blockHeader.Timestamp,  transaction, callOutputTracer);
+            CallAndRestore(blockHeader, blockHeader.Number, blockHeader.Timestamp, transaction,
+                new CancellationTxTracer(callOutputTracer, cancellationToken)
+                {
+                    IsTracingActions = true, 
+                    IsTracingOpLevelStorage = true,
+                    IsTracingInstructions = true, // a little bit costly but almost all are simple calls
+                    IsTracingRefunds = true
+                });
             return new CallOutput
             {
                 Error = callOutputTracer.Error,
@@ -158,13 +178,13 @@ namespace Nethermind.Facade
 
         public CallOutput EstimateGas(BlockHeader header, Transaction tx, CancellationToken cancellationToken)
         {
-            EstimateGasTracer estimateGasTracer = new EstimateGasTracer(cancellationToken);
+            EstimateGasTracer estimateGasTracer = new EstimateGasTracer();
             CallAndRestore(
                 header,
                 header.Number + 1,
                 UInt256.Max(header.Timestamp + 1, _timestamper.EpochSeconds),
                 tx,
-                estimateGasTracer);
+                estimateGasTracer.WithCancellation(cancellationToken));
             
             long estimate = estimateGasTracer.CalculateEstimate(tx);
             return new CallOutput {Error = estimateGasTracer.Error, GasSpent = estimate};
@@ -224,11 +244,15 @@ namespace Nethermind.Facade
         public FilterType GetFilterType(int filterId) => _filterStore.GetFilterType(filterId);
         public FilterLog[] GetFilterLogs(int filterId) => _filterManager.GetLogs(filterId);
 
-        public IEnumerable<FilterLog> GetLogs(BlockParameter fromBlock, BlockParameter toBlock, object address = null,
-            IEnumerable<object> topics = null)
+        public IEnumerable<FilterLog> GetLogs(
+            BlockParameter fromBlock, 
+            BlockParameter toBlock, 
+            object address = null,
+            IEnumerable<object> topics = null, 
+            CancellationToken cancellationToken = default)
         {
             LogFilter filter = _filterStore.CreateLogFilter(fromBlock, toBlock, address, topics, false);
-            return _logFinder.FindLogs(filter);
+            return _logFinder.FindLogs(filter, cancellationToken);
         }
 
         public int NewFilter(BlockParameter fromBlock, BlockParameter toBlock,
@@ -280,6 +304,11 @@ namespace Nethermind.Facade
         public void RunTreeVisitor(ITreeVisitor treeVisitor, Keccak stateRoot)
         {
             _stateReader.RunTreeVisitor(treeVisitor, stateRoot);
+        }
+
+        public IEnumerable<FilterLog> FindLogs(LogFilter filter, CancellationToken cancellationToken = default)
+        {
+            return _logFinder.FindLogs(filter, cancellationToken);
         }
     }
 }

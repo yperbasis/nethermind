@@ -7,7 +7,6 @@
     <ItemGroup>
         <ProjectReference Include="..\Nethermind.Abi\Nethermind.Abi.csproj" />
         <ProjectReference Include="..\Nethermind.Blockchain\Nethermind.Blockchain.csproj" />
-        <ProjectReference Include="..\Nethermind.Consensus.Ethash\Nethermind.Consensus.Ethash.csproj" />
         <ProjectReference Include="..\Nethermind.Facade\Nethermind.Facade.csproj" />
         <ProjectReference Include="..\Nethermind.Specs\Nethermind.Specs.csproj" />
         <ProjectReference Include="..\Nethermind.Synchronization\Nethermind.Synchronization.csproj" />
@@ -31,6 +30,7 @@
         <EmbeddedResource Include="Contracts\RegisterContract.json" />
         <EmbeddedResource Include="Contracts\ReportingValidatorContract.json" />
         <EmbeddedResource Include="Contracts\RewardContract.json" />
+        <EmbeddedResource Include="Contracts\TxPriorityContract.json" />
         <EmbeddedResource Include="Contracts\ValidatorContract.json" />
         <EmbeddedResource Include="Contracts\TransactionPermissionContractV1.json" />
         <EmbeddedResource Include="Contracts\TransactionPermissionContractV2.json" />

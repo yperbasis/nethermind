@@ -19,12 +19,13 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Nethermind.Baseline.Tree;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Db;
 using Nethermind.Trie;
 using NUnit.Framework;
-using Index = Nethermind.Baseline.BaselineTree.Index;
+using Index = Nethermind.Baseline.Tree.BaselineTree.Index;
 
 namespace Nethermind.Baseline.Test
 {
@@ -346,7 +347,7 @@ namespace Nethermind.Baseline.Test
                 baselineTree.Insert(_testLeaves[0]);
                 Keccak newRoot = baselineTree.Root;
                 Console.WriteLine(newRoot);
-                newRoot.Should().NotBeEquivalentTo(root);
+                newRoot.Should().NotBe(root);
                 root = newRoot;
             }
         }
@@ -365,7 +366,7 @@ namespace Nethermind.Baseline.Test
                 baselineTree.Insert(_testLeaves[i]);
                 Keccak newRoot = baselineTree.Root;
                 Console.WriteLine(newRoot);
-                newRoot.Should().NotBeEquivalentTo(root);
+                newRoot.Should().NotBe(root);
                 root = newRoot;
                 var proof0 = baselineTree.GetProof(0);
                 var proof1 = baselineTree.GetProof(1);

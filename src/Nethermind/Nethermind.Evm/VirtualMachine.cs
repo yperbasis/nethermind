@@ -278,7 +278,7 @@ namespace Nethermind.Evm
                                 // parity induced if else for vmtrace
                                 if (_txTracer.IsTracingInstructions)
                                 {
-                                    _txTracer.ReportMemoryChange((long) previousCallOutputDestination, previousCallOutput.ToArray());
+                                    _txTracer.ReportMemoryChange((long) previousCallOutputDestination, previousCallOutput);
                                 }
                             }
 
@@ -337,7 +337,7 @@ namespace Nethermind.Evm
 
                     if (txTracer.IsTracingInstructions)
                     {
-                        txTracer.ReportOperationError((ex as EvmException)?.ExceptionType ?? EvmExceptionType.Other);
+                        txTracer.ReportOperationError(ex is EvmException evmException ? evmException.ExceptionType : EvmExceptionType.Other);
                         txTracer.ReportOperationRemainingGas(0);
                     }
 
@@ -355,7 +355,7 @@ namespace Nethermind.Evm
                     previousCallResult = StatusCode.FailureBytes;
                     previousCallOutputDestination = UInt256.Zero;
                     _returnDataBuffer = Array.Empty<byte>();
-                    previousCallOutput = new ZeroPaddedSpan(Span<byte>.Empty, 0);
+                    previousCallOutput = new ZeroPaddedSpan(Span<byte>.Empty, 0, PadDirection.Right);
 
                     currentState.Dispose();
                     currentState = _stateStack.Pop();
@@ -1325,7 +1325,7 @@ namespace Nethermind.Evm
 
                         ZeroPaddedSpan callDataSlice = env.InputData.SliceWithZeroPadding(src, (int) length);
                         vmState.Memory.Save(in dest, callDataSlice);
-                        if (_txTracer.IsTracingInstructions) if(length > UInt256.Zero) _txTracer.ReportMemoryChange((long) dest, callDataSlice.ToArray());
+                        if (_txTracer.IsTracingInstructions) if(length > UInt256.Zero) _txTracer.ReportMemoryChange((long) dest, callDataSlice);
                         break;
                     }
                     case Instruction.CODESIZE:
@@ -1354,7 +1354,7 @@ namespace Nethermind.Evm
                         UpdateMemoryCost(in dest, length);
                         ZeroPaddedSpan codeSlice = code.SliceWithZeroPadding(src, (int) length);
                         vmState.Memory.Save(in dest, codeSlice);
-                        if (_txTracer.IsTracingInstructions) _txTracer.ReportMemoryChange((long) dest, codeSlice.ToArray());
+                        if (_txTracer.IsTracingInstructions) _txTracer.ReportMemoryChange((long) dest, codeSlice);
                         break;
                     }
                     case Instruction.GASPRICE:
@@ -1400,7 +1400,7 @@ namespace Nethermind.Evm
                         byte[] externalCode = GetCachedCodeInfo(address, spec).MachineCode;
                         ZeroPaddedSpan callDataSlice = externalCode.SliceWithZeroPadding(src, (int) length);
                         vmState.Memory.Save(in dest, callDataSlice);
-                        if (_txTracer.IsTracingInstructions) if(length > 0) _txTracer.ReportMemoryChange((long) dest, callDataSlice.ToArray());
+                        if (_txTracer.IsTracingInstructions) if(length > 0) _txTracer.ReportMemoryChange((long) dest, callDataSlice);
                         break;
                     }
                     case Instruction.RETURNDATASIZE:
@@ -1447,7 +1447,7 @@ namespace Nethermind.Evm
 
                         ZeroPaddedSpan returnDataSlice = _returnDataBuffer.SliceWithZeroPadding(src, (int) length);
                         vmState.Memory.Save(in dest, returnDataSlice);
-                        if (_txTracer.IsTracingInstructions) _txTracer.ReportMemoryChange((long) dest, returnDataSlice.ToArray());
+                        if (_txTracer.IsTracingInstructions) _txTracer.ReportMemoryChange((long) dest, returnDataSlice);
                         break;
                     }
                     case Instruction.BLOCKHASH:
@@ -1605,10 +1605,11 @@ namespace Nethermind.Evm
                         }
 
                         stack.PopUInt256(out UInt256 memPosition);
+                        
                         Span<byte> data = stack.PopBytes();
                         UpdateMemoryCost(in memPosition, 32);
                         vmState.Memory.SaveWord(in memPosition, data);
-                        if (_txTracer.IsTracingInstructions) _txTracer.ReportMemoryChange((long) memPosition, data.PadLeft(32));
+                        if (_txTracer.IsTracingInstructions) _txTracer.ReportMemoryChange((long) memPosition, data.SliceWithZeroPadding(0, 32, PadDirection.Left));
 
                         break;
                     }
@@ -1624,7 +1625,7 @@ namespace Nethermind.Evm
                         byte data = stack.PopByte();
                         UpdateMemoryCost(in memPosition, UInt256.One);
                         vmState.Memory.SaveByte(in memPosition, data);
-                        if (_txTracer.IsTracingInstructions) _txTracer.ReportMemoryChange((long) memPosition, new[] {data});
+                        if (_txTracer.IsTracingInstructions) _txTracer.ReportMemoryChange((long) memPosition, data);
 
                         break;
                     }
@@ -2096,6 +2097,7 @@ namespace Nethermind.Evm
                         UInt256 balance = _state.GetBalance(env.ExecutingAccount);
                         if (value > balance)
                         {
+                            _returnDataBuffer = Array.Empty<byte>();
                             stack.PushZero();
                             break;
                         }
@@ -2124,6 +2126,7 @@ namespace Nethermind.Evm
                         {
                             /* we get the snapshot before this as there is a possibility with that we will touch an empty account and remove it even if the REVERT operation follows */
                             if (isTrace) _logger.Trace($"Contract collision at {contractAddress}");
+                            _returnDataBuffer = Array.Empty<byte>();
                             stack.PushZero();
                             break;
                         }
@@ -2283,7 +2286,7 @@ namespace Nethermind.Evm
 
                         if (env.CallDepth >= MaxCallDepth || !transferValue.IsZero && _state.GetBalance(env.ExecutingAccount) < transferValue)
                         {
-                            _returnDataBuffer = new byte[0];
+                            _returnDataBuffer = Array.Empty<byte>();
                             stack.PushZero();
 
                             if (_txTracer.IsTracingInstructions)

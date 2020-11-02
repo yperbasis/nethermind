@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Int256;
@@ -25,12 +26,19 @@ namespace Nethermind.TxPool
     {
         Transaction[] GetPendingTransactions();
         Transaction[] GetOwnPendingTransactions();
+        
+        /// <summary>
+        /// Grouped by sender address, sorted by nonce and later tx pool sorting
+        /// </summary>
+        /// <returns></returns>
+        IDictionary<Address, Transaction[]> GetPendingTransactionsBySender();
         void AddPeer(ITxPoolPeer peer);
         void RemovePeer(PublicKey nodeId);
         AddTxResult AddTransaction(Transaction tx, TxHandlingOptions handlingOptions);
         void RemoveTransaction(Keccak hash, long blockNumber);
         bool TryGetPendingTransaction(Keccak hash, out Transaction transaction);
         UInt256 ReserveOwnTransactionNonce(Address address);
+        event EventHandler<TxEventArgs> NewDiscovered;
         event EventHandler<TxEventArgs> NewPending;
         event EventHandler<TxEventArgs> RemovedPending;
     }

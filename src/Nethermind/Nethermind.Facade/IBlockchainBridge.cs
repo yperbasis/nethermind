@@ -25,16 +25,15 @@ using Block = Nethermind.Core.Block;
 
 namespace Nethermind.Facade
 {
-    public interface IBlockchainBridge
+    public interface IBlockchainBridge : ILogFinder
     {
-        int GetNetworkId();
         Block BeamHead { get; }
         bool IsMining { get; }
         void RecoverTxSenders(Block block);
         void RecoverTxSender(Transaction tx);
         TxReceipt GetReceipt(Keccak txHash);
         (TxReceipt Receipt, Transaction Transaction) GetTransaction(Keccak txHash);
-        BlockchainBridge.CallOutput Call(BlockHeader blockHeader, Transaction transaction);
+        BlockchainBridge.CallOutput Call(BlockHeader blockHeader, Transaction transaction, CancellationToken cancellationToken);
         BlockchainBridge.CallOutput EstimateGas(BlockHeader header, Transaction tx, CancellationToken cancellationToken);
         long GetChainId();
 
@@ -50,7 +49,7 @@ namespace Nethermind.Facade
         FilterType GetFilterType(int filterId);
         FilterLog[] GetFilterLogs(int filterId);
         
-        IEnumerable<FilterLog> GetLogs(BlockParameter fromBlock, BlockParameter toBlock, object address = null, IEnumerable<object> topics = null);
+        IEnumerable<FilterLog> GetLogs(BlockParameter fromBlock, BlockParameter toBlock, object address = null, IEnumerable<object> topics = null, CancellationToken cancellationToken = default);
         void RunTreeVisitor(ITreeVisitor treeVisitor, Keccak stateRoot);
         
     }

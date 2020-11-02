@@ -19,6 +19,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Nethermind.Core;
+using Nethermind.Core.Extensions;
 
 namespace Nethermind.Config
 {
@@ -30,15 +32,22 @@ namespace Nethermind.Config
 
         public T GetConfig<T>() where T : IConfig
         {
-            if (!_instances.ContainsKey(typeof(T)))
+            return (T)GetConfig(typeof(T));
+        }
+
+        public object GetConfig(Type configType)
+        {
+            if (!typeof(IConfig).IsAssignableFrom(configType)) throw new ArgumentException($"Type {configType} is not {typeof(IConfig)}");
+                
+            if (!_instances.ContainsKey(configType))
             {
-                if (!_implementations.ContainsKey(typeof(T)))
+                if (!_implementations.ContainsKey(configType))
                 {
                     Initialize();
                 }
-                
-                T config = (T)Activator.CreateInstance(_implementations[typeof(T)]);
-                _instances[typeof(T)] = config;
+
+                object config = Activator.CreateInstance(_implementations[configType]);
+                _instances[configType] = config!;
                 foreach (PropertyInfo propertyInfo in config.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
                     for (int i = 0; i < _configSource.Count; i++)
@@ -56,14 +65,14 @@ namespace Nethermind.Config
                             {
                                 throw new InvalidOperationException($"Cannot set value of {category}.{name}", e);
                             }
-                            
+
                             break;
                         }
                     }
                 }
             }
-
-            return (T)_instances[typeof(T)];
+            
+            return _instances[configType];
         }
 
         public object GetRawValue(string category, string name)
@@ -87,27 +96,26 @@ namespace Nethermind.Config
         {
             _configSource.Add(configSource);
         }
-
-        public void RegisterCategory(string category, Type configType)
-        {
-            Categories.Add(category, Activator.CreateInstance(configType));
-        }
-
+        
         private Dictionary<string, object> Categories { get; set; } = new Dictionary<string, object>(StringComparer.InvariantCultureIgnoreCase);
         
-        private Dictionary<Type, Type> _implementations = new Dictionary<Type, Type>();
+        private readonly Dictionary<Type, Type> _implementations = new Dictionary<Type, Type>();
         
-        private void Initialize()
+        private readonly TypeDiscovery _typeDiscovery = new TypeDiscovery();
+        
+        public void Initialize()
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(a => a.FullName.StartsWith("Nethermind")).ToArray();
-            var type = typeof(IConfig);
-            var interfaces = assemblies.SelectMany(x => x.GetTypes()).Where(x => type.IsAssignableFrom(x) && x.IsInterface).ToArray();
-            for (int i = 0; i < interfaces.Length; i++)
+            Type type = typeof(IConfig);
+            IEnumerable<Type> interfaces = _typeDiscovery.FindNethermindTypes(type).Where(x => x.IsInterface);
+
+            foreach (Type @interface in interfaces)
             {
-                var module = interfaces[i].Assembly.GetTypes().SingleOrDefault(x => interfaces[i].IsAssignableFrom(x) && x.IsClass);
-                if (module != null)
+                Type directImplementation = @interface.GetDirectInterfaceImplementation();
+
+                if (directImplementation != null)
                 {
-                    _implementations[interfaces[i]] = module;
+                    Categories.Add(@interface.Name.Substring(1), Activator.CreateInstance(directImplementation));
+                    _implementations[@interface] = directImplementation;
                 }
             }
         }

@@ -24,7 +24,6 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Logging;
-using Nethermind.State.Proofs;
 using Nethermind.Synchronization.ParallelSync;
 using Nethermind.Synchronization.Peers;
 using Nethermind.Synchronization.Reporting;
@@ -176,15 +175,10 @@ namespace Nethermind.Synchronization.FastBlocks
                 }
                 else
                 {
-                    Keccak receiptsRoot = new ReceiptTrie(blockInfo.BlockNumber, _specProvider, receipts).RootHash;
-                    if (receiptsRoot != header.ReceiptsRoot)
-                    {
-                        preparedReceipts = null;
-                    }
-                    else
-                    {
-                        preparedReceipts = receipts;
-                    }
+                    IReleaseSpec releaseSpec = _specProvider.GetSpec(blockInfo.BlockNumber);
+                    preparedReceipts = receipts.GetReceiptsRoot(releaseSpec, header.ReceiptsRoot) != header.ReceiptsRoot 
+                        ? null 
+                        : receipts;
                 }
             }
 

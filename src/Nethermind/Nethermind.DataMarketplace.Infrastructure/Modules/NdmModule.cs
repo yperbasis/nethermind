@@ -14,95 +14,67 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System;
 using System.IO;
-using Nethermind.Abi;
-using Nethermind.Blockchain;
-using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
-using Nethermind.Core.Crypto;
 using Nethermind.DataMarketplace.Channels;
 using Nethermind.DataMarketplace.Core.Services;
 using Nethermind.DataMarketplace.Infrastructure.Rlp;
-using Nethermind.Db;
-using Nethermind.Facade;
-using Nethermind.JsonRpc;
-using Nethermind.TxPool;
-using Nethermind.Wallet;
 
 namespace Nethermind.DataMarketplace.Infrastructure.Modules
 {
     public class NdmModule : INdmModule
     {
-        public INdmServices Init(NdmRequiredServices services)
+        private readonly INdmApi _api;
+        public NdmModule(INdmApi api)
+        {
+            _api = api ?? throw new ArgumentNullException(nameof(api)); 
+        }
+
+        public void Init()
         {
             AddDecoders();
-            var config = services.NdmConfig;
-            var consumerAddress = string.IsNullOrWhiteSpace(config.ConsumerAddress)
+            var config = _api.NdmConfig;
+            _api.ConsumerAddress = string.IsNullOrWhiteSpace(config.ConsumerAddress)
                 ? Address.Zero
                 : new Address(config.ConsumerAddress);
-            var contractAddress = string.IsNullOrWhiteSpace(config.ContractAddress)
+            _api.ContractAddress = string.IsNullOrWhiteSpace(config.ContractAddress)
                 ? Address.Zero
                 : new Address(config.ContractAddress);
 
-            var configId = config.Id;
-            var configManager = services.ConfigManager;
-            var logManager = services.LogManager;
-            var timestamper = services.Timestamper;
-            var wallet = services.Wallet;
-            var readOnlyTree = new ReadOnlyBlockTree(services.BlockTree);
-            var readOnlyDbProvider = new ReadOnlyDbProvider(services.RocksProvider, false);
-            var readOnlyTxProcessingEnv = new ReadOnlyTxProcessingEnv(readOnlyDbProvider, readOnlyTree,
-                services.SpecProvider, logManager);
-            var jsonRpcConfig = services.ConfigProvider.GetConfig<IJsonRpcConfig>();
-            var blockchainBridge = new BlockchainBridge(
-                readOnlyTxProcessingEnv,
-                services.TxPool,
-                services.ReceiptFinder,
-                services.FilterStore,
-                services.FilterManager,
-                services.Ecdsa,
-                services.BloomStorage,
-                Timestamper.Default,
-                logManager,
-                false,
-                jsonRpcConfig.FindLogBlockDepthLimit);
-            
-            var dataAssetRlpDecoder = new DataAssetDecoder();
-            var encoder = new AbiEncoder();
-
-            INdmBlockchainBridge ndmBlockchainBridge;
             if (config.ProxyEnabled)
             {
-                if (config.JsonRpcUrlProxies == null || services.EthJsonRpcClientProxy == null)
+                if (config.JsonRpcUrlProxies == null || _api.EthJsonRpcClientProxy == null)
                 {
                     throw new InvalidDataException("JSON RPC proxy is enabled but the proxies were not initialized properly.");
                 }
                 
-                services.JsonRpcClientProxy!.SetUrls(config.JsonRpcUrlProxies!);
-                ndmBlockchainBridge = new NdmBlockchainBridgeProxy(services.EthJsonRpcClientProxy);
+                _api.JsonRpcClientProxy!.SetUrls(config.JsonRpcUrlProxies!);
+                _api.BlockchainBridge = new NdmBlockchainBridgeProxy(
+                    _api.EthJsonRpcClientProxy);
             }
             else
             {
-                ndmBlockchainBridge = new NdmBlockchainBridge(
-                    blockchainBridge, services.BlockTree, readOnlyTxProcessingEnv.StateReader, services.TxSender);
+                _api.BlockchainBridge = new NdmBlockchainBridge(
+                    _api.CreateBlockchainBridge(),
+                    _api.BlockTree,
+                    _api.StateReader,
+                    _api.TxSender);
             }
 
-            var gasPriceService = new GasPriceService(services.HttpClient, configManager, configId, timestamper,
-                logManager);
-            var transactionService = new TransactionService(ndmBlockchainBridge, wallet, configManager, configId,
-                logManager);
-            var depositService = new DepositService(ndmBlockchainBridge, encoder, wallet, contractAddress);
-            var ndmConsumerChannelManager = services.NdmConsumerChannelManager;
-            var ndmDataPublisher = services.NdmDataPublisher;
-            var jsonRpcNdmConsumerChannel = new JsonRpcNdmConsumerChannel(logManager);
+            _api.GasPriceService
+                = new GasPriceService(_api.HttpClient, _api.ConfigManager, config.Id, _api.Timestamper, _api.LogManager);
+            _api.TransactionService
+                = new TransactionService(_api.BlockchainBridge, _api.Wallet, _api.ConfigManager, config.Id, _api.LogManager);
+            _api.DepositService
+                = new DepositService(_api.BlockchainBridge, _api.AbiEncoder, _api.Wallet, _api.ContractAddress);
+            _api.JsonRpcNdmConsumerChannel
+                = new JsonRpcNdmConsumerChannel(_api.LogManager);
+            
             if (config.JsonRpcDataChannelEnabled)
             {
-                ndmConsumerChannelManager.Add(jsonRpcNdmConsumerChannel);
+                _api.NdmConsumerChannelManager.Add(_api.JsonRpcNdmConsumerChannel);
             }
-
-            return new Services(services, new NdmCreatedServices(consumerAddress, encoder, dataAssetRlpDecoder,
-                depositService, gasPriceService, transactionService, ndmDataPublisher, jsonRpcNdmConsumerChannel,
-                ndmConsumerChannelManager, ndmBlockchainBridge));
         }
 
         private static void AddDecoders()
@@ -125,18 +97,6 @@ namespace Nethermind.DataMarketplace.Infrastructure.Modules
             SessionDecoder.Init();
             TransactionInfoDecoder.Init();
             UnitsRangeDecoder.Init();
-        }
-
-        private class Services : INdmServices
-        {
-            public NdmRequiredServices RequiredServices { get; }
-            public NdmCreatedServices CreatedServices { get; }
-
-            public Services(NdmRequiredServices requiredServices, NdmCreatedServices createdServices)
-            {
-                RequiredServices = requiredServices;
-                CreatedServices = createdServices;
-            }
         }
     }
 }

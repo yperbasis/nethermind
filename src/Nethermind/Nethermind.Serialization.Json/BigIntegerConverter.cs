@@ -60,14 +60,14 @@ namespace Nethermind.Serialization.Json
             }
         }
 
-        public override BigInteger ReadJson(JsonReader reader, Type objectType, BigInteger existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
+        public override BigInteger ReadJson(JsonReader reader, Type objectType, BigInteger existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             if (reader.Value is long || reader.Value is int)
             {
                 return (long) reader.Value;
             }
 
-            string s = (string) reader.Value;
+            string s = reader.Value?.ToString();
             if (s == "0x0")
             {
                 return BigInteger.Zero;

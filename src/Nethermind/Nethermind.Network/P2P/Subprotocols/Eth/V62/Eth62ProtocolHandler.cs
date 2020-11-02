@@ -16,7 +16,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using Nethermind.Blockchain;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -43,7 +42,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V62
             ITxPool txPool,
             ILogManager logManager) : base(session, serializer, statsManager, syncServer, txPool, logManager)
         {
-            _floodController = new TxFloodController(this, Logger);
+            _floodController = new TxFloodController(this, Timestamper.Default, Logger);
         }
 
         public void DisableTxFiltering()
@@ -205,10 +204,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V62
                 tx.DeliveredBy = Node.Id;
                 tx.Timestamp = _timestamper.EpochSeconds;
                 AddTxResult result = _txPool.AddTransaction(tx, TxHandlingOptions.None);
-                if (result != AddTxResult.Added)
-                {
-                    _floodController.ReportNotAccepted();
-                }
+                _floodController.Report(result == AddTxResult.Added);
 
                 if (Logger.IsTrace) Logger.Trace(
                     $"{Node:c} sent {tx.Hash} tx and it was {result} (chain ID = {tx.Signature.ChainId})");

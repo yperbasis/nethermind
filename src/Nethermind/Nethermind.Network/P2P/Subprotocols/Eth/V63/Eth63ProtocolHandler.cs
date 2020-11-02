@@ -15,7 +15,6 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
@@ -209,7 +208,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63
                 return task.Result;
             }
 
-            StatsManager.ReportTransferSpeedEvent(Session.Node, TransferSpeedType.Receipts,0L);
+            StatsManager.ReportTransferSpeedEvent(Session.Node, TransferSpeedType.Receipts, 0L);
 
             throw new TimeoutException($"{Session} Request timeout in {nameof(GetReceiptsMessage)}");
         }

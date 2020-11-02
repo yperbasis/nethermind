@@ -15,11 +15,14 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using Nethermind.DataMarketplace.Infrastructure;
+using Nethermind.JsonRpc.Modules;
 
 namespace Nethermind.DataMarketplace.Consumers.Infrastructure
 {
-    public interface INdmConsumersModule
+    [RpcModule(ModuleType.NdmConsumer)]
+    public interface INdmConsumersModule : IModule
     {
-        INdmConsumerServices Init(INdmServices services);
+        void Init();
+        void InitRpcModules();
     }
 }
