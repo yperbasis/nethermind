@@ -19,6 +19,7 @@ using Nethermind.Core;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Crypto.Bls;
+using Nethermind.Evm.Tracing;
 
 namespace Nethermind.Evm.Precompiles.Snarks.Shamatar
 {
@@ -41,7 +42,7 @@ namespace Nethermind.Evm.Precompiles.Snarks.Shamatar
             return 0L;
         }
 
-        public (byte[], bool) Run(byte[] inputData)
+        public (byte[], bool) Run(byte[] inputData, ITxTracer tracer = null)
         {
             Metrics.Bn256MulPrecompile++;
             Span<byte> inputDataSpan = stackalloc byte[96];

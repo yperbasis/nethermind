@@ -19,6 +19,7 @@ using Nethermind.Core;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Crypto;
+using Nethermind.Evm.Tracing;
 
 namespace Nethermind.Evm.Precompiles
 {
@@ -52,7 +53,7 @@ namespace Nethermind.Evm.Precompiles
             return rounds;
         }
 
-        public (byte[], bool) Run(byte[] inputData)
+        public (byte[], bool) Run(byte[] inputData, ITxTracer tracer = null)
         {
             if (inputData.Length != RequiredInputLength)
             {

@@ -418,6 +418,7 @@ namespace Nethermind.Evm
                 [PairingPrecompile.Instance.Address] = new CodeInfo(PairingPrecompile.Instance),
                 [MapToG1Precompile.Instance.Address] = new CodeInfo(MapToG1Precompile.Instance),
                 [MapToG2Precompile.Instance.Address] = new CodeInfo(MapToG2Precompile.Instance),
+                [FatPrecompile.Instance.Address] = new CodeInfo(FatPrecompile.Instance),
             };
         }
 
@@ -495,7 +496,7 @@ namespace Nethermind.Evm
 
             try
             {
-                (byte[] output, bool success) = precompile.Run(callData);
+                (byte[] output, bool success) = precompile.Run(callData, _txTracer);
                 CallResult callResult = new CallResult(output, success, !success);
                 return callResult;
             }

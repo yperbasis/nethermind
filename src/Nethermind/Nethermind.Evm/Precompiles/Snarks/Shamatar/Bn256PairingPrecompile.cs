@@ -19,6 +19,7 @@ using Nethermind.Core;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Crypto.Bls;
+using Nethermind.Evm.Tracing;
 
 namespace Nethermind.Evm.Precompiles.Snarks.Shamatar
 {
@@ -48,7 +49,7 @@ namespace Nethermind.Evm.Precompiles.Snarks.Shamatar
             return (releaseSpec.IsEip1108Enabled ? 34000L : 80000L) * (inputData.Length / PairSize);
         }
 
-        public (byte[], bool) Run(byte[] inputData)
+        public (byte[], bool) Run(byte[] inputData, ITxTracer tracer = null)
         {
             Metrics.Bn256PairingPrecompile++;
             inputData ??= Array.Empty<byte>();

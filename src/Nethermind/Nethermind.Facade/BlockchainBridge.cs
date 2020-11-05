@@ -205,11 +205,6 @@ namespace Nethermind.Facade
             _stateProvider.StateRoot = blockHeader.StateRoot;
             try
             {
-                if (transaction.Nonce == 0)
-                {
-                    transaction.Nonce = GetNonce(_stateProvider.StateRoot, transaction.SenderAddress);
-                }
-
                 BlockHeader callHeader = new BlockHeader(
                     blockHeader.Hash,
                     Keccak.OfAnEmptySequenceRlp,

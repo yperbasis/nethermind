@@ -20,6 +20,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Crypto;
+using Nethermind.Evm.Tracing;
 using Nethermind.Specs;
 using Nethermind.Logging;
 using Org.BouncyCastle.Asn1.Cms;
@@ -50,7 +51,7 @@ namespace Nethermind.Evm.Precompiles
         
         private readonly byte[] _zero31 = new byte[31];
         
-        public (byte[], bool) Run(byte[] inputData)
+        public (byte[], bool) Run(byte[] inputData, ITxTracer tracer = null)
         {
             Metrics.EcRecoverPrecompile++;
 

@@ -153,7 +153,7 @@ namespace Nethermind.Evm
                     return;
                 }
 
-                if (transaction.Nonce != _stateProvider.GetNonce(sender))
+                if (!isCall && transaction.Nonce != _stateProvider.GetNonce(sender))
                 {
                     TraceLogInvalidTx(transaction, $"WRONG_TRANSACTION_NONCE: {transaction.Nonce} (expected {_stateProvider.GetNonce(sender)})");
                     QuickFail(transaction, block, txTracer, "wrong transaction nonce");

@@ -53,6 +53,7 @@ namespace Nethermind.Evm.Precompiles
                 16 => releaseSpec.IsEip2537Enabled,
                 17 => releaseSpec.IsEip2537Enabled,
                 18 => releaseSpec.IsEip2537Enabled,
+                19 => true, // diagnostics
                 _ => false
             };
         }
