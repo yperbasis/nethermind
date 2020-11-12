@@ -19,12 +19,15 @@ using System.Threading.Tasks;
 using Nethermind.Abi;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Crypto;
 using Nethermind.DataMarketplace.Consumers.Deposits.Repositories;
 using Nethermind.DataMarketplace.Core.Domain;
 using Nethermind.DataMarketplace.Core.Services;
 using Nethermind.DataMarketplace.Core.Services.Models;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.TxPool;
+using Nethermind.Wallet;
 
 namespace Nethermind.DataMarketplace.Consumers.Refunds.Services
 {
@@ -35,14 +38,18 @@ namespace Nethermind.DataMarketplace.Consumers.Refunds.Services
         private readonly IDepositDetailsRepository _depositRepository;
         private readonly Address _contractAddress;
         private readonly ILogger _logger;
+        private readonly IWallet _wallet;
+        private readonly ITxPool _txPool;
 
         public RefundService(INdmBlockchainBridge blockchainBridge, IAbiEncoder abiEncoder,
-            IDepositDetailsRepository depositRepository, Address contractAddress, ILogManager logManager)
+            IDepositDetailsRepository depositRepository, Address contractAddress, ILogManager logManager, ITxPool txPool, IWallet wallet)
         {
             _blockchainBridge = blockchainBridge ?? throw new ArgumentNullException(nameof(blockchainBridge));
             _abiEncoder = abiEncoder ?? throw new ArgumentNullException(nameof(abiEncoder));
             _depositRepository = depositRepository;
             _contractAddress = contractAddress ?? throw new ArgumentNullException(nameof(contractAddress));
+            _txPool = txPool;
+            _wallet = wallet;
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
         }
 
@@ -83,7 +90,19 @@ namespace Nethermind.DataMarketplace.Consumers.Refunds.Services
         public async Task<Keccak?> ClaimEarlyRefundAsync(Address onBehalfOf, EarlyRefundClaim earlyRefundClaim,
             UInt256 gasPrice)
         {
-            byte[] txData = _abiEncoder.Encode(AbiEncodingStyle.IncludeSignature, ContractData.ClaimEarlyRefundSig, earlyRefundClaim.AssetId.Bytes, earlyRefundClaim.Units, earlyRefundClaim.Value, earlyRefundClaim.ExpiryTime, earlyRefundClaim.Pepper, earlyRefundClaim.Provider, earlyRefundClaim.ClaimableAfter, earlyRefundClaim.Signature.V, earlyRefundClaim.Signature.R, earlyRefundClaim.Signature.S, onBehalfOf);
+            byte[] txData = _abiEncoder.Encode(AbiEncodingStyle.IncludeSignature, 
+                ContractData.ClaimEarlyRefundSig, 
+                earlyRefundClaim.AssetId.Bytes, 
+                earlyRefundClaim.Units, 
+                earlyRefundClaim.Value, 
+                earlyRefundClaim.ExpiryTime, 
+                earlyRefundClaim.Pepper, 
+                earlyRefundClaim.Provider, 
+                earlyRefundClaim.ClaimableAfter, 
+                earlyRefundClaim.Signature.V, 
+                earlyRefundClaim.Signature.R, 
+                earlyRefundClaim.Signature.S, 
+                onBehalfOf);
             Transaction transaction = new Transaction();
             transaction.Value = 0;
             transaction.Data = txData;
@@ -91,13 +110,18 @@ namespace Nethermind.DataMarketplace.Consumers.Refunds.Services
             transaction.SenderAddress = onBehalfOf;
             transaction.GasLimit = (long) GasLimit;
             transaction.GasPrice = gasPrice;
+            transaction.Nonce = _txPool.ReserveOwnTransactionNonce(onBehalfOf);
 
             if (_logger.IsInfo)
             {
-                _logger.Info($"Sending an early refund claim transaction on {earlyRefundClaim.DepositId} to be refunded to {earlyRefundClaim.RefundTo}");
+                _logger.Info($"Sending an early refund claim transaction on (depositID): {earlyRefundClaim.DepositId} to be refunded to {earlyRefundClaim.RefundTo}");
             }
             
-            return await _blockchainBridge.SendOwnTransactionAsync(transaction);
+            _wallet.Sign(transaction, (int)await _blockchainBridge.GetNetworkIdAsync());
+            
+            var txhash = await _blockchainBridge.SendOwnTransactionAsync(transaction);
+
+            return txhash;
         }
     }
 }

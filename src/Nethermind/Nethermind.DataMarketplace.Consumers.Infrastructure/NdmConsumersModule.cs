@@ -59,6 +59,7 @@ using Nethermind.Monitoring;
 using Nethermind.Wallet;
 using Nethermind.DataMarketplace.Consumers.Shared;
 using Nethermind.DataMarketplace.Infrastructure.Updaters;
+using Nethermind.TxPool;
 using Nethermind.WebSockets;
 
 namespace Nethermind.DataMarketplace.Consumers.Infrastructure
@@ -179,6 +180,7 @@ namespace Nethermind.DataMarketplace.Consumers.Infrastructure
             PublicKey nodePublicKey = _api.Enode.PublicKey;
             timestamper = _api.Timestamper;
             IWallet wallet = _api.Wallet;
+            ITxPool txPool = _api.TxPool;
             IHttpClient httpClient = _api.HttpClient;
             IJsonRpcClientProxy? jsonRpcClientProxy = _api.JsonRpcClientProxy;
             IEthJsonRpcClientProxy? ethJsonRpcClientProxy = _api.EthJsonRpcClientProxy;
@@ -227,7 +229,7 @@ namespace Nethermind.DataMarketplace.Consumers.Infrastructure
                 sessionService, timestamper, receiptRepository, sessionRepository, abiEncoder, wallet, ecdsa,
                 nodePublicKey, logManager);
             RefundService refundService = new RefundService(blockchainBridge, abiEncoder, depositRepository,
-                contractAddress, logManager);
+                contractAddress, logManager, txPool, wallet);
             RefundClaimant refundClaimant = new RefundClaimant(refundService, blockchainBridge, depositRepository,
                 transactionVerifier, gasPriceService, timestamper, logManager);
             _api.AccountService = new AccountService(configManager, dataStreamService, providerService,
