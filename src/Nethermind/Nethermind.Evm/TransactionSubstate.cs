@@ -89,9 +89,9 @@ namespace Nethermind.Evm
 
         public bool IsError => Error != null && !ShouldRevert;
 
-        public string Error { get; }
+        public string? Error { get; }
 
-        public byte[] Output { get; }
+        public byte[]? Output { get; }
 
         public bool ShouldRevert { get; }
 

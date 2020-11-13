@@ -23,7 +23,7 @@ namespace Nethermind.Evm.Tracing
 {
     public abstract class BlockTracerBase<TTrace, TTracer> : IBlockTracer where TTracer : class, ITxTracer
     {
-        private readonly Keccak _txHash;
+        private readonly Keccak? _txHash;
 
         private bool IsTracingEntireBlock => _txHash == null;
 
@@ -38,7 +38,7 @@ namespace Nethermind.Evm.Tracing
             TxTraces = new List<TTrace>();
         }
 
-        private TTracer CurrentTxTracer { get; set; }
+        private TTracer? CurrentTxTracer { get; set; }
 
         protected abstract TTracer OnStart(Keccak txHash);
         protected abstract TTrace OnEnd(TTracer txTracer);

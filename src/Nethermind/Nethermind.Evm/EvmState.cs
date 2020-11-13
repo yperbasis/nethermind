@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading;
 using Nethermind.Core;
@@ -67,10 +68,14 @@ namespace Nethermind.Evm
                     _dataStackPool.Push(new byte[(EvmStack.MaxStackSize + EvmStack.RegisterLength) * 32]);
                 }
 
-                _dataStackPool.TryPop(out byte[] result);
+                if (!_dataStackPool.TryPop(out byte[]? result))
+                {
+                    throw new InvalidAsynchronousStateException("Data stack pool failure");
+                }
+
                 return result;
             }
-            
+
             private int[] RentReturnStack()
             {
                 if (_returnStackPool.Count == 0)
@@ -84,10 +89,14 @@ namespace Nethermind.Evm
                     _returnStackPool.Push(new int[EvmStack.ReturnStackSize]);
                 }
 
-                _returnStackPool.TryPop(out int[] result);
+                if (!_returnStackPool.TryPop(out int[]? result))
+                {
+                    throw new InvalidAsynchronousStateException("Return stack pool failure");    
+                }
+                
                 return result;
             }
-            
+
             public (byte[], int[]) RentStacks()
             {
                 return (RentDataStack(), RentReturnStack());
@@ -96,12 +105,12 @@ namespace Nethermind.Evm
 
         private static readonly ThreadLocal<StackPool> _stackPool = new ThreadLocal<StackPool>(() => new StackPool());
 
-        public byte[] DataStack;
-        public int[] ReturnStack;
+        public byte[]? DataStack;
+        public int[]? ReturnStack;
 
-        private HashSet<Address> _destroyList;
-        private List<LogEntry> _logs;
-        
+        private HashSet<Address>? _destroyList;
+        private List<LogEntry>? _logs;
+
         public int DataStackHead = 0;
         public int ReturnStackHead = 0;
 
@@ -144,7 +153,6 @@ namespace Nethermind.Evm
             {
                 switch (ExecutionType)
                 {
-                    
                     case ExecutionType.StaticCall:
                     case ExecutionType.Call:
                     case ExecutionType.CallCode:
@@ -163,7 +171,7 @@ namespace Nethermind.Evm
         }
 
         public Address To => Env.CodeSource;
-        
+
         public ExecutionEnvironment Env { get; }
         public long GasAvailable { get; set; }
         public int ProgramCounter { get; set; }
@@ -178,7 +186,7 @@ namespace Nethermind.Evm
         public int StateSnapshot { get; }
         public int StorageSnapshot { get; }
         public long Refund { get; set; }
-        public EvmPooledMemory Memory { get; private set; }
+        public EvmPooledMemory? Memory { get; private set; }
 
         public HashSet<Address> DestroyList
         {

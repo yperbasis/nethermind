@@ -23,11 +23,9 @@ namespace Nethermind.Evm.Tracing
 {
     public class AlwaysCancelBlockTracer : IBlockTracer
     {
-        private static AlwaysCancelBlockTracer _instance;
+        private static AlwaysCancelBlockTracer? _instance;
 
-        private AlwaysCancelBlockTracer()
-        {
-        }
+        private AlwaysCancelBlockTracer() { }
 
         public static AlwaysCancelBlockTracer Instance
         {

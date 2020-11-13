@@ -18,7 +18,7 @@ namespace Nethermind.Evm.Tracing.ParityStyle
 {
     public class ParityVmTrace
     {
-        public byte[] Code { get; set; }
-        public ParityVmOperationTrace[] Operations { get; set; }
+        public byte[]? Code { get; set; }
+        public ParityVmOperationTrace[]? Operations { get; set; }
     }
 }

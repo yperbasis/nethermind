@@ -31,11 +31,9 @@ namespace Nethermind.Evm.Tracing
     {
         private const string ErrorMessage = "Cancelling tracer invoked.";
 
-        private static AlwaysCancelTxTracer _instance;
+        private static AlwaysCancelTxTracer? _instance;
 
-        private AlwaysCancelTxTracer()
-        {
-        }
+        private AlwaysCancelTxTracer() { }
 
         public static AlwaysCancelTxTracer Instance
         {
@@ -53,9 +51,9 @@ namespace Nethermind.Evm.Tracing
         public bool IsTracingState => true;
         public bool IsTracingBlockHash => true;
 
-        public void MarkAsSuccess(Address recipient, long gasSpent, byte[] output, LogEntry[] logs, Keccak stateRoot = null) => throw new OperationCanceledException(ErrorMessage);
+        public void MarkAsSuccess(Address recipient, long gasSpent, byte[] output, LogEntry[] logs, Keccak? stateRoot = null) => throw new OperationCanceledException(ErrorMessage);
 
-        public void MarkAsFailed(Address recipient, long gasSpent, byte[] output, string error, Keccak stateRoot = null) => throw new OperationCanceledException(ErrorMessage);
+        public void MarkAsFailed(Address recipient, long gasSpent, byte[] output, string error, Keccak? stateRoot = null) => throw new OperationCanceledException(ErrorMessage);
 
         public void StartOperation(int depth, long gas, Instruction opcode, int pc) => throw new OperationCanceledException(ErrorMessage);
 
