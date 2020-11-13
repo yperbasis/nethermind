@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -1483,7 +1484,15 @@ namespace Nethermind.Evm
                             return CallResult.OutOfGasException;
                         }
 
-                        stack.PushBytes(env.CurrentBlock.GasBeneficiary.Bytes);
+                        if (env.CurrentBlock.GasBeneficiary == null)
+                        {
+                            throw new InvalidDataException("Fatal EVM crasg - gas beneficiary not set");
+                        }
+                        else
+                        {
+                            stack.PushBytes(env.CurrentBlock.GasBeneficiary.Bytes);    
+                        }
+                        
                         break;
                     }
                     case Instruction.DIFFICULTY:
@@ -2705,7 +2714,7 @@ namespace Nethermind.Evm
                 ExceptionType = exceptionType;
             }
 
-            public EvmState StateToExecute { get; }
+            public EvmState? StateToExecute { get; }
             public byte[] Output { get; }
             public EvmExceptionType ExceptionType { get; }
             public bool ShouldRevert { get; }

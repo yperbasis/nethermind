@@ -35,7 +35,7 @@ namespace Nethermind.Evm.Tracing.ParityStyle
         public long Gas { get; set; }
         public UInt256 Value { get; set; }
         public byte[] Input { get; set; }
-        public ParityTraceResult Result { get; set; } = new ParityTraceResult();
+        public ParityTraceResult? Result { get; set; } = new ParityTraceResult();
         public List<ParityTraceAction> Subtraces { get; set; } = new List<ParityTraceAction>();
         
         public Address Author { get; set; }

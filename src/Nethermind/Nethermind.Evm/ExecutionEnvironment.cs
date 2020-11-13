@@ -27,7 +27,7 @@ namespace Nethermind.Evm
 
         public Address Sender { get; set; }
         
-        public Address CodeSource { get; set; }
+        public Address? CodeSource { get; set; }
 
         public UInt256 GasPrice { get; set; }
 

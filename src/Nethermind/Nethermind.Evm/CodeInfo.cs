@@ -16,15 +16,14 @@
 
 using System;
 using System.Collections;
-using Nethermind.Core.Extensions;
 using Nethermind.Evm.Precompiles;
 
 namespace Nethermind.Evm
 {
     public class CodeInfo
     {
-        private BitArray _validJumpDestinations;
-        private BitArray _validJumpSubDestinations;
+        private BitArray? _validJumpDestinations;
+        private BitArray? _validJumpSubDestinations;
 
         public CodeInfo(byte[] code)
         {
@@ -40,7 +39,7 @@ namespace Nethermind.Evm
         }
         
         public byte[] MachineCode { get; set; }
-        public IPrecompile Precompile { get; set; }
+        public IPrecompile? Precompile { get; set; }
 
         public bool ValidateJump(int destination, bool isSubroutine)
         {
@@ -50,7 +49,7 @@ namespace Nethermind.Evm
             }
 
             if (destination < 0 || destination >= MachineCode.Length ||
-                (isSubroutine ? !_validJumpSubDestinations.Get(destination) : !_validJumpDestinations.Get(destination)))
+                (isSubroutine ? !_validJumpSubDestinations!.Get(destination) : !_validJumpDestinations!.Get(destination)))
             {
                 return false;
             }
