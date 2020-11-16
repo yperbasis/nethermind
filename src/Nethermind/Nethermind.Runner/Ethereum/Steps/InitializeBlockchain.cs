@@ -27,6 +27,7 @@ using Nethermind.Blockchain.Rewards;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Blockchain.Validators;
 using Nethermind.Consensus;
+using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
 using Nethermind.Core.Attributes;
 using Nethermind.Crypto;
@@ -36,6 +37,7 @@ using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.State.Repositories;
 using Nethermind.Db.Blooms;
+using Nethermind.Int256;
 using Nethermind.Synchronization.BeamSync;
 using Nethermind.TxPool;
 using Nethermind.TxPool.Storages;
@@ -96,14 +98,7 @@ namespace Nethermind.Runner.Ethereum.Steps
                 _api.LogManager);
 
             _api.EthereumEcdsa = new EthereumEcdsa(_api.SpecProvider.ChainId, _api.LogManager);
-            _api.TxPool = new TxPool.TxPool(
-                new PersistentTxStorage(_api.DbProvider.PendingTxsDb),
-                _api.EthereumEcdsa,
-                _api.SpecProvider,
-                _api.Config<ITxPoolConfig>(),
-                _api.StateProvider,
-                _api.LogManager,
-                CreateTxPoolTxComparer());
+            PersistentTxStorage txStorage = new PersistentTxStorage(_api.DbProvider.PendingTxsDb);
 
             IBloomConfig bloomConfig = _api.Config<IBloomConfig>();
 
@@ -119,21 +114,19 @@ namespace Nethermind.Runner.Ethereum.Steps
 
             _api.ChainLevelInfoRepository = new ChainLevelInfoRepository(_api.DbProvider.BlockInfosDb);
 
-            _api.BlockTree = new BlockTree(
-                _api.DbProvider,
-                _api.ChainLevelInfoRepository,
-                _api.SpecProvider,
-                _api.TxPool,
-                _api.BloomStorage,
-                _api.Config<ISyncConfig>(),
-                _api.LogManager);
+            _api.BlockTree = CreateBlockTree();
 
             // Init state if we need system calls before actual processing starts
             if (_api.BlockTree.Head != null)
             {
                 _api.StateProvider.StateRoot = _api.BlockTree.Head.StateRoot;
             }
+            
+            _api.TxPool = CreateTxPool(txStorage);
 
+            var onChainTxWatcher = new OnChainTxWatcher(_api.BlockTree, _api.TxPool, _api.SpecProvider);
+            _api.DisposeStack.Push(onChainTxWatcher);
+            
             ReceiptsRecovery receiptsRecovery = new ReceiptsRecovery(_api.EthereumEcdsa, _api.SpecProvider);
             _api.ReceiptStorage = initConfig.StoreReceipts ? (IReceiptStorage?) new PersistentReceiptStorage(_api.DbProvider.ReceiptsDb, _api.SpecProvider, receiptsRecovery) : NullReceiptStorage.Instance;
             _api.ReceiptFinder = new FullInfoReceiptFinder(_api.ReceiptStorage, receiptsRecovery, _api.BlockTree);
@@ -224,7 +217,7 @@ namespace Nethermind.Runner.Ethereum.Steps
             TxSealer standardSealer = new TxSealer(txSigner, _api.Timestamper);
             NonceReservingTxSealer nonceReservingTxSealer =
                 new NonceReservingTxSealer(txSigner, _api.Timestamper, _api.TxPool);
-            _api.TxSender = new TxPoolSender(_api.TxPool, standardSealer, nonceReservingTxSealer);
+            _api.TxSender = new TxPoolSender(_api.TxPool, nonceReservingTxSealer, standardSealer);
 
             // TODO: possibly hide it (but need to confirm that NDM does not really need it)
             _api.FilterStore = new FilterStore();
@@ -233,7 +226,26 @@ namespace Nethermind.Runner.Ethereum.Steps
             return Task.CompletedTask;
         }
 
-        protected virtual IComparer<Transaction> CreateTxPoolTxComparer() => TxPool.TxPool.DefaultComparer;
+        protected virtual BlockTree CreateBlockTree() =>
+            new BlockTree(
+                _api.DbProvider,
+                _api.ChainLevelInfoRepository,
+                _api.SpecProvider,
+                _api.BloomStorage,
+                _api.Config<ISyncConfig>(),
+                _api.LogManager);
+
+        protected virtual TxPool.TxPool CreateTxPool(PersistentTxStorage txStorage) =>
+            new TxPool.TxPool(
+                txStorage,
+                _api.EthereumEcdsa,
+                _api.SpecProvider,
+                _api.Config<ITxPoolConfig>(),
+                _api.StateProvider,
+                _api.LogManager,
+                CreateTxPoolTxComparer());
+
+        protected IComparer<Transaction> CreateTxPoolTxComparer() => TxPool.TxPool.DefaultComparer;
 
         protected virtual HeaderValidator CreateHeaderValidator() =>
             new HeaderValidator(

@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2018 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -13,20 +13,25 @@
 // 
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
-// 
 
-using System.Collections.Generic;
+using Nethermind.Abi;
 
-namespace Nethermind.Core
+namespace Nethermind.Baseline.Tree
 {
-    /// <summary>
-    /// Comparer that enables to replace inner comparision on demand.
-    /// </summary>
-    /// <remarks>Used to decouple circular dependencies with TxPriority contract.</remarks>
-    public class WrapperComparer<T> : IComparer<T>
+    public static class ContractMerkleTree
     {
-        public IComparer<T> Comparer { get; set; }
-        public int Compare(T x, T y) => Comparer?.Compare(x, y) ?? 0;
-        public override string ToString() => $"{base.ToString()} [{Comparer}]";
+        public static readonly AbiSignature InsertLeafAbiSig = new AbiSignature("insertLeaf",
+            new AbiBytes(32)); // leafValue
+        
+        public static AbiSignature InsertLeavesAbiSig = new AbiSignature("insertLeaves",
+            new AbiArray(new AbiBytes(32))); // leafValues
+    }
+
+    public static class ContractShield
+    {
+        public static readonly AbiSignature VerifyAndPushSig = new AbiSignature("verifyAndPush",
+            new AbiArray(new AbiUInt(256)),
+            new AbiArray(new AbiUInt(256)),
+            new AbiBytes(32)); // verifyAndPush
     }
 }

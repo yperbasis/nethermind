@@ -14,17 +14,23 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
-namespace Nethermind.DataMarketplace.Consumers.Infrastructure.Rpc.Models
-{
-    public class EthUsdPriceForRpc
-    {
-        public decimal Price { get;  }
-        public ulong UpdatedAt { get;  }
 
-        public EthUsdPriceForRpc(decimal price, ulong updatedAt)
-        {
-            Price = price;
-            UpdatedAt = updatedAt;
-        }
+using Nethermind.Blockchain.Find;
+using Nethermind.Core;
+using Nethermind.Core.Crypto;
+
+namespace Nethermind.Baseline.Tree
+{
+    public interface IBaselineTreeHelper
+    {
+        BaselineTree RebuildEntireTree(Address treeAddress, Keccak blockHash);
+
+        BaselineTree BuildTree(BaselineTree baselineTree, Address treeAddress, BlockParameter blockFrom, BlockParameter blockTo);
+
+        BaselineTree CreateHistoricalTree(Address address, long blockNumber);
+
+        BaselineTreeNode GetHistoricalLeaf(BaselineTree tree, uint leafIndex, long blockNumber);
+
+        BaselineTreeNode[] GetHistoricalLeaves(BaselineTree tree, uint[] leafIndexes, long blockNumber);
     }
 }
