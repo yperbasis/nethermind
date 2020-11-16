@@ -19,6 +19,7 @@ using System.Numerics;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
+using Nethermind.Evm.Tracing;
 using Nethermind.Int256;
 
 namespace Nethermind.Evm.Precompiles
@@ -68,7 +69,7 @@ namespace Nethermind.Evm.Precompiles
             }
         }
 
-        public (byte[], bool) Run(byte[] inputData)
+        public (byte[], bool) Run(byte[] inputData, ITxTracer tracer = null)
         {
             Metrics.ModExpPrecompile++;
             

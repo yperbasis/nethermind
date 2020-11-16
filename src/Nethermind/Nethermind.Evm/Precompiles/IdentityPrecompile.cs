@@ -16,6 +16,7 @@
 
 using Nethermind.Core;
 using Nethermind.Core.Specs;
+using Nethermind.Evm.Tracing;
 
 namespace Nethermind.Evm.Precompiles
 {
@@ -39,7 +40,7 @@ namespace Nethermind.Evm.Precompiles
             return 3L * EvmPooledMemory.Div32Ceiling((ulong)inputData.Length);
         }
 
-        public (byte[], bool) Run(byte[] inputData)
+        public (byte[], bool) Run(byte[] inputData, ITxTracer tracer = null)
         {
             return (inputData, true);
         }

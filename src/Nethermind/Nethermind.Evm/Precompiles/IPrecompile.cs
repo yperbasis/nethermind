@@ -16,6 +16,7 @@
 
 using Nethermind.Core;
 using Nethermind.Core.Specs;
+using Nethermind.Evm.Tracing;
 
 namespace Nethermind.Evm.Precompiles
 {
@@ -27,6 +28,6 @@ namespace Nethermind.Evm.Precompiles
 
         long DataGasCost(byte[] inputData, IReleaseSpec releaseSpec);
 
-        (byte[], bool) Run(byte[] inputData);
+        (byte[], bool) Run(byte[] inputData, ITxTracer tracer = null);
     }
 }

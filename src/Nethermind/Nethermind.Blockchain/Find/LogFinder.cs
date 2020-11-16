@@ -217,7 +217,7 @@ namespace Nethermind.Blockchain.Find
             using (iterator)
             {
                 long logIndexInBlock = 0;
-                while (iterator.TryGetNext(out var receipt))
+                while (iterator.TryGetNext(out TxReceiptStructRef receipt))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     
@@ -235,7 +235,7 @@ namespace Nethermind.Blockchain.Find
 
                                 if (topics == null)
                                 {
-                                    var topicsValueDecoderContext = new Rlp.ValueDecoderContext(log.TopicsRlp);
+                                    Rlp.ValueDecoderContext topicsValueDecoderContext = new Rlp.ValueDecoderContext(log.TopicsRlp);
                                     topics = KeccakDecoder.Instance.DecodeArray(ref topicsValueDecoderContext);
                                 }
 

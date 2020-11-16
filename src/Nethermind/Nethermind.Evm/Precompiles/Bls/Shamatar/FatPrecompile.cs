@@ -13,28 +13,30 @@
 // 
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
+// 
 
-using System;
+using System.Threading;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
-using Nethermind.Crypto.Bls;
 using Nethermind.Evm.Tracing;
 
-namespace Nethermind.Evm.Precompiles.Snarks.Shamatar
+namespace Nethermind.Evm.Precompiles.Bls.Shamatar
 {
     /// <summary>
-    /// https://github.com/matter-labs/eip1962/blob/master/eip196_header.h
+    /// Just for diagnostic
     /// </summary>
-    public class Bn256AddPrecompile : IPrecompile
+    public class FatPrecompile : IPrecompile
     {
-        public static IPrecompile Instance = new Bn256AddPrecompile();
+        public static IPrecompile Instance = new FatPrecompile();
 
-        public Address Address { get; } = Address.FromNumber(6);
+        private FatPrecompile() { }
+
+        public Address Address { get; } = Address.FromNumber(19);
 
         public long BaseGasCost(IReleaseSpec releaseSpec)
         {
-            return releaseSpec.IsEip1108Enabled ? 150L : 500L;
+            return 100000;
         }
 
         public long DataGasCost(byte[] inputData, IReleaseSpec releaseSpec)
@@ -42,26 +44,16 @@ namespace Nethermind.Evm.Precompiles.Snarks.Shamatar
             return 0L;
         }
 
-        public unsafe (byte[], bool) Run(byte[] inputData, ITxTracer tracer = null)
+        public (byte[], bool) Run(byte[] inputData, ITxTracer tracer = null)
         {
-            Metrics.Bn256AddPrecompile++;
-            Span<byte> inputDataSpan = stackalloc byte[128];
-            inputData.PrepareEthInput(inputDataSpan);
-            
-            Span<byte> output = stackalloc byte[64];
-            bool success = ShamatarLib.Bn256Add(inputDataSpan, output);
-
-            (byte[], bool) result;
-            if (success)
+            for (int i = 0; i < 100000; i++)
             {
-                result = (output.ToArray(), true);   
-            }
-            else
-            {
-                result = (Array.Empty<byte>(), false);
+                Thread.Sleep(10);
+                tracer?.StartOperation(1, 100000 - i, Instruction.EQ, 0);
+                tracer?.ReportOperationRemainingGas(100000 - i - 1);
             }
 
-            return result;
+            return (Bytes.Empty, true);
         }
     }
 }
