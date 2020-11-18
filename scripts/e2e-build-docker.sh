@@ -1,2 +1,4 @@
 #!/bin/bash
-docker build -t nethermind . && docker build -t nethermind-e2e -f Dockerfile.e2e .
+docker buildx build --platform=linux/amd64 -t nethermind . 
+
+docker build -t nethermind-e2e -f Dockerfile.e2e .
