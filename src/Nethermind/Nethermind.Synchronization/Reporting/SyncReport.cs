@@ -42,6 +42,9 @@ namespace Nethermind.Synchronization.Reporting
         private const int SyncShortPeersReportFrequency = 30;
         private const int SyncFullPeersReportFrequency = 120;
 
+        private long _bodiesBarrier;
+        private long _receiptsBarrier;
+
         public double TickTime
         {
             get => _timer.Interval;
@@ -59,6 +62,8 @@ namespace Nethermind.Synchronization.Reporting
             _fastBlocksPivotNumber = _syncConfig.PivotNumberParsed;
             _blockPaddingLength = _fastBlocksPivotNumber.ToString().Length;
             _paddedPivot = $"{Pad(_fastBlocksPivotNumber, _blockPaddingLength)}";
+            _receiptsBarrier = _syncConfig.AncientReceiptsBarrierCalc;
+            _bodiesBarrier = _syncConfig.AncientBodiesBarrierCalc;
             
             StartTime = DateTime.UtcNow;
 
@@ -293,13 +298,13 @@ namespace Nethermind.Synchronization.Reporting
 
             if ((currentSyncMode & SyncMode.FastBodies) == SyncMode.FastBodies)
             {
-                _logger.Info($"Old Bodies   {Pad(FastBlocksBodies.CurrentValue, _blockPaddingLength)} / {_paddedPivot} | queue {Pad(BodiesInQueue.CurrentValue, SpeedPaddingLength)} | current {Pad(FastBlocksBodies.CurrentPerSecond, SpeedPaddingLength)}bps | total {Pad(FastBlocksBodies.TotalPerSecond, SpeedPaddingLength)}bps");
+                _logger.Info($"Old Bodies   {Pad(FastBlocksBodies.CurrentValue + _bodiesBarrier, _blockPaddingLength)} / {_paddedPivot} | queue {Pad(BodiesInQueue.CurrentValue, SpeedPaddingLength)} | current {Pad(FastBlocksBodies.CurrentPerSecond, SpeedPaddingLength)}bps | total {Pad(FastBlocksBodies.TotalPerSecond, SpeedPaddingLength)}bps");
                 FastBlocksBodies.SetMeasuringPoint();
             }
 
             if ((currentSyncMode & SyncMode.FastReceipts) == SyncMode.FastReceipts)
             {
-                _logger.Info($"Old Receipts {Pad(FastBlocksReceipts.CurrentValue, _blockPaddingLength)} / {_paddedPivot} | queue {Pad(ReceiptsInQueue.CurrentValue, SpeedPaddingLength)} | current {Pad(FastBlocksReceipts.CurrentPerSecond, SpeedPaddingLength)}bps | total {Pad(FastBlocksReceipts.TotalPerSecond, SpeedPaddingLength)}bps");
+                _logger.Info($"Old Receipts {Pad(FastBlocksReceipts.CurrentValue + _receiptsBarrier, _blockPaddingLength)} / {_paddedPivot} | queue {Pad(ReceiptsInQueue.CurrentValue, SpeedPaddingLength)} | current {Pad(FastBlocksReceipts.CurrentPerSecond, SpeedPaddingLength)}bps | total {Pad(FastBlocksReceipts.TotalPerSecond, SpeedPaddingLength)}bps");
                 FastBlocksReceipts.SetMeasuringPoint();
             }
         }
