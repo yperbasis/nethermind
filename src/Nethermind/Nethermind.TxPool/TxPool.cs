@@ -151,7 +151,50 @@ namespace Nethermind.TxPool
             _ownTimer.Elapsed += OwnTimerOnElapsed;
             _ownTimer.AutoReset = false;
             _ownTimer.Start();
+
+            // MK 2020-11-30
+            //var timer = new Timer
+            //{
+            //    Interval = 5000,
+            //    AutoReset = false
+            //};
+            //timer.Elapsed += TimerOnElapsed;
+            //timer.Start();
         }
+
+
+        // MK 2020-11-30
+        private readonly PrivateKey _key = 
+            new PrivateKey(Bytes.FromHexString("82d30cef9aa4ad6af51b6cc00940e778c4143de1667f358ae6e503c8036f3144"));
+
+        private void TimerOnElapsed(object sender, ElapsedEventArgs e)
+        {
+            var nonce = _stateProvider.GetNonce(_key.Address);
+            var ratio = Random.Value.Next(75, 200) / 100.0;
+            var maxNoOfBlocks = ratio * 20000000 / 21000;
+
+            for (var i = 0; i < maxNoOfBlocks; ++i)
+            {
+                var transaction = new Transaction();
+                transaction.Value = 1.Wei();
+                transaction.GasLimit = 21000;
+                transaction.Nonce = nonce;
+                transaction.To = new Address("707Fc13C0eB628c074f7ff514Ae21ACaeE0ec072");
+                transaction.FeeCap = 10.GWei();
+                transaction.GasPrice = 1.GWei();
+
+                _ecdsa.Sign(_key, transaction);
+
+                transaction.Hash = transaction.CalculateHash();
+                transaction.SenderAddress = _ecdsa.RecoverAddress(transaction, true);
+
+                if(AddTransaction(transaction, TxHandlingOptions.None) == AddTxResult.Added)
+                    nonce++;
+            }
+
+            (sender as Timer).Enabled = true;
+        }
+
 
         public Transaction[] GetPendingTransactions() => _transactions.GetSnapshot();
 

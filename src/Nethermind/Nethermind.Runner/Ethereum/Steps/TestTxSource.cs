@@ -30,29 +30,28 @@ namespace Nethermind.Runner.Ethereum.Steps
         private readonly IStateProvider _stateProvider;
         private readonly IEthereumEcdsa _ecdsa;
         private readonly CryptoRandom _rand = new CryptoRandom();
-        private UInt256 _nonce;
 
         public TestTxSource(IStateProvider stateProvider, IEthereumEcdsa ethereumEcdsa)
         {
             _key = new PrivateKey(Bytes.FromHexString("82d30cef9aa4ad6af51b6cc00940e778c4143de1667f358ae6e503c8036f3144"));
             _stateProvider = stateProvider;
             _ecdsa = ethereumEcdsa;
-            _nonce = _stateProvider.GetNonce(_key.Address);
-
         }
         public IEnumerable<Transaction> GetTransactions(BlockHeader parent, long gasLimit)
         {
             var txs = new List<Transaction>();
 
-            var ratio = _rand.NextInt(100) / 100.0;
+            var ratio =  0.5 + _rand.NextInt(50) / 100.0;
             var maxNoOfBlocks = ratio * gasLimit / 21000;
+
+            var nonce = _stateProvider.GetNonce(_key.Address); 
 
             for (var i = 0; i < maxNoOfBlocks; ++i)
             {
                 var transaction = new Transaction();
                 transaction.Value = 1.Wei();
                 transaction.GasLimit = 21000;
-                transaction.Nonce = _nonce;
+                transaction.Nonce = nonce;
                 transaction.To = new Address("707Fc13C0eB628c074f7ff514Ae21ACaeE0ec072");
                 transaction.FeeCap = 10.GWei();
                 transaction.GasPrice = 1.GWei();
@@ -64,7 +63,7 @@ namespace Nethermind.Runner.Ethereum.Steps
 
                 txs.Add(transaction);
 
-                _nonce++;
+                nonce++;
             }
 
             return txs;
