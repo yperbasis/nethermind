@@ -233,7 +233,10 @@ namespace Nethermind.Blockchain.Processing
                 }
                 else
                 {
-                    if (_logger.IsTrace) _logger.Trace($"Processed block {block.ToString(Block.Format.Full)}");
+                    // MK 2020-11-30
+                    //if (_logger.IsTrace) _logger.Trace($"Processed block {block.ToString(Block.Format.Full)}");
+                    if (_logger.IsInfo) _logger.Info($"Processed block: {block.Number}, author: {block.Author}, " +
+                        $"tx count: {block.Transactions.Length}, block full in: {(block.GasUsed / (double)block.GasLimit) * 100:0.00}%"); 
                     _stats.UpdateStats(block, _recoveryQueue.Count, _blockQueue.Count);
                 }
 

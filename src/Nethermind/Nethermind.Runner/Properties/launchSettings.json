@@ -70,6 +70,10 @@
     "Kovan": {
       "commandName": "Project",
       "commandLineArgs": "--config configs\\kovan.cfg"
+    },
+    "eip1559": {
+      "commandName": "Project",
+      "commandLineArgs": "--config eip1559 --baseDbPath  C:\\eip1559 --JsonRpc.Enabled true --Init.DiagnosticMode None"
     }
   }
 }
