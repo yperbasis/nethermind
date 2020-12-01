@@ -105,8 +105,7 @@ namespace Nethermind.Runner.Ethereum.Steps
             ReadOnlyTxProcessorSource readOnlyTxProcessorSource) =>
             // MK 2020-11-30
             new CompositeTxSource(
-                CreateTxPoolTxSource(processingEnv, readOnlyTxProcessorSource),
-                //new TestTxSource(_api.StateProvider, _api.EthereumEcdsa)
+                CreateTxPoolTxSource(processingEnv, readOnlyTxProcessorSource)//, new TestTxSource(_api.StateProvider, _api.EthereumEcdsa)
                 );
         
         protected virtual TxPoolTxSource CreateTxPoolTxSource(ReadOnlyTxProcessingEnv processingEnv, ReadOnlyTxProcessorSource readOnlyTxProcessorSource) => 
