@@ -41,7 +41,7 @@ namespace Nethermind.Runner.Ethereum.Steps
         {
             var txs = new List<Transaction>();
 
-            var ratio =  0.5 + _rand.NextInt(50) / 100.0;
+            var ratio =  0.5 + _rand.NextInt(150) / 100.0;
             var maxNoOfBlocks = ratio * gasLimit / 21000;
 
             var nonce = _stateProvider.GetNonce(_key.Address); 
