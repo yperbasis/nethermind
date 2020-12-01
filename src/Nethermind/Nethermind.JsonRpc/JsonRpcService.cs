@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2018 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -113,7 +113,9 @@ namespace Nethermind.JsonRpc
         {
             var expectedParameters = method.Info.GetParameters();
             var providedParameters = request.Params;
-            if (_logger.IsInfo) _logger.Info($"Executing JSON RPC call {methodName}{(providedParameters == null ? string.Empty : $" with params {string.Join(',', providedParameters)}")}");
+
+            // MK 2020-01-12
+            // if (_logger.IsInfo) _logger.Info($"Executing JSON RPC call {methodName}{(providedParameters == null ? string.Empty : $" with params {string.Join(',', providedParameters)}")}");
 
             int missingParamsCount = expectedParameters.Length - (providedParameters?.Length ?? 0) + (providedParameters?.Count(string.IsNullOrWhiteSpace) ?? 0);
 
