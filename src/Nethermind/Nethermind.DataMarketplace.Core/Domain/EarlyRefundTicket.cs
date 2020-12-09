@@ -14,6 +14,8 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System;
+using Nethermind.Core;
 using Nethermind.Core.Crypto;
 
 namespace Nethermind.DataMarketplace.Core.Domain
@@ -23,12 +25,16 @@ namespace Nethermind.DataMarketplace.Core.Domain
         public Keccak DepositId { get; }
         public uint ClaimableAfter { get; }
         public Signature Signature { get; }
+        public uint ChainId { get; }
+        public string ContractAddress { get; }
 
-        public EarlyRefundTicket(Keccak depositId, uint claimableAfter, Signature signature)
+        public EarlyRefundTicket(Keccak depositId, uint claimableAfter, Signature signature, uint chainId, string contractAddress)
         {
             DepositId = depositId;
             ClaimableAfter = claimableAfter;
             Signature = signature;
+            ChainId = chainId; 
+            ContractAddress = contractAddress ?? throw new ArgumentNullException(nameof(contractAddress));
         }
     }
 }
