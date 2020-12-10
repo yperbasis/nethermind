@@ -30,7 +30,18 @@ namespace Nethermind.Consensus.Transactions
             _txFilters = txFilters ?? Array.Empty<ITxFilter>();
         }
         
-        public bool IsAllowed(Transaction tx, BlockHeader parentHeader) => 
-            _txFilters.All(t => t.IsAllowed(tx, parentHeader));
+        public (bool Allowed, string Reason) IsAllowed(Transaction tx, BlockHeader parentHeader)
+        {
+            for (int i = 0; i < _txFilters.Length; i++)
+            {
+                (bool, string) result = _txFilters[i].IsAllowed(tx, parentHeader);
+                if (!result.Item1)
+                {
+                    return result;
+                }
+            }
+
+            return (true, string.Empty);
+        }
     }
 }

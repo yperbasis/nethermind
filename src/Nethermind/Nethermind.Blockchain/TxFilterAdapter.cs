@@ -24,19 +24,22 @@ namespace Nethermind.Blockchain
 {
     public class TxFilterAdapter : FilteredTxPool.ITxPoolFilter
     {
-        private readonly IBlockTree _blockTree;
+
         private readonly ITxFilter _txFilter;
+        private readonly IBlockTree _blockTree;
 
         public TxFilterAdapter(IBlockTree blockTree, ITxFilter txFilter)
         {
-            _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _txFilter = txFilter ?? throw new ArgumentNullException(nameof(txFilter));
+            _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
         }
         
-        public bool Accept(Transaction tx)
+        public (bool Accepted, string Reason) Accept(Transaction tx)
         {
             var parentHeader = _blockTree.Head?.Header;
-            return parentHeader == null || _txFilter.IsAllowed(tx, parentHeader);
+            return parentHeader == null 
+                ? (true, string.Empty) 
+                : _txFilter.IsAllowed(tx, parentHeader);
         }
     }
 }

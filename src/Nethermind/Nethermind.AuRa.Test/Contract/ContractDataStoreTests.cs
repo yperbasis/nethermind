@@ -18,8 +18,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
+using Nethermind.Abi;
+using Nethermind.Blockchain;
 using Nethermind.Blockchain.Processing;
+using Nethermind.Blockchain.Receipts;
 using Nethermind.Consensus.AuRa.Contracts;
 using Nethermind.Consensus.AuRa.Contracts.DataStore;
 using Nethermind.Core;
@@ -27,6 +31,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Logging;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using NUnit.Framework;
 
 namespace Nethermind.AuRa.Test.Contract
@@ -70,6 +75,20 @@ namespace Nethermind.AuRa.Test.Contract
         }
         
         [Test]
+        public void returns_data_from_previous_block_on_error()
+        {
+            TestCase<Address> testCase = BuildTestCase<Address>();
+            BlockHeader blockHeader = Build.A.BlockHeader.WithNumber(1).WithHash(TestItem.KeccakA).TestObject;
+            Address[] expected = {TestItem.AddressA};
+            testCase.DataContract.GetAllItemsFromBlock(blockHeader).Returns(expected);
+            BlockHeader secondBlockHeader = Build.A.BlockHeader.WithNumber(3).WithHash(TestItem.KeccakB).WithParentHash(TestItem.KeccakC).TestObject;
+            testCase.DataContract.GetAllItemsFromBlock(secondBlockHeader).Throws(new AbiException(string.Empty));
+
+            testCase.ContractDataStore.GetItemsFromContractAtBlock(blockHeader);
+            testCase.ContractDataStore.GetItemsFromContractAtBlock(secondBlockHeader).Should().BeEquivalentTo(expected.Cast<object>());
+        }
+        
+        [Test]
         public void returns_data_from_getAll_on_non_consecutive_receipts_with_incremental_changes()
         {
             TestCase<Address> testCase = BuildTestCase<Address>();
@@ -80,13 +99,13 @@ namespace Nethermind.AuRa.Test.Contract
             testCase.DataContract.GetAllItemsFromBlock(secondBlock.Header).Returns(expected);
             
             testCase.ContractDataStore.GetItemsFromContractAtBlock(blockHeader);
-            testCase.BlockProcessor.BlockProcessed += Raise.EventWith(new BlockProcessedEventArgs(secondBlock, Array.Empty<TxReceipt>()));
+            testCase.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(secondBlock));
             
             testCase.ContractDataStore.GetItemsFromContractAtBlock(secondBlock.Header).Should().BeEquivalentTo(expected.Cast<object>());
         }
         
         [Test]
-        public void returns_data_from_receipts_on_non_consecutive_with_not_incremental_changes()
+        public async Task returns_data_from_receipts_on_non_consecutive_with_not_incremental_changes()
         {
             TestCase<Address> testCase = BuildTestCase<Address>();
             testCase.DataContract.IncrementalChanges.Returns(false);
@@ -102,7 +121,10 @@ namespace Nethermind.AuRa.Test.Contract
                 });
 
             testCase.ContractDataStore.GetItemsFromContractAtBlock(blockHeader);
-            testCase.BlockProcessor.BlockProcessed += Raise.EventWith(new BlockProcessedEventArgs(secondBlock, Array.Empty<TxReceipt>()));
+            testCase.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(secondBlock));
+            
+            await Task.Delay(10); // delay for refresh from contract as its async
+            
             testCase.ContractDataStore.GetItemsFromContractAtBlock(secondBlock.Header).Should().BeEquivalentTo(expected.Cast<object>());
         }
         
@@ -114,12 +136,12 @@ namespace Nethermind.AuRa.Test.Contract
             Block block = Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(0).TestObject).TestObject;
             Address[] expected = {TestItem.AddressB};
             testCase.DataContract.GetAllItemsFromBlock(block.Header).Returns(expected);
-            testCase.BlockProcessor.BlockProcessed += Raise.EventWith(new BlockProcessedEventArgs(block, Array.Empty<TxReceipt>()));
+            testCase.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(block));
             testCase.ContractDataStore.GetItemsFromContractAtBlock(block.Header).Should().BeEquivalentTo(expected.Cast<object>());
         }
         
         [Test]
-        public void returns_data_from_receipts_on_consecutive_with_not_incremental_changes()
+        public async Task returns_data_from_receipts_on_consecutive_with_not_incremental_changes()
         {
             TestCase<Address> testCase = BuildTestCase<Address>();
             testCase.DataContract.IncrementalChanges.Returns(false);
@@ -135,13 +157,15 @@ namespace Nethermind.AuRa.Test.Contract
                 });
             
             testCase.ContractDataStore.GetItemsFromContractAtBlock(blockHeader);
-            testCase.BlockProcessor.BlockProcessed += Raise.EventWith(new BlockProcessedEventArgs(secondBlock, Array.Empty<TxReceipt>()));
+            testCase.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(secondBlock));
+
+            await Task.Delay(10); // delay for refresh from contract as its async
             
             testCase.ContractDataStore.GetItemsFromContractAtBlock(secondBlock.Header).Should().BeEquivalentTo(expected.Cast<object>());
         }
         
         [Test]
-        public void returns_data_from_receipts_on_consecutive_with_incremental_changes()
+        public async Task returns_data_from_receipts_on_consecutive_with_incremental_changes()
         {
             TestCase<Address> testCase = BuildTestCase<Address>();
             BlockHeader blockHeader = Build.A.BlockHeader.WithNumber(1).WithHash(TestItem.KeccakA).TestObject;
@@ -155,13 +179,15 @@ namespace Nethermind.AuRa.Test.Contract
                 });
 
             testCase.ContractDataStore.GetItemsFromContractAtBlock(blockHeader);
-            testCase.BlockProcessor.BlockProcessed += Raise.EventWith(new BlockProcessedEventArgs(secondBlock, Array.Empty<TxReceipt>()));
+            testCase.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(secondBlock));
+
+            await Task.Delay(10); // delay for refresh from contract as its async
             
             testCase.ContractDataStore.GetItemsFromContractAtBlock(secondBlock.Header).Should().BeEquivalentTo(TestItem.AddressA, TestItem.AddressB);
         }
         
         [Test]
-        public void returns_unmodified_data_from_empty_receipts_on_consecutive_with_incremental_changes()
+        public async Task returns_unmodified_data_from_empty_receipts_on_consecutive_with_incremental_changes()
         {
             TestCase<Address> testCase = BuildTestCase<Address>();
             BlockHeader blockHeader = Build.A.BlockHeader.WithNumber(1).WithHash(TestItem.KeccakA).TestObject;
@@ -175,13 +201,15 @@ namespace Nethermind.AuRa.Test.Contract
                 });
 
             testCase.ContractDataStore.GetItemsFromContractAtBlock(blockHeader);
-            testCase.BlockProcessor.BlockProcessed += Raise.EventWith(new BlockProcessedEventArgs(secondBlock, Array.Empty<TxReceipt>()));
+            testCase.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(secondBlock));
+            
+            await Task.Delay(10); // delay for refresh from contract as its async
             
             testCase.ContractDataStore.GetItemsFromContractAtBlock(secondBlock.Header).Should().BeEquivalentTo(TestItem.AddressA, TestItem.AddressC);
         }
         
         [Test]
-        public void returns_data_from_receipts_on_consecutive_with_incremental_changes_with_identity()
+        public async Task returns_data_from_receipts_on_consecutive_with_incremental_changes_with_identity()
         {
             TestCase<TxPriorityContract.Destination> testCase = BuildTestCase(
                 TxPriorityContract.DistinctDestinationMethodComparer.Instance, 
@@ -208,7 +236,9 @@ namespace Nethermind.AuRa.Test.Contract
                 });
 
             testCase.ContractDataStore.GetItemsFromContractAtBlock(blockHeader);
-            testCase.BlockProcessor.BlockProcessed += Raise.EventWith(new BlockProcessedEventArgs(secondBlock, Array.Empty<TxReceipt>()));
+            testCase.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(secondBlock));
+            
+            await Task.Delay(10); // delay for refresh from contract as its async
             
             testCase.ContractDataStore.GetItemsFromContractAtBlock(secondBlock.Header).Should().BeEquivalentTo(new[]
             {
@@ -223,15 +253,18 @@ namespace Nethermind.AuRa.Test.Contract
             var dataContract = Substitute.For<IDataContract<T>>();
             dataContract.IncrementalChanges.Returns(true);
                 
-            var blockProcessor = Substitute.For<IBlockProcessor>();
+            var blockTree = Substitute.For<IBlockTree>();
+            var receiptsFinder = Substitute.For<IReceiptFinder>();
+            receiptsFinder.Get(Arg.Any<Block>()).Returns(Array.Empty<TxReceipt>());
 
             return new TestCase<T>()
             {
                 DataContract = dataContract,
-                BlockProcessor = blockProcessor,
+                BlockTree = blockTree,
+                ReceiptFinder = receiptsFinder,
                 ContractDataStore = keyComparer == null
-                    ? (IContractDataStore<T>)new ContractDataStore<T>(new HashSetContractDataStoreCollection<T>(), dataContract, blockProcessor, LimboLogs.Instance)
-                    : new DictionaryContractDataStore<T>(new SortedListContractDataStoreCollection<T>(keyComparer, valueComparer), dataContract, blockProcessor, LimboLogs.Instance)
+                    ? (IContractDataStore<T>)new ContractDataStore<T>(new HashSetContractDataStoreCollection<T>(), dataContract, blockTree, receiptsFinder, LimboLogs.Instance)
+                    : new DictionaryContractDataStore<T, SortedListContractDataStoreCollection<T>>(new SortedListContractDataStoreCollection<T>(keyComparer, valueComparer), dataContract, blockTree, receiptsFinder, LimboLogs.Instance)
             };
         }
 
@@ -239,7 +272,9 @@ namespace Nethermind.AuRa.Test.Contract
         {
             public IContractDataStore<T> ContractDataStore { get; set; }
 
-            public IBlockProcessor BlockProcessor { get; set; }
+            public IBlockTree BlockTree { get; set; }
+            
+            public IReceiptFinder ReceiptFinder { get; set; }
 
             public IDataContract<T> DataContract { get; set; }
         }

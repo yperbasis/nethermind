@@ -30,7 +30,7 @@ namespace Nethermind.TxPool
 
         public interface ITxPoolFilter
         {
-            bool Accept(Transaction tx);
+            (bool Accepted, string Reason) Accept(Transaction tx);
         }
         
         public FilteredTxPool(
@@ -38,7 +38,7 @@ namespace Nethermind.TxPool
             IEthereumEcdsa ecdsa, 
             ISpecProvider specProvider, 
             ITxPoolConfig txPoolConfig, 
-            IStateProvider stateProvider,
+            IReadOnlyStateProvider stateProvider,
             ILogManager logManager, 
             IComparer<Transaction> comparer = null,
             ITxPoolFilter txPoolFilter = null) 
@@ -47,12 +47,20 @@ namespace Nethermind.TxPool
             _txPoolFilter = txPoolFilter;
         }
 
-        protected override AddTxResult? FilterTransaction(Transaction tx, in bool managedNonce) =>
-            base.FilterTransaction(tx, in managedNonce) ??
-            (
-                _txPoolFilter?.Accept(tx) == false
-                    ? AddTxResult.Filtered
-                    : (AddTxResult?)null
-            );
+        protected override AddTxResult? FilterTransaction(Transaction tx, in bool managedNonce)
+        {
+            AddTxResult? addTxResult = base.FilterTransaction(tx, in managedNonce);
+            if (addTxResult == null && !(tx is GeneratedTransaction))
+            {
+                var result = _txPoolFilter?.Accept(tx);
+                if (result != null && !result.Value.Accepted)
+                {
+                    if (_logger.IsTrace) _logger.Trace($"Skipped adding transaction {tx.ToString("  ")}, filtered ({result.Value.Reason}).");
+                    return AddTxResult.Filtered;
+                }
+            }
+
+            return addTxResult;
+        }
     }
 }
