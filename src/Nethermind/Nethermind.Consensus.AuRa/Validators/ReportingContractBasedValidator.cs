@@ -95,6 +95,7 @@ namespace Nethermind.Consensus.AuRa.Validators
             if (IsPosdao(blockNumber))
             {
                 _persistentReports.AddLast(persistentReport);
+                _sentReportsInBlock = blockNumber;
             }
 
             return CreateReportMaliciousTransactionCore(persistentReport);
@@ -222,9 +223,10 @@ namespace Nethermind.Consensus.AuRa.Validators
         public void OnBlockProcessingEnd(Block block, TxReceipt[] receipts, ProcessingOptions options = ProcessingOptions.None)
         {
             _contractValidator.OnBlockProcessingEnd(block, receipts, options);
-            if (!_contractValidator.ForSealing)
+            if (!_contractValidator.ForSealing && !block.IsGenesis)
             {
-                ResendPersistedReports(block.Header);
+                var parentHeader = _contractValidator.BlockTree.FindParentHeader(block.Header, BlockTreeLookupOptions.None);
+                ResendPersistedReports(parentHeader);
             }
         }
     }
