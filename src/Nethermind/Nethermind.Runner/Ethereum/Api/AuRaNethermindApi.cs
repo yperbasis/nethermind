@@ -52,5 +52,6 @@ namespace Nethermind.Runner.Ethereum.Api
 
         public ReportingContractBasedValidator.Cache ReportingContractValidatorCache { get; } = new ReportingContractBasedValidator.Cache();
         public TxPriorityContract.LocalDataSource? TxPriorityContractLocalDataSource { get; set; }
+        public IAuRaStepCalculator StepCalculator { get; set; }
     }
 }

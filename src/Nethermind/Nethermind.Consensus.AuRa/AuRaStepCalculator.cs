@@ -61,6 +61,8 @@ namespace Nethermind.Consensus.AuRa
             
         }
 
+        public bool ValidateStep(long blockNumber) => true;
+
         private long TimeToNextStepInTicks
         {
             get
@@ -175,9 +177,10 @@ namespace Nethermind.Consensus.AuRa
 
         public TimeSpan TimeToNextStep => _innerCalculator.TimeToNextStep;
 
-        public TimeSpan TimeToStep(long step)
+        public TimeSpan TimeToStep(long step) => _innerCalculator.TimeToStep(step);
+        public bool ValidateStep(long blockNumber)
         {
-            return _innerCalculator.TimeToStep(step);
+            return !(_faultyBlocksTransition.TryGetValue(_signer.Address, out long transition) && blockNumber >= transition);
         }
     }
 }

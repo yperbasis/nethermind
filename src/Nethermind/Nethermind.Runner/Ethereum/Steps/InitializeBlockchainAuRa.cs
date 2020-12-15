@@ -128,6 +128,7 @@ namespace Nethermind.Runner.Ethereum.Steps
                     _api.FinalizationManager,
                     new TxPoolSender(_api.TxPool, new NonceReservingTxSealer(_api.EngineSigner, _api.Timestamper, _api.TxPool)), 
                     _api.TxPool,
+                    _api.StepCalculator,
                     NethermindApi.Config<IMiningConfig>(),
                     _api.LogManager,
                     _api.EngineSigner,
@@ -183,11 +184,19 @@ namespace Nethermind.Runner.Ethereum.Steps
             _api.ValidatorStore = new ValidatorStore(_api.DbProvider.BlockInfosDb);
 
             ValidSealerStrategy validSealerStrategy = new ValidSealerStrategy();
-            IAuRaStepCalculator auRaStepCalculator = new AuRaStepCalculator(_api.ChainSpec.AuRa.StepDuration, _api.Timestamper, _api.LogManager);
-            auRaStepCalculator = new FaultyAuRaStepCalculator(auRaStepCalculator, _api.EngineSigner, _api.ChainSpec.AuRa.FaultyBlocksTransition);
-            _api.SealValidator = _sealValidator = new AuRaSealValidator(_api.ChainSpec.AuRa, auRaStepCalculator, _api.BlockTree, _api.ValidatorStore, validSealerStrategy, _api.EthereumEcdsa, _api.LogManager);
+            _api.StepCalculator = new AuRaStepCalculator(_api.ChainSpec.AuRa.StepDuration, _api.Timestamper, _api.LogManager);
+            _api.StepCalculator = new FaultyAuRaStepCalculator(_api.StepCalculator, _api.EngineSigner, _api.ChainSpec.AuRa.FaultyBlocksTransition);
+            _api.SealValidator = _sealValidator = new AuRaSealValidator(
+                _api.ChainSpec.AuRa, 
+                _api.StepCalculator, 
+                _api.BlockTree, 
+                _api.ValidatorStore, 
+                validSealerStrategy, 
+                _api.EthereumEcdsa, 
+                _api.LogManager,
+                _api.EngineSigner);
             _api.RewardCalculatorSource = AuRaRewardCalculator.GetSource(_api.ChainSpec.AuRa, _api.AbiEncoder);
-            _api.Sealer = new AuRaSealer(_api.BlockTree, _api.ValidatorStore, auRaStepCalculator, _api.EngineSigner, validSealerStrategy, _api.LogManager);
+            _api.Sealer = new AuRaSealer(_api.BlockTree, _api.ValidatorStore, _api.StepCalculator, _api.EngineSigner, validSealerStrategy, _api.LogManager);
         }
 
         protected override HeaderValidator CreateHeaderValidator()

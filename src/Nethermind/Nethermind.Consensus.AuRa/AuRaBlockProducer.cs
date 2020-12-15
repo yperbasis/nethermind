@@ -142,8 +142,10 @@ namespace Nethermind.Consensus.AuRa
         protected override void OnBlockSealed(Block block, BlockHeader parent)
         {
             base.OnBlockSealed(block, parent);
-            _headerValidator?.Validate(block.Header, parent);
-
+            if (_auRaStepCalculator.ValidateStep(block.Number))
+            {
+                _headerValidator?.Validate(block.Header, parent);
+            }
         }
 
         // This is for debugging.

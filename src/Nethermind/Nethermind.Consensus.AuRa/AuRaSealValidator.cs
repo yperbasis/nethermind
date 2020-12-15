@@ -36,17 +36,27 @@ namespace Nethermind.Consensus.AuRa
         private readonly IValidatorStore _validatorStore;
         private readonly IValidSealerStrategy _validSealerStrategy;
         private readonly IEthereumEcdsa _ecdsa;
+        private readonly ISigner _signer;
         private readonly ILogger _logger;
         private readonly ReceivedSteps _receivedSteps = new ReceivedSteps();
         
-        public AuRaSealValidator(AuRaParameters parameters, IAuRaStepCalculator stepCalculator, IBlockTree blockTree, IValidatorStore validatorStore, IValidSealerStrategy validSealerStrategy, IEthereumEcdsa ecdsa, ILogManager logManager)
+        public AuRaSealValidator(
+            AuRaParameters parameters, 
+            IAuRaStepCalculator stepCalculator,
+            IBlockTree blockTree,
+            IValidatorStore validatorStore,
+            IValidSealerStrategy validSealerStrategy,
+            IEthereumEcdsa ecdsa,
+            ILogManager logManager,
+            ISigner signer)
         {
             _parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
             _stepCalculator = stepCalculator ?? throw new ArgumentNullException(nameof(stepCalculator));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
-            _validatorStore = validatorStore?? throw new ArgumentNullException(nameof(validatorStore));
+            _validatorStore = validatorStore ?? throw new ArgumentNullException(nameof(validatorStore));
             _validSealerStrategy = validSealerStrategy ?? throw new ArgumentNullException(nameof(validSealerStrategy));
             _ecdsa = ecdsa ?? throw new ArgumentNullException(nameof(ecdsa));
+            _signer = signer;
             _logger = logManager.GetClassLogger<AuRaSealValidator>() ?? throw new ArgumentNullException(nameof(logManager));
         }
         
@@ -73,10 +83,10 @@ namespace Nethermind.Consensus.AuRa
                 long step = header.AuRaStep.Value;
 
                 // Test purpose only
-                if (_parameters.ReportMalicious.TryGetValue(header.Number, out Address address))
+                if (_parameters.ReportMalicious.TryGetValue(header.Number, out Address address) && header.Beneficiary != _signer?.Address)
                 {
-                    if (_logger.IsWarn) _logger.Warn($"Reporting {address} as malicious FOR TESTING PURPOSES.");
-                    ReportingValidator.ReportMalicious(address, header.Number, Array.Empty<byte>(), IReportingValidator.MaliciousCause.Test);
+                    if (_logger.IsWarn) _logger.Warn($"Reporting {address} as malicious FOR TESTING PURPOSES at block {header.ToString(BlockHeader.Format.FullHashAndNumber)}.");
+                    ReportingValidator.ReportMalicious(address, header.Number, Array.Empty<byte>(), IReportingValidator.MaliciousCause.Test); 
                 }
                 
                 if (step == parent.AuRaStep)

@@ -93,8 +93,8 @@ namespace Nethermind.Consensus.AuRa
             }
 
             long currentStep = _auRaStepCalculator.GetCurrentStep(blockNumber);
-            bool stepNotYetProduced = StepNotYetProduced(currentStep);
-            bool isThisNodeTurn = IsThisNodeTurn(currentStep);
+            bool stepNotYetProduced = StepNotYetProduced(currentStep) || !_auRaStepCalculator.ValidateStep(blockNumber);
+            bool isThisNodeTurn = IsThisNodeTurn(currentStep) || !_auRaStepCalculator.ValidateStep(blockNumber);
             if (isThisNodeTurn)
             {
                 if (_logger.IsWarn && !stepNotYetProduced) _logger.Warn($"Cannot seal block {blockNumber}: AuRa step {currentStep} already produced.");

@@ -113,6 +113,7 @@ namespace Nethermind.Runner.Ethereum.Steps
                     _api.FinalizationManager,
                     NullTxSender.Instance,
                     NullTxPool.Instance,
+                    _api.StepCalculator,
                     NethermindApi.Config<IMiningConfig>(),
                     _api.LogManager,
                     _api.EngineSigner,

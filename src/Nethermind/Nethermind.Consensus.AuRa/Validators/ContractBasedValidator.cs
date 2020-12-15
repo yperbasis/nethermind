@@ -43,7 +43,7 @@ namespace Nethermind.Consensus.AuRa.Validators
         private PendingValidators _currentPendingValidators;
         private long _lastProcessedBlockNumber = 0;
         private IBlockFinalizationManager _blockFinalizationManager;
-        private IBlockTree BlockTree { get; }
+        public IBlockTree BlockTree { get; }
         private readonly IReceiptFinder _receiptFinder;
         
         internal IValidatorContract ValidatorContract { get; }
@@ -57,10 +57,11 @@ namespace Nethermind.Consensus.AuRa.Validators
             IValidSealerStrategy validSealerStrategy,
             IBlockFinalizationManager finalizationManager, 
             BlockHeader parentHeader,
+            IAuRaStepCalculator auRaStepCalculator,
             ILogManager logManager,
             long startBlockNumber,
             long posdaoTransition = long.MaxValue,
-            bool forSealing = false) : base(validSealerStrategy, validatorStore, logManager, startBlockNumber, forSealing)
+            bool forSealing = false) : base(validSealerStrategy, validatorStore, auRaStepCalculator, logManager, startBlockNumber, forSealing)
         {
             BlockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _receiptFinder = receiptFinder ?? throw new ArgumentNullException(nameof(receiptFinder));

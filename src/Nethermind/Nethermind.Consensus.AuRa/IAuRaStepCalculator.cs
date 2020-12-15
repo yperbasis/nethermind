@@ -23,5 +23,6 @@ namespace Nethermind.Consensus.AuRa
         long GetCurrentStep(long blockNumber);
         TimeSpan TimeToNextStep { get; }
         TimeSpan TimeToStep(long step);
+        bool ValidateStep(long blockNumber);
     }
 }

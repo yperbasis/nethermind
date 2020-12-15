@@ -21,6 +21,7 @@ using System.Net;
 using System.Security;
 using FluentAssertions;
 using Nethermind.Blockchain;
+using Nethermind.Consensus;
 using Nethermind.Consensus.AuRa;
 using Nethermind.Consensus.AuRa.Validators;
 using Nethermind.Core;
@@ -73,7 +74,8 @@ namespace Nethermind.AuRa.Test
                 Substitute.For<IValidatorStore>(),
                 _validSealerStrategy,
                 _ethereumEcdsa,
-                _logManager)
+                _logManager,
+                Substitute.For<ISigner>())
             {
                 ReportingValidator = _reportingValidator
             };

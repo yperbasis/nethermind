@@ -21,6 +21,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.Serialization.Formatters;
 using FluentAssertions;
+using Nethermind.Consensus.AuRa;
 using Nethermind.Consensus.AuRa.Validators;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
@@ -46,7 +47,7 @@ namespace Nethermind.AuRa.Test.Validators
                 {
                     ValidatorType = AuRaParameters.ValidatorType.List,
                     Addresses = address
-                }, _validSealerStrategy, Substitute.For<IValidatorStore>(), logManager, 1);
+                }, _validSealerStrategy, Substitute.For<IValidatorStore>(), Substitute.For<IAuRaStepCalculator>(), logManager, 1);
             
             return validator;
         }
@@ -93,7 +94,7 @@ namespace Nethermind.AuRa.Test.Validators
         public void throws_ArgumentNullException_on_empty_validator()
         {
             var logManager = LimboLogs.Instance;
-            Action act = () => new ListBasedValidator(null, new ValidSealerStrategy(), Substitute.For<IValidatorStore>(), logManager, 1); 
+            Action act = () => new ListBasedValidator(null, new ValidSealerStrategy(), Substitute.For<IValidatorStore>(),Substitute.For<IAuRaStepCalculator>(), logManager, 1); 
             act.Should().Throw<ArgumentNullException>();
         }
         

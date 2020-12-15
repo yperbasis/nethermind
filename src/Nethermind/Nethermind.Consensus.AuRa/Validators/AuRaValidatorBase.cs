@@ -28,17 +28,20 @@ namespace Nethermind.Consensus.AuRa.Validators
         public const long DefaultStartBlockNumber = 1;
         
         private readonly IValidSealerStrategy _validSealerStrategy;
+        private readonly IAuRaStepCalculator _auRaStepCalculator;
         private readonly ILogger _logger;
         
         protected AuRaValidatorBase(
             IValidSealerStrategy validSealerStrategy,
             IValidatorStore validatorStore,
+            IAuRaStepCalculator auRaStepCalculator,
             ILogManager logManager,
             long startBlockNumber,
             bool forSealing)
         {
             ValidatorStore = validatorStore ?? throw new ArgumentNullException(nameof(validatorStore));
             _validSealerStrategy = validSealerStrategy ?? throw new ArgumentNullException(nameof(validSealerStrategy));
+            _auRaStepCalculator = auRaStepCalculator ?? throw new ArgumentNullException(nameof(auRaStepCalculator));
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             InitBlockNumber = startBlockNumber;
             ForSealing = forSealing;
@@ -63,7 +66,7 @@ namespace Nethermind.Consensus.AuRa.Validators
             if (!options.IsProducingBlock() && !block.IsGenesis)
             {
                 var auRaStep = block.Header.AuRaStep.Value;
-                if (!_validSealerStrategy.IsValidSealer(Validators, block.Beneficiary, auRaStep))
+                if (_auRaStepCalculator.ValidateStep(block.Number) && !_validSealerStrategy.IsValidSealer(Validators, block.Beneficiary, auRaStep))
                 {
                     if (_logger.IsError) _logger.Error($"Block from incorrect proposer at block {block.ToString(Block.Format.FullHashAndNumber)}, step {auRaStep} from author {block.Beneficiary}.");
                     this.GetReportingValidator().ReportBenign(block.Beneficiary, block.Number, IReportingValidator.BenignCause.IncorrectProposer);

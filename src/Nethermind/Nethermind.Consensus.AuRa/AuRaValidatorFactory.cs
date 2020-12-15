@@ -42,6 +42,7 @@ namespace Nethermind.Consensus.AuRa
         private readonly IBlockFinalizationManager _finalizationManager;
         private readonly ITxSender _txSender;
         private readonly ITxPool _txPool;
+        private readonly IAuRaStepCalculator _auRaStepCalculator;
         private readonly IMiningConfig _miningConfig;
         private readonly ILogManager _logManager;
         private readonly ISigner _signer;
@@ -59,6 +60,7 @@ namespace Nethermind.Consensus.AuRa
             IBlockFinalizationManager finalizationManager,
             ITxSender txSender,
             ITxPool txPool,
+            IAuRaStepCalculator auRaStepCalculator,
             IMiningConfig miningConfig,
             ILogManager logManager,
             ISigner signer,
@@ -76,6 +78,7 @@ namespace Nethermind.Consensus.AuRa
             _finalizationManager = finalizationManager;
             _txSender = txSender;
             _txPool = txPool;
+            _auRaStepCalculator = auRaStepCalculator;
             _miningConfig = miningConfig;
             _logManager = logManager;
             _signer = signer;
@@ -101,6 +104,7 @@ namespace Nethermind.Consensus.AuRa
                     validSealerStrategy,
                     _finalizationManager,
                     parentHeader,
+                    _auRaStepCalculator, 
                     _logManager,
                     startBlockNumber,
                     _posdaoTransition,
@@ -113,6 +117,7 @@ namespace Nethermind.Consensus.AuRa
                         validator, 
                         validSealerStrategy, 
                         _validatorStore, 
+                        _auRaStepCalculator,
                         _logManager,
                         startBlockNumber,
                         _forSealing),

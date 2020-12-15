@@ -56,6 +56,7 @@ namespace Nethermind.AuRa.Test
                 Substitute.For<IBlockFinalizationManager>(),
                 Substitute.For<ITxSender>(),
                 Substitute.For<ITxPool>(),
+                Substitute.For<IAuRaStepCalculator>(),
                 new MiningConfig(), 
                 LimboLogs.Instance,
                 Substitute.For<ISigner>(),
