@@ -121,7 +121,7 @@ namespace Nethermind.Synchronization.BeamSync
                     }
 
                     _isAfterBeam = true;
-                    if(_logger.IsInfo) _logger.Info("Setting block action to shelving.");
+                    if(_logger.IsError) _logger.Error("Setting block action to shelving.");
                     _blockAction = Shelve;
                 }
 
