@@ -223,10 +223,13 @@ namespace Nethermind.Consensus.AuRa.Validators
         public void OnBlockProcessingEnd(Block block, TxReceipt[] receipts, ProcessingOptions options = ProcessingOptions.None)
         {
             _contractValidator.OnBlockProcessingEnd(block, receipts, options);
-            if (!_contractValidator.ForSealing && !block.IsGenesis)
+            if (!_contractValidator.ForSealing)
             {
                 var parentHeader = _contractValidator.BlockTree.FindParentHeader(block.Header, BlockTreeLookupOptions.None);
-                ResendPersistedReports(parentHeader);
+                if (parentHeader != null)
+                {
+                    ResendPersistedReports(parentHeader);
+                }
             }
         }
     }
