@@ -83,9 +83,9 @@ namespace Nethermind.Consensus.AuRa
                 long step = header.AuRaStep.Value;
 
                 // Test purpose only
-                if (_parameters.ReportMalicious.TryGetValue(header.Number, out Address address) && header.Beneficiary != _signer?.Address)
+                if (_parameters.ReportMalicious.TryGetValue(header.Number, out Address address) && address != _signer?.Address)
                 {
-                    if (_logger.IsWarn) _logger.Warn($"Reporting {address} as malicious FOR TESTING PURPOSES at block {header.ToString(BlockHeader.Format.FullHashAndNumber)}.");
+                    if (_logger.IsWarn) _logger.Warn($"Reporting {address} as malicious FOR TESTING PURPOSES at block {header.ToString(BlockHeader.Format.FullHashAndNumber)} as {_signer?.Address}.");
                     ReportingValidator.ReportMalicious(address, header.Number, Array.Empty<byte>(), IReportingValidator.MaliciousCause.Test); 
                 }
                 

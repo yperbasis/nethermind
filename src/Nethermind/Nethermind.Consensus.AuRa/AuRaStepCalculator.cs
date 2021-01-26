@@ -155,12 +155,14 @@ namespace Nethermind.Consensus.AuRa
         private readonly IAuRaStepCalculator _innerCalculator;
         private readonly ISigner _signer;
         private readonly IDictionary<Address, long> _faultyBlocksTransition;
+        private readonly IDictionary<long, Address> _reportMalicious;
 
-        public FaultyAuRaStepCalculator(IAuRaStepCalculator innerCalculator, ISigner signer, IDictionary<Address, long> faultyBlocksTransition)
+        public FaultyAuRaStepCalculator(IAuRaStepCalculator innerCalculator, ISigner signer, IDictionary<Address, long> faultyBlocksTransition, IDictionary<long, Address> reportMalicious)
         {
             _innerCalculator = innerCalculator;
             _signer = signer;
             _faultyBlocksTransition = faultyBlocksTransition;
+            _reportMalicious = reportMalicious;
         }
 
         public long GetCurrentStep(long blockNumber)
@@ -180,7 +182,8 @@ namespace Nethermind.Consensus.AuRa
         public TimeSpan TimeToStep(long step) => _innerCalculator.TimeToStep(step);
         public bool ValidateStep(long blockNumber)
         {
-            return !(_faultyBlocksTransition.TryGetValue(_signer.Address, out long transition) && blockNumber >= transition);
+            return !(_faultyBlocksTransition.TryGetValue(_signer.Address, out long transition) && blockNumber >= transition)
+                && !(_reportMalicious.TryGetValue(blockNumber, out Address signer) && signer == _signer.Address);
         }
     }
 }

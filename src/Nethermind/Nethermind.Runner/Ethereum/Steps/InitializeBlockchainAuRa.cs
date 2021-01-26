@@ -185,7 +185,7 @@ namespace Nethermind.Runner.Ethereum.Steps
 
             ValidSealerStrategy validSealerStrategy = new ValidSealerStrategy();
             _api.StepCalculator = new AuRaStepCalculator(_api.ChainSpec.AuRa.StepDuration, _api.Timestamper, _api.LogManager);
-            _api.StepCalculator = new FaultyAuRaStepCalculator(_api.StepCalculator, _api.EngineSigner, _api.ChainSpec.AuRa.FaultyBlocksTransition);
+            _api.StepCalculator = new FaultyAuRaStepCalculator(_api.StepCalculator, _api.EngineSigner, _api.ChainSpec.AuRa.FaultyBlocksTransition, _api.ChainSpec.AuRa.ReportMalicious);
             _api.SealValidator = _sealValidator = new AuRaSealValidator(
                 _api.ChainSpec.AuRa, 
                 _api.StepCalculator, 
