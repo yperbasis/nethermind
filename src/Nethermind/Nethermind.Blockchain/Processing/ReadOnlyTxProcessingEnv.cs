@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -14,51 +14,67 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Db;
 using Nethermind.Evm;
 using Nethermind.Logging;
 using Nethermind.State;
+using Nethermind.Trie.Pruning;
 
 namespace Nethermind.Blockchain.Processing
 {
-    public class ReadOnlyTxProcessingEnv
+    public class ReadOnlyTxProcessingEnv : IReadOnlyTxProcessorSource
     {
+        private readonly ReadOnlyDb _codeDb;
         public IStateReader StateReader { get; }
         public IStateProvider StateProvider { get; }
         public IStorageProvider StorageProvider { get; }
         public ITransactionProcessor TransactionProcessor { get; set; }
         public IBlockTree BlockTree { get; }
         public IReadOnlyDbProvider DbProvider { get; }
+        public IBlockhashProvider BlockhashProvider { get; }
+        public IVirtualMachine Machine { get; }
 
-        private IBlockhashProvider BlockhashProvider;
-        private IVirtualMachine VirtualMachine;
+        public ReadOnlyTxProcessingEnv(
+            IDbProvider dbProvider,
+            ITrieNodeResolver trieStore,
+            IBlockTree blockTree,
+            ISpecProvider specProvider,
+            ILogManager logManager) 
+            : this(dbProvider.AsReadOnly(false), trieStore.AsReadOnly(), blockTree.AsReadOnly(), specProvider, logManager)
+        {
+        }
 
         public ReadOnlyTxProcessingEnv(
             IReadOnlyDbProvider readOnlyDbProvider,
+            ReadOnlyTrieStore readOnlyTrieStore,
             ReadOnlyBlockTree readOnlyBlockTree,
             ISpecProvider specProvider,
             ILogManager logManager)
         {
             DbProvider = readOnlyDbProvider;
-            ISnapshotableDb stateDb = readOnlyDbProvider.StateDb;
-            IDb codeDb = readOnlyDbProvider.CodeDb;
-
-            StateReader = new StateReader(stateDb, codeDb, logManager);
-            StateProvider = new StateProvider(stateDb, codeDb, logManager);
-            StorageProvider = new StorageProvider(stateDb, StateProvider, logManager);
+            _codeDb = readOnlyDbProvider.CodeDb.AsReadOnly(true);
+            
+            StateReader = new StateReader(readOnlyTrieStore, _codeDb, logManager);
+            StateProvider = new StateProvider(readOnlyTrieStore, _codeDb, logManager);
+            StorageProvider = new StorageProvider(readOnlyTrieStore, StateProvider, logManager);
 
             BlockTree = readOnlyBlockTree;
             BlockhashProvider = new BlockhashProvider(BlockTree, logManager);
 
-            VirtualMachine = new VirtualMachine(StateProvider, StorageProvider, BlockhashProvider, specProvider, logManager);
-            TransactionProcessor = new TransactionProcessor(specProvider, StateProvider, StorageProvider, VirtualMachine, logManager);
+            Machine = new VirtualMachine(StateProvider, StorageProvider, BlockhashProvider, specProvider, logManager);
+            TransactionProcessor = new TransactionProcessor(specProvider, StateProvider, StorageProvider, Machine, logManager);
         }
 
         public void Reset()
         {
             StateProvider.Reset();
             StorageProvider.Reset();
+            
+            _codeDb.ClearTempChanges();
         }
+
+        public IReadOnlyTransactionProcessor Build(Keccak stateRoot) => new ReadOnlyTransactionProcessor(TransactionProcessor, StateProvider, StorageProvider, stateRoot);
     }
 }

@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -151,7 +151,7 @@ namespace Nethermind.Synchronization.FastBlocks
             batch?.MarkHandlingStart();
             try
             {
-                if (batch == null)
+                if (batch is null)
                 {
                     if (_logger.IsDebug) _logger.Debug("Received a NULL batch as a response");
                     return SyncResponseHandlingResult.InternalError;

@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -17,19 +17,21 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Nethermind.Db
 {
     public class DbProvider : IDbProvider
     {
-        private readonly ConcurrentDictionary<string, IDb> _registeredDbs = new ConcurrentDictionary<string, IDb>(StringComparer.InvariantCultureIgnoreCase);
+        private readonly ConcurrentDictionary<string, IDb> _registeredDbs =
+            new(StringComparer.InvariantCultureIgnoreCase);
 
         public DbProvider(DbModeHint dbMode)
         {
             DbMode = dbMode;
         }
 
-        public IDb BeamStateDb { get; } = new MemDb();
+        public IDb? BeamTempDb { get; } = null;
 
         public DbModeHint DbMode { get; }
 
@@ -37,26 +39,29 @@ namespace Nethermind.Db
 
         public void Dispose()
         {
-            if (_registeredDbs != null)
+            foreach (KeyValuePair<string, IDb> registeredDb in _registeredDbs)
             {
-                foreach (var registeredDb in _registeredDbs)
-                {
-                    registeredDb.Value?.Dispose();
-                }
+                registeredDb.Value?.Dispose();
             }
         }
 
-        public T GetDb<T>(string dbName) where T : IDb
+        public T GetDb<T>(string dbName) where T : class, IDb
         {
-            if (!_registeredDbs.ContainsKey(dbName))
+            if (!_registeredDbs.TryGetValue(dbName, out IDb? found))
             {
-                throw new ArgumentException($"{dbName} wasn't registed.");
+                throw new ArgumentException($"{dbName} database has not been registered in {nameof(DbProvider)}.");
             }
 
-            return (T)_registeredDbs[dbName];
+            if (!(found is T result))
+            {
+                throw new IOException(
+                    $"An attempt was made to resolve DB {dbName} as {typeof(T)} while its type is {found.GetType()}.");
+            }
+
+            return result;
         }
 
-        public void RegisterDb<T>(string dbName, T db) where T : IDb
+        public void RegisterDb<T>(string dbName, T db) where T : class, IDb
         {
             if (_registeredDbs.ContainsKey(dbName))
             {

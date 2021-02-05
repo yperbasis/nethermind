@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -20,6 +20,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Db.Rocks;
 using Nethermind.Db.Rocks.Config;
+using Nethermind.Logging;
 using NUnit.Framework;
 
 namespace Nethermind.Db.Test
@@ -31,7 +32,7 @@ namespace Nethermind.Db.Test
         public void Smoke_test()
         {
             IDbConfig config = new DbConfig();
-            DbOnTheRocks db = new SimpleRocksDb("blocks", GetRocksDbSettings("blocks", "Blocks"), config);
+            DbOnTheRocks db = new SimpleRocksDb("blocks", GetRocksDbSettings("blocks", "Blocks"), config, LimboLogs.Instance);
             db[new byte[] {1, 2, 3}] = new byte[] {4, 5, 6};
             Assert.AreEqual(new byte[] {4, 5, 6}, db[new byte[] {1, 2, 3}]);
         }
@@ -40,7 +41,7 @@ namespace Nethermind.Db.Test
         public void Can_get_all_on_empty()
         {
             IDbConfig config = new DbConfig();
-            DbOnTheRocks db = new SimpleRocksDb("testIterator", GetRocksDbSettings("testIterator", "TestIterator"), config);
+            DbOnTheRocks db = new SimpleRocksDb("testIterator", GetRocksDbSettings("testIterator", "TestIterator"), config, LimboLogs.Instance);
             try
             {
                 db.GetAll().ToList();
@@ -56,7 +57,7 @@ namespace Nethermind.Db.Test
         public async Task Dispose_while_writing_does_not_cause_access_violation_exception()
         {
             IDbConfig config = new DbConfig();
-            DbOnTheRocks db = new SimpleRocksDb("testDispose1", GetRocksDbSettings("testDispose1", "TestDispose1"), config);
+            DbOnTheRocks db = new SimpleRocksDb("testDispose1", GetRocksDbSettings("testDispose1", "TestDispose1"), config, LimboLogs.Instance);
 
             Task task = new Task(() =>
             {
@@ -83,10 +84,10 @@ namespace Nethermind.Db.Test
             {
                 DbName = dbName,
                 DbPath = dbPath,
-                BlockCacheSize = 1.KiB(),
+                BlockCacheSize = (ulong)1.KiB(),
                 CacheIndexAndFilterBlocks = false,
                 WriteBufferNumber = 4,
-                WriteBufferSize = 1.KiB()
+                WriteBufferSize = (ulong)1.KiB()
             };
         }
     }

@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -73,7 +73,7 @@ namespace Nethermind.Stats.Model
             get => _clientId;
             set
             {
-                if (_clientId == null)
+                if (_clientId is null)
                 {
                     _clientId = value;
                     RecognizeClientType();
@@ -180,7 +180,7 @@ namespace Nethermind.Stats.Model
         
         private void RecognizeClientType()
         {
-            if (_clientId == null)
+            if (_clientId is null)
             {
                 ClientType = NodeClientType.Unknown;
             }
@@ -203,6 +203,10 @@ namespace Nethermind.Stats.Model
             else if (_clientId.Contains("OpenEthereum", StringComparison.InvariantCultureIgnoreCase))
             {
                 ClientType = NodeClientType.OpenEthereum;
+            }
+            else if (_clientId.Contains("Trinity", StringComparison.InvariantCultureIgnoreCase))
+            {
+                ClientType = NodeClientType.Trinity;
             }
             else
             {

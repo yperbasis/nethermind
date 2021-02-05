@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -29,6 +29,7 @@ using Nethermind.Config;
 using Nethermind.Core;
 using Nethermind.JsonRpc;
 using Nethermind.Logging;
+using Nethermind.Runner.JsonRpc;
 using Nethermind.Runner.Logging;
 using Nethermind.WebSockets;
 using ILogger = Nethermind.Logging.ILogger;
@@ -73,12 +74,12 @@ namespace Nethermind.Runner.Ethereum
                 string host = _jsonRpcConfig.Host;
                 string scheme = "http";
                 var defaultUrl = $"{scheme}://{host}:{_jsonRpcConfig.Port}";
-                var urlVariable = Environment.GetEnvironmentVariable(nethermindUrlVariable);
+                string? urlVariable = Environment.GetEnvironmentVariable(nethermindUrlVariable);
                 string url = defaultUrl;
 
                 if (!string.IsNullOrWhiteSpace(urlVariable))
                 {
-                    if (Uri.TryCreate(urlVariable, UriKind.Absolute, out var uri))
+                    if (Uri.TryCreate(urlVariable, UriKind.Absolute, out Uri? uri))
                     {
                         url = urlVariable;
                         host = uri.Host;
@@ -116,7 +117,6 @@ namespace Nethermind.Runner.Ethereum
                 .ConfigureLogging(logging =>
                 {
                     logging.SetMinimumLevel(LogLevel.Information);
-                    logging.AddFilter("Microsoft.Extensions.Diagnostics.HealthChecks", LogLevel.Critical);
                     logging.ClearProviders();
                     logging.AddProvider(new CustomMicrosoftLoggerProvider(_logManager));
                 })

@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -15,10 +15,10 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-using System.Reactive.Disposables;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Api;
+using Nethermind.Core;
 using Nethermind.Grpc;
 using Nethermind.Grpc.Producers;
 using Nethermind.Grpc.Servers;
@@ -42,21 +42,24 @@ namespace Nethermind.Runner.Ethereum.Steps
             if (grpcConfig.Enabled)
             {
                 ILogger logger = _api.LogManager.GetClassLogger();
-                GrpcServer grpcServer = new GrpcServer(_api.EthereumJsonSerializer, _api.LogManager);
-                var grpcRunner = new GrpcRunner(grpcServer, grpcConfig, _api.LogManager);
+                GrpcServer grpcServer = new(_api.EthereumJsonSerializer, _api.LogManager);
+                GrpcRunner grpcRunner = new(grpcServer, grpcConfig, _api.LogManager);
                 await grpcRunner.Start(cancellationToken).ContinueWith(x =>
                 {
                     if (x.IsFaulted && logger.IsError)
                         logger.Error("Error during GRPC runner start", x.Exception);
-                });
+                }, cancellationToken);
             
                 _api.GrpcServer = grpcServer;
                 
-                GrpcPublisher grpcPublisher = new GrpcPublisher(_api.GrpcServer);
+                GrpcPublisher grpcPublisher = new(_api.GrpcServer);
                 _api.Publishers.Add(grpcPublisher);
                 
                 _api.DisposeStack.Push(grpcPublisher);
-                _api.DisposeStack.Push(Disposable.Create(() => grpcRunner.StopAsync())); // do not await
+                
+#pragma warning disable 4014
+                _api.DisposeStack.Push(new Reactive.AnonymousDisposable(() => grpcRunner.StopAsync())); // do not await
+#pragma warning restore 4014
             }
         }
     }

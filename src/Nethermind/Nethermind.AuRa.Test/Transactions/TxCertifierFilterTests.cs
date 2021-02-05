@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -28,12 +28,9 @@ using Nethermind.Consensus.AuRa.Contracts;
 using Nethermind.Consensus.AuRa.Transactions;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
-using Nethermind.Core.Caching;
-using Nethermind.Core.Crypto;
 using Nethermind.Core.Test.Builders;
-using Nethermind.Int256;
 using Nethermind.Logging;
-using Nethermind.Specs.ChainSpecStyle;
+using Nethermind.Trie.Pruning;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using NUnit.Framework;
@@ -110,26 +107,54 @@ namespace Nethermind.AuRa.Test.Transactions
             chain.CertifierContract.Certified(chain.BlockTree.Head.Header, new Address("0xbbcaa8d48289bb1ffcf9808d9aa4b1d215054c78")).Should().BeTrue();
         }
         
+        [Test]
+        public async Task registry_contract_returns_correct_address()
+        {
+            using var chain = await TestContractBlockchain.ForTest<TestTxPermissionsBlockchain, TxCertifierFilterTests>();
+            chain.RegisterContract.TryGetAddress(chain.BlockTree.Head.Header, CertifierContract.ServiceTransactionContractRegistryName, out Address address).Should().BeTrue();
+            address.Should().Be(new Address("0x5000000000000000000000000000000000000001"));
+        }
+        
+        [Test]
+        public async Task registry_contract_returns_not_found_when_key_doesnt_exist()
+        {
+            using var chain = await TestContractBlockchain.ForTest<TestTxPermissionsBlockchain, TxCertifierFilterTests>();
+            chain.RegisterContract.TryGetAddress(chain.BlockTree.Head.Header, "not existing key", out Address _).Should().BeFalse();
+        }
+        
+        [Test]
+        public async Task registry_contract_returns_not_found_when_contract_doesnt_exist()
+        {
+            using var chain = await TestContractBlockchain.ForTest<TestTxPermissionsBlockchain, TxCertifierFilterTests>();
+            var contract = new RegisterContract(new AbiEncoder(), Address.FromNumber(1000), chain.ReadOnlyTransactionProcessorSource);
+            contract.TryGetAddress(chain.BlockTree.Head.Header, CertifierContract.ServiceTransactionContractRegistryName, out Address _).Should().BeFalse();
+        }
+        
         public class TestTxPermissionsBlockchain : TestContractBlockchain
         {
+            public ReadOnlyTxProcessingEnv ReadOnlyTransactionProcessorSource { get; private set; }
+            public RegisterContract RegisterContract { get; private set; }
             public CertifierContract CertifierContract { get; private set; }
             
             protected override BlockProcessor CreateBlockProcessor()
             {
                 AbiEncoder abiEncoder = new AbiEncoder();
-                ReadOnlyTxProcessorSource readOnlyTransactionProcessorSource = new ReadOnlyTxProcessorSource(DbProvider, BlockTree, SpecProvider, LimboLogs.Instance);
+                ReadOnlyTransactionProcessorSource = new(
+                    DbProvider,
+                    new ReadOnlyTrieStore(new TrieStore(DbProvider.StateDb, LimboLogs.Instance)),
+                    BlockTree, SpecProvider,
+                    LimboLogs.Instance);
+                RegisterContract = new RegisterContract(abiEncoder, ChainSpec.Parameters.Registrar, ReadOnlyTransactionProcessorSource);
                 CertifierContract = new CertifierContract(
                     abiEncoder, 
-                    new RegisterContract(abiEncoder, ChainSpec.Parameters.Registrar, readOnlyTransactionProcessorSource),
-                    readOnlyTransactionProcessorSource);
+                    RegisterContract,
+                    ReadOnlyTransactionProcessorSource);
                 
                 return new AuRaBlockProcessor(
                     SpecProvider,
                     Always.Valid,
                     new RewardCalculator(SpecProvider),
                     TxProcessor,
-                    StateDb,
-                    CodeDb,
                     State,
                     Storage,
                     TxPool,

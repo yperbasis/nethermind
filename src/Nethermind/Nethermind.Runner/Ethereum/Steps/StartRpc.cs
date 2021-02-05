@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -15,13 +15,14 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-using System.Reactive.Disposables;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Api;
+using Nethermind.Core;
 using Nethermind.JsonRpc;
 using Nethermind.JsonRpc.WebSockets;
 using Nethermind.Logging;
+using Nethermind.Runner.JsonRpc;
 
 namespace Nethermind.Runner.Ethereum.Steps
 {
@@ -60,7 +61,7 @@ namespace Nethermind.Runner.Ethereum.Steps
                 if (initConfig.WebSocketsEnabled)
                 {
                     // TODO: I do not like passing both service and processor to any of the types
-                    JsonRpcWebSocketsModule? webSocketsModule = new JsonRpcWebSocketsModule(
+                    JsonRpcWebSocketsModule webSocketsModule = new JsonRpcWebSocketsModule(
                         jsonRpcProcessor,
                         jsonRpcService,
                         _api.EthereumJsonSerializer,
@@ -73,9 +74,9 @@ namespace Nethermind.Runner.Ethereum.Steps
                 Bootstrap.Instance.LogManager = _api.LogManager;
                 Bootstrap.Instance.JsonSerializer = _api.EthereumJsonSerializer;
                 Bootstrap.Instance.JsonRpcLocalStats = jsonRpcLocalStats;
-                var jsonRpcRunner = new JsonRpcRunner(
+                JsonRpcRunner? jsonRpcRunner = new(
                     jsonRpcProcessor,
-                    _api.WebSocketsManager,
+                    _api.WebSocketsManager!,
                     _api.ConfigProvider,
                     _api.LogManager,
                     _api);
@@ -84,9 +85,11 @@ namespace Nethermind.Runner.Ethereum.Steps
                 {
                     if (x.IsFaulted && logger.IsError)
                         logger.Error("Error during jsonRpc runner start", x.Exception);
-                });
+                }, cancellationToken);
 
-                _api.DisposeStack.Push(Disposable.Create(() => jsonRpcRunner.StopAsync())); // do not await
+#pragma warning disable 4014
+                _api.DisposeStack.Push(new Reactive.AnonymousDisposable(() => jsonRpcRunner.StopAsync())); // do not await
+#pragma warning restore 4014
             }
             else
             {

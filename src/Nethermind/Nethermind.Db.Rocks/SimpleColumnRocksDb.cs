@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -19,13 +19,13 @@ using Nethermind.Logging;
 
 namespace Nethermind.Db.Rocks
 {
-    public class SimpleColumnRocksDb<T> : ColumnsDb<T>
+    public class SimpleColumnRocksDb<T> : ColumnsDb<T> where T : notnull
     {
         public SimpleColumnRocksDb(
             string basePath,
             RocksDbSettings rocksDbSettings,
             IDbConfig dbConfig,
-            ILogManager logManager = null)
+            ILogManager logManager)
                 : base(basePath, rocksDbSettings, dbConfig, logManager)
         {
         }

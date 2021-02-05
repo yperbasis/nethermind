@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -23,6 +23,7 @@ using Nethermind.Blockchain.Processing;
 using Nethermind.Blockchain.Producers;
 using Nethermind.Blockchain.Receipts;
 using Nethermind.Blockchain.Rewards;
+using Nethermind.Blockchain.Synchronization;
 using Nethermind.Blockchain.Validators;
 using Nethermind.Consensus;
 using Nethermind.Core.Crypto;
@@ -39,6 +40,7 @@ using Nethermind.Specs;
 using Nethermind.State;
 using Nethermind.State.Repositories;
 using Nethermind.Db.Blooms;
+using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using Nethermind.TxPool.Storages;
 using BlockTree = Nethermind.Blockchain.BlockTree;
@@ -54,14 +56,17 @@ namespace Nethermind.Core.Test.Blockchain
         public IStorageProvider Storage { get; set; }
         public IReceiptStorage ReceiptStorage { get; set; }
         public ITxPool TxPool { get; set; }
-        public ISnapshotableDb CodeDb => DbProvider.CodeDb;
+        public IDb CodeDb => DbProvider.CodeDb;
         public IBlockProcessor BlockProcessor { get; set; }
         public IBlockchainProcessor BlockchainProcessor { get; set; }
+        
+        public IBlockProcessingQueue BlockProcessingQueue { get; set; }
         public IBlockTree BlockTree { get; set; }
         public IBlockFinder BlockFinder { get; set; }
         public IJsonSerializer JsonSerializer { get; set; }
         public IStateProvider State { get; set; }
-        public ISnapshotableDb StateDb => DbProvider.StateDb;
+        public IDb StateDb => DbProvider.StateDb;
+        public TrieStore TrieStore { get; set; }
         public TestBlockProducer BlockProducer { get; private set; }
         public IDbProvider DbProvider { get; set; }
         public ISpecProvider SpecProvider { get; set; }
@@ -80,7 +85,7 @@ namespace Nethermind.Core.Test.Blockchain
 
         public ManualTimestamper Timestamper { get; private set; }
 
-        public static TransactionBuilder<Transaction> BuildSimpleTransaction => Core.Test.Builders.Build.A.Transaction.SignedAndResolved(TestItem.PrivateKeyA).To(AccountB);
+        public static TransactionBuilder<Transaction> BuildSimpleTransaction => Builders.Build.A.Transaction.SignedAndResolved(TestItem.PrivateKeyA).To(AccountB);
 
         protected virtual async Task<TestBlockchain> Build(ISpecProvider specProvider = null, UInt256? initialValues = null)
         {
@@ -90,7 +95,8 @@ namespace Nethermind.Core.Test.Blockchain
             EthereumEcdsa = new EthereumEcdsa(ChainId.Mainnet, LimboLogs.Instance);
             ITxStorage txStorage = new InMemoryTxStorage();
             DbProvider = await TestMemDbProvider.InitAsync();
-            State = new StateProvider(StateDb, CodeDb, LimboLogs.Instance);
+            TrieStore = new TrieStore(StateDb.Innermost, LimboLogs.Instance);
+            State = new StateProvider(TrieStore, DbProvider.CodeDb, LimboLogs.Instance);
             State.CreateAccount(TestItem.AddressA, (initialValues ?? 1000.Ether()));
             State.CreateAccount(TestItem.AddressB, (initialValues ?? 1000.Ether()));
             State.CreateAccount(TestItem.AddressC, (initialValues ?? 1000.Ether()));
@@ -99,19 +105,19 @@ namespace Nethermind.Core.Test.Blockchain
             State.UpdateCode(code);
             State.UpdateCodeHash(TestItem.AddressA, codeHash, SpecProvider.GenesisSpec);
 
-            Storage = new StorageProvider(StateDb, State, LimboLogs.Instance);
+            Storage = new StorageProvider(TrieStore, State, LimboLogs.Instance);
             Storage.Set(new StorageCell(TestItem.AddressA, UInt256.One), Bytes.FromHexString("0xabcdef"));
             Storage.Commit();
 
             State.Commit(SpecProvider.GenesisSpec);
-            State.CommitTree();
+            State.CommitTree(0);
 
             TxPool = new TxPool.TxPool(
                 txStorage,
                 EthereumEcdsa,
                 SpecProvider,
                 new TxPoolConfig(),
-                new StateProvider(StateDb, CodeDb, LimboLogs.Instance),
+                State,
                 LimboLogs.Instance);
 
             IDb blockDb = new MemDb();
@@ -124,15 +130,16 @@ namespace Nethermind.Core.Test.Blockchain
             VirtualMachine virtualMachine = new VirtualMachine(State, Storage, new BlockhashProvider(BlockTree, LimboLogs.Instance), SpecProvider, LimboLogs.Instance);
             TxProcessor = new TransactionProcessor(SpecProvider, State, Storage, virtualMachine, LimboLogs.Instance);
             BlockProcessor = CreateBlockProcessor();
-
             BlockchainProcessor chainProcessor = new BlockchainProcessor(BlockTree, BlockProcessor, new RecoverSignatures(EthereumEcdsa, TxPool, SpecProvider, LimboLogs.Instance), LimboLogs.Instance, Nethermind.Blockchain.Processing.BlockchainProcessor.Options.Default);
             BlockchainProcessor = chainProcessor;
+            BlockProcessingQueue = chainProcessor;
             chainProcessor.Start();
-
-            StateReader = new StateReader(StateDb, CodeDb, LimboLogs.Instance);
+            
+            StateReader = new StateReader(new ReadOnlyTrieStore(TrieStore), CodeDb, LimboLogs.Instance);
             TxPoolTxSource txPoolTxSource = CreateTxPoolTxSource();
             ISealer sealer = new NethDevSealEngine(TestItem.AddressD);
-            BlockProducer = new TestBlockProducer(txPoolTxSource, chainProcessor, State, sealer, BlockTree, chainProcessor, Timestamper, LimboLogs.Instance);
+            IStateProvider producerStateProvider = new StateProvider(new ReadOnlyTrieStore(TrieStore), CodeDb, LimboLogs.Instance);
+            BlockProducer = new TestBlockProducer(txPoolTxSource, chainProcessor, producerStateProvider, sealer, BlockTree, chainProcessor, Timestamper, LimboLogs.Instance);
             BlockProducer.Start();
 
             _resetEvent = new SemaphoreSlim(0);
@@ -190,7 +197,17 @@ namespace Nethermind.Core.Test.Blockchain
         }
 
         protected virtual BlockProcessor CreateBlockProcessor() =>
-            new BlockProcessor(SpecProvider, Always.Valid, new RewardCalculator(SpecProvider), TxProcessor, StateDb, CodeDb, State, Storage, TxPool, ReceiptStorage, LimboLogs.Instance);
+            new BlockProcessor(
+                SpecProvider,
+                Always.Valid,
+                new RewardCalculator(SpecProvider),
+                TxProcessor,
+                State,
+                Storage,
+                TxPool,
+                ReceiptStorage,
+                NullWitnessCollector.Instance, 
+                LimboLogs.Instance);
 
         public async Task AddBlock(params Transaction[] transactions)
         {

@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -39,6 +39,8 @@ namespace Nethermind.State
         byte[] GetCode(Keccak codeHash);
         
         Keccak GetCodeHash(Address address);
+
+        public bool IsContract(Address address) => GetCodeHash(address) != Keccak.OfAnEmptyString;
 
         void Accept(ITreeVisitor visitor, Keccak stateRoot);
         

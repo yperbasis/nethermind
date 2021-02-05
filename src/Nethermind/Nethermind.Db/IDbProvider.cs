@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+// Copyright (c) 2020 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -25,16 +25,11 @@ namespace Nethermind.Db
         Persisted
     }
 
-    public interface IReadOnlyDbProvider : IDbProvider
-    {
-        void ClearTempChanges();
-    }
-    
     public interface IDbProvider : IDisposable
     {
         DbModeHint DbMode { get; }
-        public ISnapshotableDb StateDb => GetDb<ISnapshotableDb>(DbNames.State);
-        public ISnapshotableDb CodeDb => GetDb<ISnapshotableDb>(DbNames.Code);
+        public IDb StateDb => GetDb<IDb>(DbNames.State);
+        public IDb CodeDb => GetDb<IDb>(DbNames.Code);
         public IColumnsDb<ReceiptsColumns> ReceiptsDb => GetDb<IColumnsDb<ReceiptsColumns>>(DbNames.Receipts);
         public IDb BlocksDb => GetDb<IDb>(DbNames.Blocks);
         public IDb HeadersDb => GetDb<IDb>(DbNames.Headers);
@@ -50,11 +45,12 @@ namespace Nethermind.Db
         public IDb ChtDb => GetDb<IDb>(DbNames.CHT);
         
         // Beam Sync (StateDB like)
-        IDb BeamStateDb { get; }
+        IDb? BeamTempDb { get; }
+        IDb WitnessDb => GetDb<IDb>(DbNames.Witness);
 
-        T GetDb<T>(string dbName) where T : IDb;
+        T GetDb<T>(string dbName) where T : class, IDb;
 
-        void RegisterDb<T>(string dbName, T db) where T : IDb;
+        void RegisterDb<T>(string dbName, T db) where T : class, IDb;
 
         IDictionary<string, IDb> RegisteredDbs { get; }
     }

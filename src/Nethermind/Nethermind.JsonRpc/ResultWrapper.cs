@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -54,6 +54,11 @@ namespace Nethermind.JsonRpc
         public static ResultWrapper<T> Fail(string error, int errorCode)
         {
             return new ResultWrapper<T> { Result = Result.Fail(error), ErrorCode = errorCode};
+        }
+        
+        public static ResultWrapper<T> Fail(string error, T data)
+        {
+            return new ResultWrapper<T> { Data = data, Result = Result.Fail(error) };
         }
 
         public static ResultWrapper<T> Success(T data)

@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -26,23 +26,25 @@ using Nethermind.Config;
 using Nethermind.Core.Specs;
 using Nethermind.Db;
 using Nethermind.Logging;
+using Nethermind.Trie.Pruning;
 using Newtonsoft.Json;
 
 namespace Nethermind.JsonRpc.Modules.DebugModule
 {
     public class DebugModuleFactory : ModuleFactoryBase<IDebugModule>
     {
-        private readonly IBlockTree _blockTree;
-        private readonly IDbProvider _dbProvider;
         private readonly IJsonRpcConfig _jsonRpcConfig;
         private readonly IBlockValidator _blockValidator;
         private readonly IRewardCalculatorSource _rewardCalculatorSource;
         private readonly IReceiptStorage _receiptStorage;
         private readonly IReceiptsMigration _receiptsMigration;
+        private readonly ReadOnlyTrieStore _trieStore;
         private readonly IConfigProvider _configProvider;
         private readonly ISpecProvider _specProvider;
         private readonly ILogManager _logManager;
         private readonly IBlockPreprocessorStep _recoveryStep;
+        private readonly IReadOnlyDbProvider _dbProvider;
+        private readonly ReadOnlyBlockTree _blockTree;
         private ILogger _logger;
 
         public DebugModuleFactory(
@@ -54,18 +56,20 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
             IRewardCalculatorSource rewardCalculator,
             IReceiptStorage receiptStorage,
             IReceiptsMigration receiptsMigration,
+            ITrieNodeResolver trieStore,
             IConfigProvider configProvider,
             ISpecProvider specProvider,
             ILogManager logManager)
         {
-            _dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
-            _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
+            _dbProvider = dbProvider.AsReadOnly(false);
+            _blockTree = blockTree.AsReadOnly();
             _jsonRpcConfig = jsonRpcConfig ?? throw new ArgumentNullException(nameof(jsonRpcConfig));
             _blockValidator = blockValidator ?? throw new ArgumentNullException(nameof(blockValidator));
             _recoveryStep = recoveryStep ?? throw new ArgumentNullException(nameof(recoveryStep));
             _rewardCalculatorSource = rewardCalculator ?? throw new ArgumentNullException(nameof(rewardCalculator));
             _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
             _receiptsMigration = receiptsMigration ?? throw new ArgumentNullException(nameof(receiptsMigration));
+            _trieStore = (trieStore ?? throw new ArgumentNullException(nameof(trieStore))).AsReadOnly();
             _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
             _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
@@ -74,43 +78,37 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
 
         public override IDebugModule Create()
         {
-            IReadOnlyDbProvider readOnlyDbProvider = new ReadOnlyDbProvider(_dbProvider, false);
-            ReadOnlyBlockTree readOnlyTree = new ReadOnlyBlockTree(_blockTree);
-            
-            ReadOnlyTxProcessingEnv txEnv =
-                new ReadOnlyTxProcessingEnv(
-                    readOnlyDbProvider,
-                    readOnlyTree,
-                    _specProvider,
-                    _logManager);
-            
-            ReadOnlyChainProcessingEnv readOnlyChainProcessingEnv = 
-                new ReadOnlyChainProcessingEnv(
-                    txEnv,
-                    _blockValidator,
-                    _recoveryStep,
-                    _rewardCalculatorSource.Get(txEnv.TransactionProcessor),
-                    _receiptStorage,
-                    readOnlyDbProvider,
-                    _specProvider,
-                    _logManager);
+            ReadOnlyTxProcessingEnv txEnv = new(
+                _dbProvider,
+                _trieStore,
+                _blockTree,
+                _specProvider,
+                _logManager);
 
-            IGethStyleTracer tracer =
-                new GethStyleTracer(
-                    readOnlyChainProcessingEnv.ChainProcessor,
-                    _receiptStorage,
-                    new ReadOnlyBlockTree(_blockTree));
+            ReadOnlyChainProcessingEnv chainProcessingEnv = new(
+                txEnv,
+                _blockValidator,
+                _recoveryStep,
+                _rewardCalculatorSource.Get(txEnv.TransactionProcessor),
+                _receiptStorage,
+                _dbProvider,
+                _specProvider,
+                _logManager);
 
-            DebugBridge debugBridge =
-                new DebugBridge(
-                    _configProvider,
-                    readOnlyDbProvider,
-                    tracer, 
-                    readOnlyTree, 
-                    _receiptStorage, 
-                    _receiptsMigration, 
-                    _specProvider);
-            
+            GethStyleTracer tracer = new(
+                chainProcessingEnv.ChainProcessor,
+                _receiptStorage,
+                _blockTree);
+
+            DebugBridge debugBridge = new(
+                _configProvider,
+                _dbProvider,
+                tracer,
+                _blockTree,
+                _receiptStorage,
+                _receiptsMigration,
+                _specProvider);
+
             return new DebugModule(_logManager, debugBridge, _jsonRpcConfig);
         }
 

@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -25,6 +25,7 @@ using Nethermind.Consensus.AuRa.Validators;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
 using Nethermind.Core.Specs;
+using Nethermind.Crypto;
 using Nethermind.Db;
 using Nethermind.Evm;
 using Nethermind.Evm.Tracing;
@@ -36,29 +37,39 @@ namespace Nethermind.Consensus.AuRa
 {
     public class AuRaBlockProcessor : BlockProcessor
     {
+        private readonly ISpecProvider _specProvider;
         private readonly IBlockTree _blockTree;
-        private readonly AuRaContractGasLimitOverride _gasLimitOverride;
+        private readonly AuRaContractGasLimitOverride? _gasLimitOverride;
         private readonly ITxFilter _txFilter;
         private readonly ILogger _logger;
-        private IAuRaValidator _auRaValidator;
+        private IAuRaValidator? _auRaValidator;
 
         public AuRaBlockProcessor(
             ISpecProvider specProvider,
             IBlockValidator blockValidator,
             IRewardCalculator rewardCalculator,
             ITransactionProcessor transactionProcessor,
-            ISnapshotableDb stateDb,
-            ISnapshotableDb codeDb,
             IStateProvider stateProvider,
             IStorageProvider storageProvider,
             ITxPool txPool,
             IReceiptStorage receiptStorage,
             ILogManager logManager,
             IBlockTree blockTree,
-            ITxFilter txFilter = null,
-            AuRaContractGasLimitOverride gasLimitOverride = null)
-            : base(specProvider, blockValidator, rewardCalculator, transactionProcessor, stateDb, codeDb, stateProvider, storageProvider, txPool, receiptStorage, logManager)
+            ITxFilter? txFilter = null,
+            AuRaContractGasLimitOverride? gasLimitOverride = null)
+            : base(
+                specProvider,
+                blockValidator,
+                rewardCalculator,
+                transactionProcessor,
+                stateProvider,
+                storageProvider,
+                txPool,
+                receiptStorage,
+                NullWitnessCollector.Instance, // TODO: we will not support beam sync on AuRa chains for now
+                logManager)
         {
+            _specProvider = specProvider;
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _logger = logManager?.GetClassLogger<AuRaBlockProcessor>() ?? throw new ArgumentNullException(nameof(logManager));
             _txFilter = txFilter ?? NullTxFilter.Instance;
@@ -105,10 +116,33 @@ namespace Nethermind.Consensus.AuRa
 
         private void ValidateTxs(Block block, BlockHeader parentHeader)
         {
+            (bool Allowed, string Reason)? TryRecoverSenderAddress(Transaction tx)
+            {
+                if (tx.Signature != null)
+                {
+                    IReleaseSpec spec = _specProvider.GetSpec(block.Number);
+                    var ecdsa = new EthereumEcdsa(_specProvider.ChainId, LimboLogs.Instance);
+                    Address txSenderAddress = ecdsa.RecoverAddress(tx, !spec.ValidateChainId);
+                    if (tx.SenderAddress != txSenderAddress)
+                    {
+                        if (_logger.IsWarn) _logger.Warn($"Transaction {tx.ToShortString()} in block {block.ToString(Block.Format.FullHashAndNumber)} had recovered sender address on validation.");
+                        tx.SenderAddress = txSenderAddress;
+                        return _txFilter.IsAllowed(tx, parentHeader);
+                    }
+                }
+
+                return null;
+            }
+
             for (int i = 0; i < block.Transactions.Length; i++)
             {
                 var tx = block.Transactions[i];
                 var txFilterResult = _txFilter.IsAllowed(tx, parentHeader);
+                if (!txFilterResult.Allowed)
+                {
+                    txFilterResult = TryRecoverSenderAddress(tx) ?? txFilterResult;
+                }
+
                 if (!txFilterResult.Allowed)
                 {
                     if (_logger.IsWarn) _logger.Warn($"Proposed block is not valid {block.ToString(Block.Format.FullHashAndNumber)}. {tx.ToShortString()} doesn't have required permissions. Reason: {txFilterResult.Reason}.");

@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -17,16 +17,10 @@
 using System;
 using System.Collections.Generic;
 using Nethermind.Blockchain;
-using Nethermind.Blockchain.Processing;
-using Nethermind.Blockchain.Receipts;
-using Nethermind.Blockchain.Synchronization;
-using Nethermind.Core.Specs;
-using Nethermind.Crypto;
 using Nethermind.Db;
 using Nethermind.Facade;
 using Nethermind.JsonRpc.Data;
 using Nethermind.Logging;
-using Nethermind.Db.Blooms;
 using Nethermind.State;
 using Nethermind.TxPool;
 using Nethermind.Wallet;
@@ -36,7 +30,7 @@ namespace Nethermind.JsonRpc.Modules.Eth
 {
     public class EthModuleFactory : ModuleFactoryBase<IEthModule>
     {
-        private readonly IBlockTree _blockTree;
+        private readonly ReadOnlyBlockTree _blockTree;
         private readonly ILogManager _logManager;
         private readonly IStateReader _stateReader;
         private readonly IBlockchainBridgeFactory _blockchainBridgeFactory;
@@ -58,12 +52,11 @@ namespace Nethermind.JsonRpc.Modules.Eth
             _txPool = txPool ?? throw new ArgumentNullException(nameof(txPool));
             _txSender = txSender ?? throw new ArgumentNullException(nameof(txSender));
             _wallet = wallet ?? throw new ArgumentNullException(nameof(wallet));
-            _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _rpcConfig = config ?? throw new ArgumentNullException(nameof(config));
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             _stateReader = stateReader ?? throw new ArgumentNullException(nameof(stateReader));
             _blockchainBridgeFactory = blockchainBridgeFactory ?? throw new ArgumentNullException(nameof(blockchainBridgeFactory));
-            _readOnlyBlockTree = new ReadOnlyBlockTree(_blockTree);
+            _blockTree = blockTree.AsReadOnly();
         }
         
         public override IEthModule Create()
@@ -71,7 +64,7 @@ namespace Nethermind.JsonRpc.Modules.Eth
             return new EthModule(
                 _rpcConfig,
                 _blockchainBridgeFactory.CreateBlockchainBridge(),
-                _readOnlyBlockTree,
+                _blockTree,
                 _stateReader,
                 _txPool,
                 _txSender,
@@ -79,13 +72,11 @@ namespace Nethermind.JsonRpc.Modules.Eth
                 _logManager);
         }
 
-        public static List<JsonConverter> Converters = new List<JsonConverter>
+        public static List<JsonConverter> Converters = new()
         {
             new SyncingResultConverter(),
             new ProofConverter()
         };
-
-        private ReadOnlyBlockTree _readOnlyBlockTree;
 
         public override IReadOnlyCollection<JsonConverter> GetConverters() => Converters;
     }

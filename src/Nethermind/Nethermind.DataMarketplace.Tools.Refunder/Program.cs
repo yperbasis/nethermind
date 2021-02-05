@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,6 +10,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Crypto;
 using Nethermind.DataMarketplace.Consumers.Deposits.Domain;
 using Nethermind.DataMarketplace.Consumers.Deposits.Queries;
+using Nethermind.DataMarketplace.Consumers.Deposits.Services;
 using Nethermind.DataMarketplace.Consumers.Infrastructure.Persistence.Rocks;
 using Nethermind.DataMarketplace.Consumers.Infrastructure.Persistence.Rocks.Repositories;
 using Nethermind.DataMarketplace.Consumers.Infrastructure.Rlp;
@@ -138,9 +139,13 @@ namespace Nethermind.DataMarketplace.Tools.Refunder
                 var rocksDbFactory = new RocksDbFactory(DbConfig.Default, logManager, dbPath);
                 var dbInitializer = new ConsumerNdmDbInitializer(dbProvider, new NdmConfig(), rocksDbFactory, new MemDbFactory());
                 await dbInitializer.InitAsync();
-                DepositDetailsRocksRepository depositsRepo = new DepositDetailsRocksRepository(dbProvider.GetDb<IDb>(ConsumerNdmDbNames.Deposits), new DepositDetailsDecoder());
+                ConsumerSessionDecoder sessionRlpDecoder = new ConsumerSessionDecoder();
+                var sessionRepository =
+                    new ConsumerSessionRocksRepository(dbProvider.GetDb<IDb>(ConsumerNdmDbNames.ConsumerSessions), sessionRlpDecoder);
+                var depositUnitsCalculator = new DepositUnitsCalculator(sessionRepository, new Timestamper());
+                DepositDetailsRocksRepository depositsRepo = new DepositDetailsRocksRepository(dbProvider.GetDb<IDb>(ConsumerNdmDbNames.Deposits), new DepositDetailsDecoder(), depositUnitsCalculator);
                 // var deposits = await depositsRepo.BrowseAsync(new GetDeposits());
-                var deposits = await depositsRepo.BrowseAsync(new GetDeposits { CurrentBlockTimestamp = Timestamper.Default.EpochSecondsLong, EligibleToRefund = true });
+                var deposits = await depositsRepo.BrowseAsync(new GetDeposits { CurrentBlockTimestamp = Timestamper.Default.UnixTime.SecondsLong, EligibleToRefund = true });
                 return deposits;
             }
         }

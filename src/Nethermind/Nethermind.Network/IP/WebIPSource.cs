@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -37,13 +37,12 @@ namespace Nethermind.Network.IP
         {
             try
             {
-                HttpClient httpClient = new HttpClient();
-                httpClient.Timeout = TimeSpan.FromSeconds(3);
+                HttpClient httpClient = new HttpClient {Timeout = TimeSpan.FromSeconds(3)};
                 if(_logger.IsInfo) _logger.Info($"Using {_url} to get external ip");
                 string ip = httpClient.GetStringAsync(_url).Result.Trim();
                 if(_logger.IsDebug) _logger.Debug($"External ip: {ip}");
                 bool result = IPAddress.TryParse(ip, out IPAddress ipAddress);
-                return Task.FromResult((result, ipAddress));
+                return Task.FromResult(result && !ipAddress.IsInternal() ? (true, ipAddress) : (false, (IPAddress)null));
             }
             catch (Exception e)
             {

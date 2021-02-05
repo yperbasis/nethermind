@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -38,16 +38,16 @@ namespace Nethermind.Blockchain.Processing
         }
 
         public bool IsInDb { get; set; }
-        public Keccak BlockHash { get; set; }
-        public Block Block { get; set; }
+        public Keccak? BlockHash { get; set; }
+        public Block? Block { get; set; }
         public ProcessingOptions ProcessingOptions { get; }
         
         public bool Resolve(IBlockTree blockTree)
         {
             if (IsInDb)
             {
-                Block block = blockTree.FindBlock(BlockHash, BlockTreeLookupOptions.None);
-                if (block == null)
+                Block? block = blockTree.FindBlock(BlockHash!, BlockTreeLookupOptions.None);
+                if (block is null)
                 {
                     return false;
                 }

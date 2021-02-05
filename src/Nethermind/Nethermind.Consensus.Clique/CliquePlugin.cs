@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -24,11 +24,12 @@ using Nethermind.Blockchain.Processing;
 using Nethermind.Blockchain.Producers;
 using Nethermind.Blockchain.Receipts;
 using Nethermind.Blockchain.Rewards;
+using Nethermind.Blockchain.Services;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
 using Nethermind.Db;
 using Nethermind.JsonRpc.Modules;
-using Nethermind.Logging;
+using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 
 namespace Nethermind.Consensus.Clique
@@ -63,6 +64,8 @@ namespace Nethermind.Consensus.Clique
                 getFromApi.BlockTree!,
                 getFromApi.EthereumEcdsa!,
                 getFromApi.LogManager);
+            
+            setInApi.HealthHintService = new CliqueHealthHintService(_snapshotManager, getFromApi.ChainSpec);
 
             setInApi.SealValidator = new CliqueSealValidator(
                 _cliqueConfig,
@@ -83,7 +86,7 @@ namespace Nethermind.Consensus.Clique
             }
 
             var (getFromApi, setInApi) = _nethermindApi!.ForProducer;
-
+            
             _miningConfig = getFromApi.Config<IMiningConfig>();
             if (!_miningConfig.Enabled)
             {
@@ -96,11 +99,12 @@ namespace Nethermind.Consensus.Clique
                 _snapshotManager!,
                 getFromApi.LogManager);
 
-            ReadOnlyDbProvider readOnlyDbProvider = new ReadOnlyDbProvider(getFromApi.DbProvider, false);
-            ReadOnlyBlockTree readOnlyBlockTree = new ReadOnlyBlockTree(getFromApi.BlockTree);
+            ReadOnlyDbProvider readOnlyDbProvider = getFromApi.DbProvider.AsReadOnly(false);
+            ReadOnlyBlockTree readOnlyBlockTree = getFromApi.BlockTree.AsReadOnly();
 
             ReadOnlyTxProcessingEnv producerEnv = new ReadOnlyTxProcessingEnv(
                 readOnlyDbProvider,
+                getFromApi.ReadOnlyTrieStore,
                 readOnlyBlockTree,
                 getFromApi.SpecProvider,
                 getFromApi.LogManager);
@@ -110,12 +114,11 @@ namespace Nethermind.Consensus.Clique
                 getFromApi!.BlockValidator,
                 NoBlockRewards.Instance,
                 producerEnv.TransactionProcessor,
-                producerEnv.DbProvider.StateDb,
-                producerEnv.DbProvider.CodeDb,
                 producerEnv.StateProvider,
                 producerEnv.StorageProvider,
                 NullTxPool.Instance, // do not remove transactions from the pool when preprocessing
                 NullReceiptStorage.Instance,
+                getFromApi.WitnessCollector,
                 getFromApi.LogManager);
 
             IBlockchainProcessor producerChainProcessor = new BlockchainProcessor(
@@ -147,6 +150,7 @@ namespace Nethermind.Consensus.Clique
                 _snapshotManager!,
                 getFromApi.Sealer!,
                 gasLimitCalculator,
+                getFromApi.SpecProvider,
                 _cliqueConfig!,
                 getFromApi.LogManager);
 

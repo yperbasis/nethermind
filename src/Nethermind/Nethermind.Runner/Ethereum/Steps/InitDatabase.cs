@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -29,6 +29,7 @@ using Nethermind.JsonRpc.Client;
 using Nethermind.Logging;
 using Nethermind.Synchronization.BeamSync;
 using Nethermind.Synchronization.ParallelSync;
+using Nethermind.Trie;
 
 namespace Nethermind.Runner.Ethereum.Steps
 {
@@ -57,14 +58,14 @@ namespace Nethermind.Runner.Ethereum.Steps
 
             try
             {
-                var useReceiptsDb = initConfig.StoreReceipts || syncConfig.DownloadReceiptsInFastSync;
+                bool useReceiptsDb = initConfig.StoreReceipts || syncConfig.DownloadReceiptsInFastSync;
                 InitDbApi(initConfig, dbConfig, initConfig.StoreReceipts || syncConfig.DownloadReceiptsInFastSync);
-                var dbInitializer = new StandardDbInitializer(_api.DbProvider, _api.RocksDbFactory, _api.MemDbFactory);
+                StandardDbInitializer dbInitializer = new(_api.DbProvider, _api.RocksDbFactory, _api.MemDbFactory);
                 await dbInitializer.InitStandardDbsAsync(useReceiptsDb);
                 if (syncConfig.BeamSync)
                 {
                     _api.SyncModeSelector = new PendingSyncModeSelector();
-                    BeamSyncDbProvider beamSyncProvider = new BeamSyncDbProvider(_api.SyncModeSelector, _api.DbProvider, _api.Config<ISyncConfig>(), _api.LogManager);
+                    BeamSyncDbProvider beamSyncProvider = new(_api.SyncModeSelector, _api.DbProvider, _api.Config<ISyncConfig>(), _api.LogManager);
                     _api.DbProvider = beamSyncProvider;
                 }
             }
@@ -81,15 +82,15 @@ namespace Nethermind.Runner.Ethereum.Steps
             {
                 case DiagnosticMode.RpcDb:
                     _api.DbProvider = new DbProvider(DbModeHint.Persisted);
-                    var rocksDbFactory = new RocksDbFactory(dbConfig, _api.LogManager, Path.Combine(initConfig.BaseDbPath, "debug"));
-                    var rpcDbFactory = new RpcDbFactory(new MemDbFactory(), rocksDbFactory, _api.EthereumJsonSerializer, new BasicJsonRpcClient(new Uri(initConfig.RpcDbUrl), _api.EthereumJsonSerializer, _api.LogManager), _api.LogManager);
+                    RocksDbFactory rocksDbFactory = new(dbConfig, _api.LogManager, Path.Combine(initConfig.BaseDbPath, "debug"));
+                    RpcDbFactory rpcDbFactory = new(new MemDbFactory(), rocksDbFactory, _api.EthereumJsonSerializer, new BasicJsonRpcClient(new Uri(initConfig.RpcDbUrl), _api.EthereumJsonSerializer, _api.LogManager), _api.LogManager);
                     _api.RocksDbFactory = rpcDbFactory;
                     _api.MemDbFactory = rpcDbFactory;
                     break;
                 case DiagnosticMode.ReadOnlyDb:
-                    var rocksDbProvider = new DbProvider(DbModeHint.Persisted);
+                    DbProvider rocksDbProvider = new(DbModeHint.Persisted);
                     _api.DbProvider = new ReadOnlyDbProvider(rocksDbProvider, storeReceipts); // ToDo storeReceipts as createInMemoryWriteStore - bug?
-                    _api.DisposeStack.Push(rocksDbProvider);
+                    _api.DisposeStack.Push(rocksDbProvider);					
                     _api.RocksDbFactory = new RocksDbFactory(dbConfig, _api.LogManager, Path.Combine(initConfig.BaseDbPath, "debug"));
                     _api.MemDbFactory = new MemDbFactory();
                     break;

@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -47,6 +47,8 @@ namespace Nethermind.Evm
         {
             _transactionProcessor.CallAndRestore(transaction, block, txTracer);
         }
+
+        public bool IsContractDeployed(Address address) => _stateProvider.IsContract(address);
 
         public void Dispose()
         {

@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -23,9 +23,12 @@ using Nethermind.Api.Extensions;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Blockchain.Producers;
+using Nethermind.Blockchain.Synchronization;
 using Nethermind.Consensus;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Db;
+using Nethermind.Evm;
+using Nethermind.State;
 using Nethermind.Logging;
 
 namespace Nethermind.Runner.Ethereum.Steps
@@ -33,7 +36,7 @@ namespace Nethermind.Runner.Ethereum.Steps
     [RunnerStepDependencies(typeof(StartBlockProcessor), typeof(SetupKeyStore), typeof(ReviewBlockTree))]
     public class StartBlockProducer : IStep
     {
-        protected readonly IApiWithBlockchain _api;
+        protected IApiWithBlockchain _api;
         private BlockProducerContext? _blockProducerContext;
 
         public StartBlockProducer(INethermindApi api)
@@ -60,7 +63,6 @@ namespace Nethermind.Runner.Ethereum.Steps
         protected virtual void BuildProducer()
         {
             if (_api.ChainSpec == null) throw new StepDependencyException(nameof(_api.ChainSpec));
-            
             IConsensusPlugin? consensusPlugin = _api.Plugins
                 .OfType<IConsensusPlugin>()
                 .SingleOrDefault(cp => cp.SealEngineType == _api.SealEngineType);
@@ -79,16 +81,14 @@ namespace Nethermind.Runner.Ethereum.Steps
         {
             BlockProducerContext Create()
             {
-                ReadOnlyDbProvider dbProvider = new ReadOnlyDbProvider(_api.DbProvider, false);
-                ReadOnlyBlockTree blockTree = new ReadOnlyBlockTree(_api.BlockTree);
-                ReadOnlyTxProcessingEnv txProcessingEnv = new ReadOnlyTxProcessingEnv(
-                    dbProvider, blockTree, _api.SpecProvider, _api.LogManager);
+                ReadOnlyDbProvider dbProvider = _api.DbProvider.AsReadOnly(false);
+                ReadOnlyBlockTree blockTree = _api.BlockTree.AsReadOnly();
 
-                ReadOnlyTxProcessorSource txProcessorSource =
-                    new ReadOnlyTxProcessorSource(txProcessingEnv);
-
+                ReadOnlyTxProcessingEnv txProcessingEnv =
+                    new ReadOnlyTxProcessingEnv(dbProvider, _api.ReadOnlyTrieStore, blockTree, _api.SpecProvider, _api.LogManager);
+                
                 BlockProcessor blockProcessor =
-                    CreateBlockProcessor(txProcessingEnv, txProcessorSource, dbProvider);
+                    CreateBlockProcessor(txProcessingEnv, txProcessingEnv, dbProvider);
 
                 IBlockchainProcessor blockchainProcessor =
                     new BlockchainProcessor(
@@ -106,9 +106,8 @@ namespace Nethermind.Runner.Ethereum.Steps
                 {
                     ChainProcessor = chainProcessor,
                     ReadOnlyStateProvider = txProcessingEnv.StateProvider,
-                    TxSource = CreateTxSourceForProducer(txProcessingEnv, txProcessorSource),
-                    ReadOnlyTxProcessingEnv = txProcessingEnv,
-                    ReadOnlyTxProcessorSource = txProcessorSource
+                    TxSource = CreateTxSourceForProducer(txProcessingEnv, txProcessingEnv),
+                    ReadOnlyTxProcessingEnv = txProcessingEnv
                 };
             }
 
@@ -117,21 +116,21 @@ namespace Nethermind.Runner.Ethereum.Steps
 
         protected virtual ITxSource CreateTxSourceForProducer(
             ReadOnlyTxProcessingEnv processingEnv,
-            ReadOnlyTxProcessorSource readOnlyTxProcessorSource) =>
+            IReadOnlyTxProcessorSource readOnlyTxProcessorSource) =>
             CreateTxPoolTxSource(processingEnv, readOnlyTxProcessorSource);
 
-        protected virtual TxPoolTxSource CreateTxPoolTxSource(ReadOnlyTxProcessingEnv processingEnv, ReadOnlyTxProcessorSource readOnlyTxProcessorSource)
+        protected virtual TxPoolTxSource CreateTxPoolTxSource(ReadOnlyTxProcessingEnv processingEnv, IReadOnlyTxProcessorSource readOnlyTxProcessorSource)
         {
             ITxFilter txSourceFilter = CreateTxSourceFilter(processingEnv, readOnlyTxProcessorSource);
             return new TxPoolTxSource(_api.TxPool, processingEnv.StateReader, _api.LogManager, txSourceFilter);
         }
 
-        protected virtual ITxFilter CreateTxSourceFilter(ReadOnlyTxProcessingEnv readOnlyTxProcessingEnv, ReadOnlyTxProcessorSource readOnlyTxProcessorSource) =>
+        protected virtual ITxFilter CreateTxSourceFilter(ReadOnlyTxProcessingEnv readOnlyTxProcessingEnv, IReadOnlyTxProcessorSource readOnlyTxProcessorSource) =>
             TxFilterBuilders.CreateStandardTxFilter(_api.Config<IMiningConfig>());
 
         protected virtual BlockProcessor CreateBlockProcessor(
             ReadOnlyTxProcessingEnv readOnlyTxProcessingEnv,
-            ReadOnlyTxProcessorSource readOnlyTxProcessorSource,
+            IReadOnlyTxProcessorSource readOnlyTxProcessorSource,
             IReadOnlyDbProvider readOnlyDbProvider)
         {
             if (_api.SpecProvider == null) throw new StepDependencyException(nameof(_api.SpecProvider));
@@ -145,12 +144,11 @@ namespace Nethermind.Runner.Ethereum.Steps
                 _api.BlockValidator,
                 _api.RewardCalculatorSource.Get(readOnlyTxProcessingEnv.TransactionProcessor),
                 readOnlyTxProcessingEnv.TransactionProcessor,
-                readOnlyDbProvider.StateDb,
-                readOnlyDbProvider.CodeDb,
                 readOnlyTxProcessingEnv.StateProvider,
                 readOnlyTxProcessingEnv.StorageProvider,
                 _api.TxPool,
                 _api.ReceiptStorage,
+                NullWitnessCollector.Instance,
                 _api.LogManager);
         }
     }

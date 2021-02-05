@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -35,8 +35,8 @@ namespace Nethermind.Consensus.AuRa
         /// <returns></returns>
         public static int BinarySearch<TItem, TSearch>(this IList<TItem> list, TSearch value, Func<TSearch, TItem, int> comparer)
         {
-            if (list == null) throw new ArgumentNullException(nameof(list));
-            if (comparer == null) throw new ArgumentNullException(nameof(comparer));
+            if (list is null) throw new ArgumentNullException(nameof(list));
+            if (comparer is null) throw new ArgumentNullException(nameof(comparer));
 
             int lower = 0;
             int upper = list.Count - 1;

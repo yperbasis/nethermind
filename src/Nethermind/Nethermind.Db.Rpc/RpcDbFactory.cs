@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -65,18 +65,7 @@ namespace Nethermind.Db.Rpc
             var memDb = _wrappedMemDbFactory.CreateDb(dbName);
             return WrapWithRpc(memDb);
         }
-
-        public ISnapshotableDb CreateSnapshotableDb(RocksDbSettings rocksDbSettings)
-        {
-            return new StateDb(CreateDb(rocksDbSettings));
-        }
-
-        public ISnapshotableDb CreateSnapshotableDb(string dbName)
-        {
-            var memDb = _wrappedMemDbFactory.CreateDb(dbName);
-            return new StateDb(WrapWithRpc(memDb));
-        }
-
+        
         private IDb WrapWithRpc(IDb db)
         {
             return new ReadOnlyDb(new RpcDb(db.Name, _jsonSerializer, _jsonRpcClient, _logManager, db), true);

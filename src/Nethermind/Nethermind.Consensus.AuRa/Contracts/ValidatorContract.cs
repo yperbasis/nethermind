@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -75,13 +75,13 @@ namespace Nethermind.Consensus.AuRa.Contracts
             IAbiEncoder abiEncoder, 
             Address contractAddress, 
             IStateProvider stateProvider,
-            IReadOnlyTransactionProcessorSource readOnlyTransactionProcessorSource,
+            IReadOnlyTxProcessorSource readOnlyTxProcessorSource,
             ISigner signer) 
             : base(transactionProcessor, abiEncoder, contractAddress)
         {
             _stateProvider = stateProvider ?? throw new ArgumentNullException(nameof(stateProvider));
             _signer = signer ?? throw new ArgumentNullException(nameof(signer));
-            Constant = GetConstant(readOnlyTransactionProcessorSource);
+            Constant = GetConstant(readOnlyTxProcessorSource);
         }
 
         /// <summary>

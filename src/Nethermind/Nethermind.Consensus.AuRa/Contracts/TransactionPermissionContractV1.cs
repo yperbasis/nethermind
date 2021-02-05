@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -29,13 +29,15 @@ namespace Nethermind.Consensus.AuRa.Contracts
         public TransactionPermissionContractV1(
             IAbiEncoder abiEncoder,
             Address contractAddress,
-            IReadOnlyTransactionProcessorSource readOnlyTransactionProcessorSource)
-            : base(abiEncoder, contractAddress, readOnlyTransactionProcessorSource)
+            IReadOnlyTxProcessorSource readOnlyTxProcessorSource)
+            : base(abiEncoder, contractAddress, readOnlyTxProcessorSource)
         {
         }
 
-        public override (ITransactionPermissionContract.TxPermissions Permissions, bool ShouldCache) AllowedTxTypes(BlockHeader parentHeader, Transaction tx) => 
-            (Constant.Call<ITransactionPermissionContract.TxPermissions>(parentHeader, nameof(AllowedTxTypes), Address.Zero, tx.SenderAddress), true);
+        protected override object[] GetAllowedTxTypesParameters(Transaction tx) => new object[] {tx.SenderAddress};
+
+        protected override (ITransactionPermissionContract.TxPermissions, bool) CallAllowedTxTypes(PermissionConstantContract.PermissionCallInfo callInfo) => 
+            (Constant.Call<ITransactionPermissionContract.TxPermissions>(callInfo), true);
 
         public override UInt256 Version => UInt256.One;
     }

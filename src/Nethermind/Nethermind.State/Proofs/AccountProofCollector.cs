@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -147,7 +147,7 @@ namespace Nethermind.State.Proofs
                 {
                     Nibble childIndex = _fullStoragePaths[storageIndex][_pathTraversalIndex];
                     Keccak childHash = node.GetChildHash((byte) childIndex);
-                    if (childHash == null)
+                    if (childHash is null)
                     {
                         AddEmpty(node, trieVisitContext);
                     }

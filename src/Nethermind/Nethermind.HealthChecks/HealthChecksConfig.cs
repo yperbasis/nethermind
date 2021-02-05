@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -27,5 +27,9 @@ namespace Nethermind.HealthChecks
         public string WebhooksPayload { get; set; } = "{\"attachments\":[{\"color\":\"#FFCC00\",\"pretext\":\"Health Check Status :warning:\",\"fields\":[{\"title\":\"Details\",\"value\":\"More details available at `/healthchecks-ui`\",\"short\":false},{\"title\":\"Description\",\"value\":\"`[[DESCRIPTIONS]]`\",\"short\":false}]}]}";
         public string WebhooksRestorePayload { get; set; } = "{\"attachments\":[{\"color\":\"#36a64f\",\"pretext\":\"Health Check Status :+1:\",\"fields\":[{\"title\":\"Details\",\"value\":\"`More details available at /healthchecks-ui`\",\"short\":false},{\"title\":\"description\",\"value\":\"The HealthCheck `[[LIVENESS]]` is recovered. All is up and running\",\"short\":false}]}]}";
         public bool UIEnabled { get; set; } = false;
+        
+        public ulong? MaxIntervalWithoutProcessedBlock { get; set; }
+        
+        public ulong? MaxIntervalWithoutProducedBlock { get; set; }
     }
 }

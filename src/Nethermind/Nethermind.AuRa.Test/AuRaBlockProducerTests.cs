@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using Castle.DynamicProxy.Generators.Emitters.SimpleAST;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Processing;
+using Nethermind.Blockchain.Synchronization;
 using Nethermind.Consensus;
 using Nethermind.Consensus.AuRa;
 using Nethermind.Consensus.AuRa.Config;
@@ -102,7 +103,8 @@ namespace Nethermind.AuRa.Test
                             AuRaStepCalculator,
                             NullReportingValidator.Instance,
                             auraConfig,
-                            FollowOtherMiners.Instance, 
+                            FollowOtherMiners.Instance,
+                            MainnetSpecProvider.Instance, 
                             LimboLogs.Instance);
                     }
         }

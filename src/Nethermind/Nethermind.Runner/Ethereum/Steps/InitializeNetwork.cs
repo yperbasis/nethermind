@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -48,10 +48,10 @@ namespace Nethermind.Runner.Ethereum.Steps
         // Environment.SetEnvironmentVariable("io.netty.allocator.pageSize", "8192");
         private const uint PageSize = 8192;
         
-        public static ulong Estimate(uint cpuCount, int arenaOrder)
+        public static long Estimate(uint cpuCount, int arenaOrder)
         {
             // do not remember why there is 2 in front
-            return 2UL * cpuCount * (1UL << arenaOrder) * PageSize;
+            return 2L * cpuCount * (1L << arenaOrder) * PageSize;
         }
     }
 
@@ -67,7 +67,6 @@ namespace Nethermind.Runner.Ethereum.Steps
     {
         private const string DiscoveryNodesDbPath = "discoveryNodes";
         private const string PeersDbPath = "peers";
-        private const string ChtDbPath = "canonicalHashTrie";
 
         protected readonly IApiWithNetwork _api;
         private readonly ILogger _logger;
@@ -92,9 +91,13 @@ namespace Nethermind.Runner.Ethereum.Steps
             if (_networkConfig.DiagTracerEnabled)
             {
                 NetworkDiagTracer.IsEnabled = true;
+            }
+
+            if (NetworkDiagTracer.IsEnabled)
+            {
                 NetworkDiagTracer.Start();
             }
-            
+
             Environment.SetEnvironmentVariable("io.netty.allocator.maxOrder", _networkConfig.NettyArenaOrder.ToString());
 
             var cht = new CanonicalHashTrie(_api.DbProvider!.ChtDb);
@@ -103,7 +106,15 @@ namespace Nethermind.Runner.Ethereum.Steps
             _api.SyncPeerPool = new SyncPeerPool(_api.BlockTree!, _api.NodeStatsManager!, maxPeersCount, _api.LogManager);
             _api.DisposeStack.Push(_api.SyncPeerPool);
 
-            SyncProgressResolver syncProgressResolver = new SyncProgressResolver(_api.BlockTree!, _api.ReceiptStorage!, _api.DbProvider.StateDb, _api.DbProvider.BeamStateDb, _syncConfig, _api.LogManager);
+            SyncProgressResolver syncProgressResolver = new SyncProgressResolver(
+                _api.BlockTree!,
+                _api.ReceiptStorage!,
+                _api.DbProvider.StateDb,
+                _api.DbProvider.BeamTempDb,
+                _api.ReadOnlyTrieStore!,
+                _syncConfig,
+                _api.LogManager);
+            
             MultiSyncModeSelector syncModeSelector = CreateMultiSyncModeSelector(syncProgressResolver);
             if (_api.SyncModeSelector != null)
             {
@@ -139,6 +150,7 @@ namespace Nethermind.Runner.Ethereum.Steps
                 _api.SyncPeerPool,
                 _api.SyncModeSelector,
                 _api.Config<ISyncConfig>(),
+                _api.WitnessCollector,
                 _api.LogManager,
                 cht);
 
@@ -204,7 +216,7 @@ namespace Nethermind.Runner.Ethereum.Steps
             {
                 throw new InvalidOperationException("Cannot initialize network without knowing own enode");
             }
-            
+
             ThisNodeInfo.AddInfo("Ethereum     :", $"tcp://{_api.Enode.HostIp}:{_api.Enode.Port}");
             ThisNodeInfo.AddInfo("Version      :", $"{ClientVersion.Description.Replace("Nethermind/v", string.Empty)}");
             ThisNodeInfo.AddInfo("This node    :", $"{_api.Enode.Info}");
@@ -288,6 +300,7 @@ namespace Nethermind.Runner.Ethereum.Steps
                 discoveryConfig,
                 _api.LogManager);
 
+            // ToDo: DiscoveryDB is register outside dbProvider - bad
             SimpleFilePublicKeyDb discoveryDb = new SimpleFilePublicKeyDb("DiscoveryDB", DiscoveryNodesDbPath.GetApplicationResourcePath(_api.Config<IInitConfig>().BaseDbPath), _api.LogManager);
             NetworkStorage discoveryStorage = new NetworkStorage(
                 discoveryDb,
@@ -390,6 +403,7 @@ namespace Nethermind.Runner.Ethereum.Steps
             _api.StaticNodesManager = new StaticNodesManager(initConfig.StaticNodesPath, _api.LogManager);
             await _api.StaticNodesManager.InitAsync();
 
+            // ToDo: PeersDB is register outside dbProvider - bad
             var dbName = "PeersDB";
             IFullDb peersDb = initConfig.DiagnosticMode == DiagnosticMode.MemDb
                 ? (IFullDb) new MemDb(dbName)
@@ -398,7 +412,18 @@ namespace Nethermind.Runner.Ethereum.Steps
             NetworkStorage peerStorage = new NetworkStorage(peersDb, _api.LogManager);
 
             ProtocolValidator protocolValidator = new ProtocolValidator(_api.NodeStatsManager, _api.BlockTree, _api.LogManager);
-            _api.ProtocolsManager = new ProtocolsManager(_api.SyncPeerPool, _api.SyncServer, _api.TxPool, _api.DiscoveryApp, _api.MessageSerializationService, _api.RlpxPeer, _api.NodeStatsManager, protocolValidator, peerStorage, _api.SpecProvider, _api.LogManager);
+            _api.ProtocolsManager = new ProtocolsManager(
+                _api.SyncPeerPool,
+                _api.SyncServer,
+                _api.TxPool,
+                _api.DiscoveryApp,
+                _api.MessageSerializationService,
+                _api.RlpxPeer,
+                _api.NodeStatsManager,
+                protocolValidator,
+                peerStorage,
+                _api.SpecProvider,
+                _api.LogManager);
             _api.ProtocolValidator = protocolValidator;
 
             foreach (var plugin in _api.Plugins)

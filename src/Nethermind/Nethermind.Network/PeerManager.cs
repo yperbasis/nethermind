@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -91,12 +91,14 @@ namespace Nethermind.Network
             _peerLoader = peerLoader ?? throw new ArgumentNullException(nameof(peerLoader));
             _peerStorage.StartBatch();
             _peerPool = new LocalPeerPool(_logger);
+            _peerComparer = new PeerComparer();
         }
 
         public IReadOnlyCollection<Peer> ActivePeers => _activePeers.Values.ToList().AsReadOnly();
         public IReadOnlyCollection<Peer> CandidatePeers => _peerPool.CandidatePeers.ToList();
+        public IReadOnlyCollection<Peer> ConnectedPeers => _activePeers.Values.Where(IsConnected).ToList().AsReadOnly();
         private int AvailableActivePeersCount => MaxActivePeers - _activePeers.Count;
-        private int MaxActivePeers => _networkConfig.ActivePeersMaxCount + _peerPool.StaticPeerCount;
+        public int MaxActivePeers => _networkConfig.ActivePeersMaxCount + _peerPool.StaticPeerCount;
 
         public void Init()
         {
@@ -130,7 +132,7 @@ namespace Nethermind.Network
             if (removed)
             {
                 peer.IsAwaitingConnection = false;
-                _activePeers.TryRemove(peer.Node.Id, out Peer activePeer);
+                _activePeers.TryRemove(peer.Node.Id, out Peer _);
             }
 
             return removed;

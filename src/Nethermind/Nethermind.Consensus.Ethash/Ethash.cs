@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -162,7 +162,7 @@ namespace Nethermind.Consensus.Ethash
         {
             uint epoch = GetEpoch(header.Number);
             IEthashDataSet dataSet = _hintBasedCache.Get(epoch);
-            if (dataSet == null)
+            if (dataSet is null)
             {
                 if (_logger.IsWarn) _logger.Warn($"Ethash cache miss for block {header.ToString(BlockHeader.Format.Short)}");
                 dataSet = BuildCache(epoch);
@@ -222,13 +222,13 @@ namespace Nethermind.Consensus.Ethash
         public bool Validate(BlockHeader header)
         {
             uint epoch = GetEpoch(header.Number);
-            IEthashDataSet dataSet = _hintBasedCache.Get(epoch);
-            if (dataSet == null)
+            IEthashDataSet? dataSet = _hintBasedCache.Get(epoch);
+            if (dataSet is null)
             {
                 if (_logger.IsWarn) _logger.Warn($"Ethash cache miss for block {header.ToString(BlockHeader.Format.Short)}");
                 _hintBasedCache.Hint(_hintBasedCacheUser, header.Number, header.Number);
                 dataSet = _hintBasedCache.Get(epoch);
-                if (dataSet == null)
+                if (dataSet is null)
                 {
                     if (_logger.IsError) _logger.Error($"Hint based cache could not get data set for {header.ToString(BlockHeader.Format.Short)}");
                     return false;

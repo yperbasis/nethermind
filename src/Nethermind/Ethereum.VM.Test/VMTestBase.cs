@@ -34,6 +34,7 @@ using Nethermind.Logging;
 using Nethermind.Specs;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
+using Nethermind.Trie.Pruning;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -41,8 +42,8 @@ namespace Ethereum.VM.Test
 {
     public class VMTestBase
     {
-        private ISnapshotableDb _stateDb;
-        private ISnapshotableDb _codeDb;
+        private IDb _stateDb;
+        private IDb _codeDb;
         private IStorageProvider _storageProvider;
         private IBlockhashProvider _blockhashProvider;
         private IStateProvider _stateProvider;
@@ -52,12 +53,14 @@ namespace Ethereum.VM.Test
         [SetUp]
         public void Setup()
         {
-            _stateDb = new StateDb();
-            _codeDb = new StateDb();
+            _stateDb = new MemDb();
+            _codeDb = new MemDb();
             _blockhashProvider = new TestBlockhashProvider();
             _specProvider = OlympicSpecProvider.Instance;;
-            _stateProvider = new StateProvider(_stateDb, _codeDb, _logManager);
-            _storageProvider = new StorageProvider(_stateDb, _stateProvider, _logManager);
+            
+            TrieStore trieStore = new TrieStore(_stateDb, _logManager);
+            _stateProvider = new StateProvider(trieStore, _codeDb, _logManager);
+            _storageProvider = new StorageProvider(trieStore, _stateProvider, _logManager);
         }
 
         public static IEnumerable<VirtualMachineTest> LoadTests(string testSet)

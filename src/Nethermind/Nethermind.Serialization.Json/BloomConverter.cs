@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -31,7 +31,7 @@ namespace Nethermind.Serialization.Json
         public override Bloom ReadJson(JsonReader reader, Type objectType, Bloom existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             string s = (string) reader.Value;
-            return s == null ? null : new Bloom(Bytes.FromHexString(s));
+            return s is null ? null : new Bloom(Bytes.FromHexString(s));
         }
     }
 }

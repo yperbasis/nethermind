@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -103,6 +103,12 @@ namespace Nethermind.Core.Caching
             // TODO: some potential null ref issue here?
             
             LinkedListNode<TKey>? node = _lruList.First;
+            if (node is null)
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(LruKeyCache<TKey>)} called {nameof(Replace)} when empty.");
+            }
+            
             _lruList.RemoveFirst();
             _cacheMap.Remove(node.Value);
 
@@ -111,10 +117,10 @@ namespace Nethermind.Core.Caching
             _cacheMap.Add(node.Value, node);
         }
 
-        public int MemorySize => CalculateMemorySize(0, _cacheMap.Count);
+        public long MemorySize => CalculateMemorySize(0, _cacheMap.Count);
 
         // TODO: memory size on the KeyCache will be smaller because we do not create LruCacheItems
-        public static int CalculateMemorySize(int keyPlusValueSize, int currentItemsCount)
+        public static long CalculateMemorySize(int keyPlusValueSize, int currentItemsCount)
         {
             // it may actually be different if the initial capacity not equal to max (depending on the dictionary growth path)
             

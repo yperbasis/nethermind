@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -27,6 +27,7 @@ using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.State;
+using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using NSubstitute;
 using NUnit.Framework;
@@ -114,10 +115,11 @@ namespace Nethermind.Blockchain.Test
         [TestCaseSource(nameof(ProperTransactionsSelectedTestCases))]
         public void Proper_transactions_selected(ProperTransactionsSelectedTestCase testCase)
         {
-            StateDb stateDb = new StateDb();
+            MemDb stateDb = new MemDb();
             MemDb codeDb = new MemDb();
-            StateProvider stateProvider = new StateProvider(stateDb, codeDb, LimboLogs.Instance);
-            StateReader stateReader = new StateReader(stateDb, codeDb, LimboLogs.Instance);
+            var trieStore = new TrieStore(stateDb, LimboLogs.Instance);
+            StateProvider stateProvider = new StateProvider(trieStore, codeDb, LimboLogs.Instance);
+            StateReader stateReader = new StateReader(new TrieStore(stateDb, LimboLogs.Instance), codeDb, LimboLogs.Instance);
 
             void SetAccountStates(IEnumerable<Address> missingAddresses)
             {
@@ -133,7 +135,7 @@ namespace Nethermind.Blockchain.Test
                 }
 
                 stateProvider.Commit(Homestead.Instance);
-                stateProvider.CommitTree();
+                stateProvider.CommitTree(0);
             }
 
             ITxPool transactionPool = Substitute.For<ITxPool>();

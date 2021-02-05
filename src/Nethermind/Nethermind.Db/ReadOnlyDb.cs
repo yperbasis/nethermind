@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -16,12 +16,13 @@
 
 using System;
 using System.Collections.Generic;
+using Nethermind.Core;
 
 namespace Nethermind.Db
 {
-    public class ReadOnlyDb : ISnapshotableDb, IReadOnlyDb, IDbWithSpan
+    public class ReadOnlyDb : IReadOnlyDb, IDbWithSpan
     {
-        private readonly MemDb _memDb = new MemDb();
+        private readonly MemDb _memDb = new();
 
         private readonly IDb _wrappedDb;
         private readonly bool _createInMemWriteStore;
@@ -39,7 +40,7 @@ namespace Nethermind.Db
 
         public string Name { get; } = "ReadOnlyDb";
 
-        public byte[] this[byte[] key]
+        public byte[]? this[byte[] key]
         {
             get => _memDb[key] ?? _wrappedDb[key];
             set
@@ -76,17 +77,12 @@ namespace Nethermind.Db
 
         public IEnumerable<byte[]> GetAllValues(bool ordered = false) => _memDb.GetAllValues();
 
-        public void StartBatch()
+        public IBatch StartBatch()
         {
+            return this.LikeABatch();
         }
 
-        public void CommitBatch()
-        {
-        }
-
-        public void Remove(byte[] key)
-        {
-        }
+        public void Remove(byte[] key) { }
 
         public bool KeyExists(byte[] key)
         {
@@ -106,32 +102,9 @@ namespace Nethermind.Db
         {
             _memDb.Clear();
         }
-
-        public void Restore(int snapshot)
-        {
-            if (snapshot != -1)
-            {
-                // if this is causing trouble hen you can revert to the version from before 10/02/2020    
-                throw new NotSupportedException();
-            }
-
-            ClearTempChanges();
-        }
-
-        public void Commit()
-        {
-            throw new NotSupportedException();
-        }
-
-        public int TakeSnapshot()
-        {
-            return -1;
-        }
-
+        
         public Span<byte> GetSpan(byte[] key) => this[key].AsSpan();
 
-        public void DangerousReleaseMemory(in Span<byte> span)
-        {
-        }
+        public void DangerousReleaseMemory(in Span<byte> span) { }
     }
 }

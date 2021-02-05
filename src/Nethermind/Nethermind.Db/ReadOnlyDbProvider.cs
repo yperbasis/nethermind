@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Nethermind.Db
 {
@@ -26,18 +27,18 @@ namespace Nethermind.Db
         private readonly bool _createInMemoryWriteStore;
         private readonly ConcurrentDictionary<string, IReadOnlyDb> _registeredDbs = new ConcurrentDictionary<string, IReadOnlyDb>(StringComparer.InvariantCultureIgnoreCase);
         
-        public ReadOnlyDbProvider(IDbProvider wrappedProvider, bool createInMemoryWriteStore)
+        public ReadOnlyDbProvider(IDbProvider? wrappedProvider, bool createInMemoryWriteStore)
         {
-            _wrappedProvider = wrappedProvider;
+            _wrappedProvider = wrappedProvider ?? throw new ArgumentNullException(nameof(wrappedProvider));
             _createInMemoryWriteStore = createInMemoryWriteStore;
             if (wrappedProvider == null)
             {
                 throw new ArgumentNullException(nameof(wrappedProvider));
             }
-
-            foreach (var registeredDb in _wrappedProvider.RegisteredDbs)
+            
+            foreach ((string key, IDb value) in _wrappedProvider.RegisteredDbs)
             {
-                RegisterReadOnlyDb(registeredDb.Key, registeredDb.Value);
+                RegisterReadOnlyDb(key, value);
             }
         }
 
@@ -45,14 +46,14 @@ namespace Nethermind.Db
         {
             if (_registeredDbs != null)
             {
-                foreach (var registeredDb in _registeredDbs)
+                foreach (KeyValuePair<string, IReadOnlyDb> registeredDb in _registeredDbs)
                 {
                     registeredDb.Value?.Dispose();
                 }
             }
         }
 
-        public IDb BeamStateDb { get; } = new MemDb();
+        public IDb BeamTempDb { get; } = new MemDb();
 
         public DbModeHint DbMode => _wrappedProvider.DbMode;
 
@@ -60,31 +61,39 @@ namespace Nethermind.Db
         
         public void ClearTempChanges()
         {            
-            foreach(var readonlyDb in _registeredDbs.Values)
+            foreach(IReadOnlyDb readonlyDb in _registeredDbs.Values)
             {
-                readonlyDb.Restore(-1);
+                readonlyDb.ClearTempChanges();
             }
-
-            BeamStateDb.Clear();
+            
+            BeamTempDb.Clear();
         }
 
-        public T GetDb<T>(string dbName) where T : IDb
+        public T GetDb<T>(string dbName) where T : class, IDb
         {
             if (!_registeredDbs.ContainsKey(dbName))
             {
-                throw new ArgumentException($"{dbName} wasn't registed.");
+                throw new ArgumentException($"{dbName} database has not been registered in {nameof(ReadOnlyDbProvider)}.");
             }
 
-            return (T)_registeredDbs[dbName];
+            _registeredDbs.TryGetValue(dbName, out IReadOnlyDb? found);
+            T result = found as T;
+            if (result == null && found != null)
+            {
+                throw new IOException(
+                    $"An attempt was made to resolve DB {dbName} as {typeof(T)} while its type is {found.GetType()}.");
+            }
+
+            return result;
         }
 
         private void RegisterReadOnlyDb<T>(string dbName, T db) where T : IDb
         {
-            var readonlyDb = db.CreateReadOnly(_createInMemoryWriteStore);
+            IReadOnlyDb readonlyDb = db.CreateReadOnly(_createInMemoryWriteStore);
             _registeredDbs.TryAdd(dbName, readonlyDb);
         }
 
-        public void RegisterDb<T>(string dbName, T db) where T : IDb
+        public void RegisterDb<T>(string dbName, T db) where T : class, IDb
         {
             _wrappedProvider.RegisterDb(dbName, db);
             RegisterReadOnlyDb(dbName, db);

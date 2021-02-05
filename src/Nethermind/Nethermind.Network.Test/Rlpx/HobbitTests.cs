@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -32,6 +32,7 @@ using Nethermind.Network.P2P.Subprotocols.Eth;
 using Nethermind.Network.P2P.Subprotocols.Eth.V62;
 using Nethermind.Network.P2P.Subprotocols.Eth.V63;
 using Nethermind.Network.Rlpx;
+using Nethermind.Specs.Forks;
 using NUnit.Framework;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
@@ -88,7 +89,7 @@ namespace Nethermind.Network.Test.Rlpx
         {
             Transaction a = Build.A.Transaction.TestObject;
             Transaction b = Build.A.Transaction.TestObject;
-            Block block = Build.A.Block.WithTransactions(a, b).TestObject;
+            Block block = Build.A.Block.WithTransactions(MuirGlacier.Instance, a, b).TestObject;
             NewBlockMessage newBlockMessage = new NewBlockMessage();
             newBlockMessage.Block = block;
 
@@ -103,7 +104,7 @@ namespace Nethermind.Network.Test.Rlpx
         public void Two_frame_block_there_and_back(StackType inbound, StackType outbound, bool framingEnabled)
         {
             Transaction[] txs = Build.A.Transaction.SignedAndResolved().TestObjectNTimes(10);
-            Block block = Build.A.Block.WithTransactions(txs).TestObject;
+            Block block = Build.A.Block.WithTransactions(MuirGlacier.Instance, txs).TestObject;
             NewBlockMessage newBlockMessage = new NewBlockMessage();
             newBlockMessage.Block = block;
 
@@ -209,25 +210,21 @@ namespace Nethermind.Network.Test.Rlpx
             InternalLoggerFactory.DefaultFactory.AddProvider(new ConsoleLoggerProvider(new ConsoleLoggerOptionsMonitor(
                 new ConsoleLoggerOptions
                 {
-                    Format = ConsoleLoggerFormat.Default,
+                    FormatterName = ConsoleFormatterNames.Simple,
                     LogToStandardErrorThreshold = LogLevel.Warning
                 })));
             ResourceLeakDetector.Level = ResourceLeakDetector.DetectionLevel.Paranoid;
-            IChannelHandler decoder = inbound == StackType.Zero
-                ? new ZeroFrameDecoder(_frameCipherB, _macProcessorB, LimboLogs.Instance)
-                : throw new NotSupportedException();
 
-            IChannelHandler merger = inbound == StackType.Zero
-                ? new ZeroFrameMerger(LimboLogs.Instance)
-                : throw new NotSupportedException();
-            
-            IChannelHandler encoder = outbound == StackType.Zero
-                ? new ZeroFrameEncoder(_frameCipherA, _macProcessorA, LimboLogs.Instance)
-                : throw new NotSupportedException();
-            
-            IFramingAware splitter = outbound == StackType.Zero
-                ? new ZeroPacketSplitter(LimboLogs.Instance)
-                : throw new NotSupportedException();
+            if (inbound != StackType.Zero ||
+                outbound != StackType.Zero)
+            {
+                throw new NotSupportedException();
+            }
+
+            IChannelHandler decoder = new ZeroFrameDecoder(_frameCipherB, _macProcessorB, LimboLogs.Instance);
+            IChannelHandler merger = new ZeroFrameMerger(LimboLogs.Instance);
+            IChannelHandler encoder = new ZeroFrameEncoder(_frameCipherA, _macProcessorA, LimboLogs.Instance);
+            IFramingAware splitter = new ZeroPacketSplitter(LimboLogs.Instance);
 
             Assert.AreEqual(Frame.DefaultMaxFrameSize, splitter.MaxFrameSize, "default max frame size");
             

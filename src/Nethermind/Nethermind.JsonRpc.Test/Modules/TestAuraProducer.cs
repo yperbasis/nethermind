@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Processing;
+using Nethermind.Blockchain.Synchronization;
 using Nethermind.Consensus;
 using Nethermind.Consensus.AuRa;
 using Nethermind.Consensus.AuRa.Config;
@@ -25,6 +26,7 @@ using Nethermind.Consensus.AuRa.Validators;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Specs;
 using Nethermind.Logging;
 using Nethermind.Specs;
 using Nethermind.Specs.Forks;
@@ -44,7 +46,8 @@ namespace Nethermind.JsonRpc.Test.Modules
             ILogManager logManager,
             IAuRaStepCalculator auRaStepCalculator,
             IReportingValidator reportingValidator,
-            IAuraConfig config) 
+            IAuraConfig config,
+            ISpecProvider specProvider) 
             : base(
                 transactionSource,
                 processor,
@@ -56,7 +59,8 @@ namespace Nethermind.JsonRpc.Test.Modules
                 auRaStepCalculator,
                 reportingValidator,
                 config,
-                FollowOtherMiners.Instance, 
+                FollowOtherMiners.Instance,
+                specProvider,
                 logManager)
         {
         }

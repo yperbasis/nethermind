@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -20,6 +20,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
+using Nethermind.Blockchain.Synchronization;
 using Nethermind.JsonRpc;
 using Nethermind.JsonRpc.Modules;
 using Nethermind.JsonRpc.Modules.Admin;
@@ -39,7 +40,7 @@ using Nethermind.Runner.Ethereum.Steps.Migrations;
 
 namespace Nethermind.Runner.Ethereum.Steps
 {
-    [RunnerStepDependencies(typeof(InitializeNetwork), typeof(SetupKeyStore), typeof(InitializeBlockchain), typeof(InitializePlugins))]
+    [RunnerStepDependencies(typeof(InitializeNetwork), typeof(SetupKeyStore), typeof(InitializeBlockchain), typeof(InitializePlugins), typeof(StartBlockProducer))]
     public class RegisterRpcModules : IStep
     {
         private readonly INethermindApi _api;
@@ -71,6 +72,7 @@ namespace Nethermind.Runner.Ethereum.Steps
             if (_api.SpecProvider == null) throw new StepDependencyException(nameof(_api.SpecProvider));
             if (_api.TxSender == null) throw new StepDependencyException(nameof(_api.TxSender));
             if (_api.StateReader == null) throw new StepDependencyException(nameof(_api.StateReader));
+            if (_api.PeerManager == null) throw new StepDependencyException(nameof(_api.PeerManager));
 
             if (jsonRpcConfig.Enabled)
             {
@@ -89,7 +91,7 @@ namespace Nethermind.Runner.Ethereum.Steps
             INetworkConfig networkConfig = _api.Config<INetworkConfig>();
             
             // lets add threads to support parallel eth_getLogs
-            ThreadPool.GetMinThreads(out var workerThreads, out var completionPortThreads);
+            ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
             ThreadPool.SetMinThreads(workerThreads + Environment.ProcessorCount, completionPortThreads + Environment.ProcessorCount);
             
             EthModuleFactory ethModuleFactory = new EthModuleFactory(
@@ -108,7 +110,7 @@ namespace Nethermind.Runner.Ethereum.Steps
             if (_api.BlockValidator == null) throw new StepDependencyException(nameof(_api.BlockValidator));
             if (_api.RewardCalculatorSource == null) throw new StepDependencyException(nameof(_api.RewardCalculatorSource));
             
-            ProofModuleFactory proofModuleFactory = new ProofModuleFactory(_api.DbProvider, _api.BlockTree, _api.BlockPreprocessor, _api.ReceiptFinder, _api.SpecProvider, _api.LogManager);
+            ProofModuleFactory proofModuleFactory = new ProofModuleFactory(_api.DbProvider, _api.BlockTree, _api.TrieStore, _api.BlockPreprocessor, _api.ReceiptFinder, _api.SpecProvider, _api.LogManager);
             _api.RpcModuleProvider.Register(new BoundedModulePool<IProofModule>(proofModuleFactory, 2, rpcConfig.Timeout));
 
             DebugModuleFactory debugModuleFactory = new DebugModuleFactory(
@@ -119,7 +121,8 @@ namespace Nethermind.Runner.Ethereum.Steps
                 _api.BlockPreprocessor, 
                 _api.RewardCalculatorSource, 
                 _api.ReceiptStorage,
-                new ReceiptMigration(_api), 
+                new ReceiptMigration(_api),
+                _api.TrieStore, 
                 _api.ConfigProvider, 
                 _api.SpecProvider, 
                 _api.LogManager);
@@ -128,12 +131,14 @@ namespace Nethermind.Runner.Ethereum.Steps
             TraceModuleFactory traceModuleFactory = new TraceModuleFactory(
                 _api.DbProvider,
                 _api.BlockTree,
+                _api.ReadOnlyTrieStore,
                 rpcConfig,
                 _api.BlockPreprocessor,
                 _api.RewardCalculatorSource, 
                 _api.ReceiptStorage,
                 _api.SpecProvider,
                 _api.LogManager);
+
             _api.RpcModuleProvider.Register(new BoundedModulePool<ITraceModule>(traceModuleFactory, _cpuCount, rpcConfig.Timeout));
             
             if (_api.EthereumEcdsa == null) throw new StepDependencyException(nameof(_api.EthereumEcdsa));
@@ -177,12 +182,13 @@ namespace Nethermind.Runner.Ethereum.Steps
                 _api.Enode,
                 _api.EngineSignerStore,
                 _api.KeyStore,
-                _api.LogManager);
+                _api.LogManager,
+                _api.PeerManager);
             _api.RpcModuleProvider.Register(new SingletonModulePool<IParityModule>(parityModule, true));
 
             Web3Module web3Module = new Web3Module(_api.LogManager);
             _api.RpcModuleProvider.Register(new SingletonModulePool<IWeb3Module>(web3Module, true));
-            
+
             foreach (INethermindPlugin plugin in _api.Plugins)
             {
                 await plugin.InitRpcModules();

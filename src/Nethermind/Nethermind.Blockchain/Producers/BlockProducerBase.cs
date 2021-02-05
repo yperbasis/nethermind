@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -24,6 +24,7 @@ using Nethermind.Consensus;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Specs;
 using Nethermind.Int256;
 using Nethermind.Evm.Tracing;
 using Nethermind.Logging;
@@ -32,6 +33,16 @@ using Nethermind.State.Proofs;
 
 namespace Nethermind.Blockchain.Producers
 {
+    /// <summary>
+    /// I think this class can be significantly simplified if we split the block production into a pipeline:
+    /// * signal block needed
+    /// * prepare block frame
+    /// * select transactions
+    /// * seal
+    /// Then the pipeline can be build from separate components
+    /// And each separate component can be tested independently
+    /// This would also simplify injection of various behaviours into NethDev pipeline
+    /// </summary>
     public abstract class BlockProducerBase : IBlockProducer
     {
         private IBlockchainProcessor Processor { get; }
@@ -44,7 +55,10 @@ namespace Nethermind.Blockchain.Producers
         private readonly IStateProvider _stateProvider;
         private readonly IGasLimitCalculator _gasLimitCalculator;
         private readonly ITimestamper _timestamper;
+        private readonly ISpecProvider _spec;
         private readonly ITxSource _txSource;
+        
+        protected DateTime _lastProducedBlock;
         protected ILogger Logger { get; }
 
         protected BlockProducerBase(
@@ -56,6 +70,7 @@ namespace Nethermind.Blockchain.Producers
             IStateProvider stateProvider,
             IGasLimitCalculator gasLimitCalculator,
             ITimestamper timestamper,
+            ISpecProvider specProvider,
             ILogManager logManager)
         {
             _txSource = txSource ?? throw new ArgumentNullException(nameof(txSource));
@@ -66,12 +81,24 @@ namespace Nethermind.Blockchain.Producers
             _stateProvider = stateProvider ?? throw new ArgumentNullException(nameof(stateProvider));
             _gasLimitCalculator = gasLimitCalculator ?? throw new ArgumentNullException(nameof(gasLimitCalculator));
             _timestamper = timestamper ?? throw new ArgumentNullException(nameof(timestamper));
+            _spec = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
             Logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
         }
 
         public abstract void Start();
 
         public abstract Task StopAsync();
+
+        protected abstract bool IsRunning();
+        public bool IsProducingBlocks(ulong? maxProducingInterval)
+        {
+            if (IsRunning() == false)
+                return false;
+            if (maxProducingInterval != null)
+                return _lastProducedBlock.AddSeconds(maxProducingInterval.Value) > DateTime.UtcNow;
+            else
+                return true;
+        }
 
         private readonly object _newBlockLock = new object();
 
@@ -108,7 +135,7 @@ namespace Nethermind.Blockchain.Producers
             Block block = PrepareBlock(parent);
             if (PreparedBlockCanBeMined(block))
             {
-                var processedBlock = ProcessPreparedBlock(block);
+                Block processedBlock = ProcessPreparedBlock(block);
                 if (processedBlock == null)
                 {
                     if (Logger.IsError) Logger.Error("Block prepared by block producer was rejected by processor.");
@@ -125,6 +152,7 @@ namespace Nethermind.Blockchain.Producers
                                 if (Logger.IsInfo) Logger.Info($"Sealed block {t.Result.ToString(Block.Format.HashNumberDiffAndTx)}");
                                 BlockTree.SuggestBlock(t.Result);
                                 Metrics.BlocksSealed++;
+                                _lastProducedBlock = DateTime.UtcNow;								
                                 OnBlockSealed(t.Result, parent);
                                 return true;
                             }
@@ -174,7 +202,7 @@ namespace Nethermind.Blockchain.Producers
 
         protected virtual Block PrepareBlock(BlockHeader parent)
         {
-            UInt256 timestamp = _timestamper.EpochSeconds;
+            UInt256 timestamp = UInt256.Max(parent.Timestamp + 1, _timestamper.UnixTime.Seconds);
             UInt256 difficulty = CalculateDifficulty(parent, timestamp);
             BlockHeader header = new BlockHeader(
                 parent.Hash,
@@ -183,7 +211,7 @@ namespace Nethermind.Blockchain.Producers
                 difficulty,
                 parent.Number + 1,
                 _gasLimitCalculator.GetGasLimit(parent),
-                UInt256.Max(parent.Timestamp + 1, _timestamper.EpochSeconds),
+                timestamp,
                 Encoding.UTF8.GetBytes("Nethermind"))
             {
                 TotalDifficulty = parent.TotalDifficulty + difficulty,
@@ -194,7 +222,7 @@ namespace Nethermind.Blockchain.Producers
 
             var transactions = _txSource.GetTransactions(parent, header.GasLimit);
             Block block = new Block(header, transactions, Array.Empty<BlockHeader>());
-            header.TxRoot = new TxTrie(block.Transactions).RootHash;
+            header.TxRoot = new TxTrie(block.Transactions, _spec.GetSpec(block.Number)).RootHash;
             return block;
         }
 

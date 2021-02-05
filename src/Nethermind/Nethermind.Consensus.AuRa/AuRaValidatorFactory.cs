@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@ namespace Nethermind.Consensus.AuRa
         private readonly IStateProvider _stateProvider;
         private readonly IAbiEncoder _abiEncoder;
         private readonly ITransactionProcessor _transactionProcessor;
-        private readonly IReadOnlyTransactionProcessorSource _readOnlyTransactionProcessorSource;
+        private readonly IReadOnlyTxProcessorSource _readOnlyTxProcessorSource;
         private readonly IBlockTree _blockTree;
         private readonly IReceiptFinder _receiptFinder;
         private readonly IValidatorStore _validatorStore;
@@ -53,7 +53,7 @@ namespace Nethermind.Consensus.AuRa
         public AuRaValidatorFactory(IStateProvider stateProvider,
             IAbiEncoder abiEncoder,
             ITransactionProcessor transactionProcessor,
-            IReadOnlyTransactionProcessorSource readOnlyTransactionProcessorSource,
+            IReadOnlyTxProcessorSource readOnlyTxProcessorSource,
             IBlockTree blockTree,
             IReceiptFinder receiptFinder,
             IValidatorStore validatorStore,
@@ -71,7 +71,7 @@ namespace Nethermind.Consensus.AuRa
             _stateProvider = stateProvider;
             _abiEncoder = abiEncoder;
             _transactionProcessor = transactionProcessor;
-            _readOnlyTransactionProcessorSource = readOnlyTransactionProcessorSource;
+            _readOnlyTxProcessorSource = readOnlyTxProcessorSource;
             _blockTree = blockTree;
             _receiptFinder = receiptFinder;
             _validatorStore = validatorStore;
@@ -89,7 +89,7 @@ namespace Nethermind.Consensus.AuRa
 
         public IAuRaValidator CreateValidatorProcessor(AuRaParameters.Validator validator, BlockHeader parentHeader = null, long? startBlock = null)
         {
-            IValidatorContract GetValidatorContract() => new ValidatorContract(_transactionProcessor, _abiEncoder, validator.GetContractAddress(), _stateProvider, _readOnlyTransactionProcessorSource, _signer);
+            IValidatorContract GetValidatorContract() => new ValidatorContract(_transactionProcessor, _abiEncoder, validator.GetContractAddress(), _stateProvider, _readOnlyTxProcessorSource, _signer);
             IReportingValidatorContract GetReportingValidatorContract() => new ReportingValidatorContract(_abiEncoder, validator.GetContractAddress(), _signer);
 
             var validSealerStrategy = new ValidSealerStrategy();

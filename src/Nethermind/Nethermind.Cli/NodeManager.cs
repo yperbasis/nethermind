@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -56,11 +56,6 @@ namespace Nethermind.Cli
 
         public string? CurrentUri { get; private set; }
 
-        public void SwitchClient(IJsonRpcClient client)
-        {
-            _currentClient = client;
-        }
-
         public void SwitchUri(Uri uri)
         {
             CurrentUri = uri.ToString();
@@ -71,6 +66,11 @@ namespace Nethermind.Cli
 
             _currentClient = _clients[uri];
         }
+        
+        public void SwitchClient(IJsonRpcClient client)
+        {
+            _currentClient = client;
+        }
 
         public async Task<JsValue> PostJint(string method, params object[] parameters)
         {
@@ -78,7 +78,7 @@ namespace Nethermind.Cli
             
             try
             {
-                if (_currentClient == null)
+                if (_currentClient is null)
                 {
                     _cliConsole.WriteErrorLine("[INTERNAL ERROR] JSON RPC client not set.");
                 }
@@ -91,7 +91,7 @@ namespace Nethermind.Cli
                     decimal totalMicroseconds = stopwatch.ElapsedTicks * (1_000_000m / Stopwatch.Frequency);
                     Colorful.Console.WriteLine($"Request complete in {totalMicroseconds}μs");
                     string? resultString = result?.ToString();
-                    if (resultString == "0x" || resultString == null)
+                    if (resultString == "0x" || resultString is null)
                     {
                         returnValue = JsValue.Null;
                     }
@@ -158,7 +158,9 @@ namespace Nethermind.Cli
                 _cliConsole.WriteException(e);
             }
 
+#pragma warning disable 8603
             return result;
+#pragma warning restore 8603
         }
     }
 }

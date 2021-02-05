@@ -31,6 +31,7 @@ using Nethermind.Logging;
 using Nethermind.Specs;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
+using Nethermind.Trie.Pruning;
 using NUnit.Framework;
 
 namespace Ethereum.Test.Base
@@ -67,8 +68,8 @@ namespace Ethereum.Test.Base
             Stopwatch stopwatch = Stopwatch.StartNew();
             Assert.IsNull(test.LoadFailure, "test data loading failure");
 
-            ISnapshotableDb stateDb = new StateDb();
-            ISnapshotableDb codeDb = new StateDb();
+            IDb stateDb = new MemDb();
+            IDb codeDb = new MemDb();
 
             ISpecProvider specProvider = new CustomSpecProvider(1,
                 (0, Frontier.Instance), // TODO: this thing took a lot of time to find after it was removed!, genesis block is always initialized with Frontier
@@ -79,9 +80,10 @@ namespace Ethereum.Test.Base
                 Assert.Fail("Expected genesis spec to be Frontier for blockchain tests");
             }
 
-            IStateProvider stateProvider = new StateProvider(stateDb, codeDb, _logManager);
+            TrieStore trieStore = new TrieStore(stateDb, _logManager);
+            IStateProvider stateProvider = new StateProvider(trieStore, codeDb, _logManager);
             IBlockhashProvider blockhashProvider = new TestBlockhashProvider();
-            IStorageProvider storageProvider = new StorageProvider(stateDb, stateProvider, _logManager);
+            IStorageProvider storageProvider = new StorageProvider(trieStore, stateProvider, _logManager);
             IVirtualMachine virtualMachine = new VirtualMachine(
                 stateProvider,
                 storageProvider,
@@ -103,13 +105,10 @@ namespace Ethereum.Test.Base
             header.StateRoot = test.PostHash;
             header.Hash = Keccak.Compute("1");
 
-            stateProvider.Commit(specProvider.GenesisSpec);
-            stateProvider.CommitTree();
-
             transactionProcessor.Execute(test.Transaction, header, txTracer);
 
             stateProvider.Commit(specProvider.GenesisSpec);
-            stateProvider.CommitTree();
+            stateProvider.CommitTree(1);
 
             // '@winsvega added a 0-wei reward to the miner , so we had to add that into the state test execution phase. He needed it for retesteth.'
             if (!stateProvider.AccountExists(test.CurrentCoinbase))
@@ -154,8 +153,8 @@ namespace Ethereum.Test.Base
             storageProvider.Commit();
             stateProvider.Commit(specProvider.GenesisSpec);
 
-            storageProvider.CommitTrees();
-            stateProvider.CommitTree();
+            storageProvider.CommitTrees(0);
+            stateProvider.CommitTree(0);
 
             storageProvider.Reset();
             stateProvider.Reset();

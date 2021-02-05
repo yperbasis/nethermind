@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@ namespace Nethermind.Synchronization.FastBlocks
 {
     public class HeadersSyncFeed : SyncFeed<HeadersSyncBatch?>
     {
-        private readonly IDictionary<int, IDictionary<long, ulong>> _historicalOverrides = new Dictionary<int, IDictionary<long, ulong>>()
+        private readonly IDictionary<long, IDictionary<long, ulong>> _historicalOverrides = new Dictionary<long, IDictionary<long, ulong>>()
         {
             // Kovan has some wrong difficulty in early blocks before using proper AuRa difficulty calculation
             // In order to support that we need to support another pivot
@@ -80,7 +80,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private long HeadersInQueue => _dependencies.Sum(hd => hd.Value.Response?.Length ?? 0);
         
         private ulong MemoryInQueue => (ulong)_dependencies
-            .Sum(d => d.Value.Response.Sum(h =>
+            .Sum(d => (d.Value.Response ?? Array.Empty<BlockHeader>()).Sum(h =>
                 // ReSharper disable once ConvertClosureToMethodGroup
                 MemorySizeEstimator.EstimateSize(h)));
 
@@ -304,11 +304,11 @@ namespace Nethermind.Synchronization.FastBlocks
 
         private static HeadersSyncBatch BuildDependentBatch(HeadersSyncBatch batch, long addedLast, long addedEarliest)
         {
-            HeadersSyncBatch dependentBatch = new HeadersSyncBatch();
+            HeadersSyncBatch dependentBatch = new();
             dependentBatch.StartNumber = batch.StartNumber;
             dependentBatch.RequestSize = (int) (addedLast - addedEarliest + 1);
             dependentBatch.MinNumber = batch.MinNumber;
-            dependentBatch.Response = batch.Response
+            dependentBatch.Response = batch.Response!
                 .Skip((int) (addedEarliest - batch.StartNumber))
                 .Take((int) (addedLast - addedEarliest + 1)).ToArray();
             dependentBatch.ResponseSourcePeer = batch.ResponseSourcePeer;
@@ -533,7 +533,7 @@ namespace Nethermind.Synchronization.FastBlocks
             if (insertOutcome == AddBlockResult.Added || insertOutcome == AddBlockResult.AlreadyKnown)
             {
                 ulong nextHeaderDiff = 0;
-                _nextHeaderHash = header.ParentHash;
+                _nextHeaderHash = header.ParentHash!;
                 if (_expectedDifficultyOverride?.TryGetValue(header.Number, out nextHeaderDiff) == true)
                 {
                     _nextHeaderDiff = nextHeaderDiff;

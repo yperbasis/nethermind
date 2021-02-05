@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -32,20 +32,6 @@ namespace Nethermind.Db.Test
                 dbProvider.RegisterDb("MemDb", memDb);
                 var db = dbProvider.GetDb<IDb>("MemDb");
                 Assert.AreEqual(memDb, db);
-            }
-        }
-
-        [Test]
-        public void DbProvider_CanRegisterSnapshotableDb()
-        {
-            var memDbFactory = new MemDbFactory();
-            using (var dbProvider = new DbProvider(DbModeHint.Mem))
-            {
-                var memSnapshotableDb = memDbFactory.CreateSnapshotableDb("SnapshotableDb");
-                dbProvider.RegisterDb("SnapshotableDb", memSnapshotableDb);
-                var snapshotableDb = dbProvider.GetDb<ISnapshotableDb>("SnapshotableDb");
-                Assert.AreEqual(memSnapshotableDb, snapshotableDb);
-                Assert.IsTrue(memSnapshotableDb is ISnapshotableDb);
             }
         }
 

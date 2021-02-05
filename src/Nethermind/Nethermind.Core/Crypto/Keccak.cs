@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -37,23 +37,23 @@ namespace Nethermind.Core.Crypto
         [DebuggerStepThrough]
         public static ValueKeccak Compute(Span<byte> input)
         {
-            if (input == null || input.Length == 0)
+            if (input.Length == 0)
             {
                 return OfAnEmptyString;
             }
 
-            var result = new ValueKeccak();
+            ValueKeccak result = new();
             byte* ptr = result.Bytes;
-            var output = new Span<byte>(ptr, KeccakHash.HASH_SIZE);
+            Span<byte> output = new(ptr, KeccakHash.HASH_SIZE);
             KeccakHash.ComputeHashBytesToSpan(input, output);
             return result;
         }
         
         private static ValueKeccak InternalCompute(byte[] input)
         {
-            var result = new ValueKeccak();
+            ValueKeccak result = new();
             byte* ptr = result.Bytes;
-            var output = new Span<byte>(ptr, KeccakHash.HASH_SIZE);
+            Span<byte> output = new(ptr, KeccakHash.HASH_SIZE);
             KeccakHash.ComputeHashBytesToSpan(input, output);
             return result;
         }
@@ -64,7 +64,12 @@ namespace Nethermind.Core.Crypto
     {
         public const int Size = 32;
 
-        public int MemorySize => MemorySizes.ArrayOverhead + Size;
+        public const int MemorySize =
+            MemorySizes.SmallObjectOverhead +
+            MemorySizes.RefSize +
+            MemorySizes.ArrayOverhead +
+            Size - 
+            MemorySizes.SmallObjectFreeDataSize;
 
         public Keccak(string hexString)
             : this(Core.Extensions.Bytes.FromHexString(hexString)) { }
@@ -121,7 +126,7 @@ namespace Nethermind.Core.Crypto
         [DebuggerStepThrough]
         public static Keccak Compute(byte[]? input)
         {
-            if (input == null || input.Length == 0)
+            if (input is null || input.Length == 0)
             {
                 return OfAnEmptyString;
             }
@@ -132,7 +137,7 @@ namespace Nethermind.Core.Crypto
         [DebuggerStepThrough]
         public static Keccak Compute(Span<byte> input)
         {
-            if (input == null || input.Length == 0)
+            if (input.Length == 0)
             {
                 return OfAnEmptyString;
             }
@@ -235,18 +240,13 @@ namespace Nethermind.Core.Crypto
 
         public string ToString(bool withZeroX)
         {
-            if (Bytes == null)
-            {
-                return "Keccak<uninitialized>";
-            }
-
             return Bytes.ToHexString(withZeroX);
         }
 
         [DebuggerStepThrough]
         public static KeccakStructRef Compute(byte[]? input)
         {
-            if (input == null || input.Length == 0)
+            if (input is null || input.Length == 0)
             {
                 return new KeccakStructRef(Keccak.OfAnEmptyString.Bytes);
             }
@@ -259,7 +259,7 @@ namespace Nethermind.Core.Crypto
         [DebuggerStepThrough]
         public static KeccakStructRef Compute(Span<byte> input)
         {
-            if (input == null || input.Length == 0)
+            if (input.Length == 0)
             {
                 return new KeccakStructRef(Keccak.OfAnEmptyString.Bytes);
             }

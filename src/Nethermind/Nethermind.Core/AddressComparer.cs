@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -28,12 +28,12 @@ namespace Nethermind.Core
 
         public int Compare(Address? x, Address? y)
         {
-            if (x == null)
+            if (x is null)
             {
-                return y == null ? 0 : -1;
+                return y is null ? 0 : -1;
             }
                 
-            if (y == null)
+            if (y is null)
             {
                 return 1;
             }

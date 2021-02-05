@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -77,9 +77,9 @@ namespace Nethermind.Blockchain.Visitors
 
         public long EndLevelExclusive { get; }
 
-        Task<LevelVisitOutcome> IBlockTreeVisitor.VisitLevelStart(ChainLevelInfo chainLevelInfo, long levelNumber, CancellationToken cancellationToken)
+        Task<LevelVisitOutcome> IBlockTreeVisitor.VisitLevelStart(ChainLevelInfo? chainLevelInfo, long levelNumber, CancellationToken cancellationToken)
         {
-            if (chainLevelInfo == null)
+            if (chainLevelInfo is null)
             {
                 return Task.FromResult(LevelVisitOutcome.StopVisiting);
             }

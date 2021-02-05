@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@ using Nethermind.Blockchain.Processing;
 using Nethermind.Blockchain.Producers;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
+using Nethermind.Core.Specs;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.State;
@@ -30,6 +31,7 @@ namespace Nethermind.Consensus.Ethash
 {
     public class MinedBlockProducer : BlockProducerBase
     {
+        private bool _isRunning = false;
         private readonly IDifficultyCalculator _difficultyCalculator;
         private readonly object _syncToken = new object();
         private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
@@ -42,6 +44,7 @@ namespace Nethermind.Consensus.Ethash
             IStateProvider stateProvider,
             IGasLimitCalculator gasLimitCalculator,
             ITimestamper timestamper,
+            ISpecProvider specProvider,
             ILogManager logManager,
             IDifficultyCalculator difficultyCalculator) 
             : base(
@@ -53,6 +56,7 @@ namespace Nethermind.Consensus.Ethash
                 stateProvider,
                 gasLimitCalculator,
                 timestamper,
+                specProvider,
                 logManager)
         {
             _difficultyCalculator = difficultyCalculator ?? throw new ArgumentNullException(nameof(difficultyCalculator));
@@ -83,6 +87,8 @@ namespace Nethermind.Consensus.Ethash
         {
             BlockProcessingQueue.ProcessingQueueEmpty += OnBlockProcessorQueueEmpty;
             BlockTree.NewBestSuggestedBlock += BlockTreeOnNewBestSuggestedBlock;
+            _lastProducedBlock = DateTime.UtcNow;
+            _isRunning = true;
         }
 
         public override async Task StopAsync()
@@ -94,9 +100,12 @@ namespace Nethermind.Consensus.Ethash
             {
                 _cancellationTokenSource?.Cancel();
             }
-            
+
+            _isRunning = false;
             await Task.CompletedTask;
         }
+
+        protected override bool IsRunning() => _isRunning;
 
         protected override UInt256 CalculateDifficulty(BlockHeader parent, UInt256 timestamp)
         {

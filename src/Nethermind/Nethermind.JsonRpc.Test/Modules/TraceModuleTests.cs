@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain;
-using Nethermind.Blockchain.Filters;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Blockchain.Receipts;
 using Nethermind.Blockchain.Rewards;
@@ -37,7 +36,6 @@ using Nethermind.Db;
 using Nethermind.Db.Blooms;
 using Nethermind.Int256;
 using Nethermind.Evm;
-using Nethermind.Facade;
 using Nethermind.JsonRpc.Modules.Eth;
 using Nethermind.JsonRpc.Modules.Trace;
 using Nethermind.Logging;
@@ -48,6 +46,8 @@ using Nethermind.TxPool.Storages;
 using NUnit.Framework;
 using BlockTree = Nethermind.Blockchain.BlockTree;
 using Nethermind.Blockchain.Find;
+using Nethermind.Specs.Forks;
+using Nethermind.Trie.Pruning;
 
 namespace Nethermind.JsonRpc.Test.Modules
 {
@@ -70,8 +70,11 @@ namespace Nethermind.JsonRpc.Test.Modules
             _jsonRpcConfig = new JsonRpcConfig();
             IEthereumEcdsa ethereumEcdsa = new EthereumEcdsa(specProvider.ChainId, LimboLogs.Instance);
             ITxStorage txStorage = new InMemoryTxStorage();
-            _stateDb = new StateDb();
-            _stateProvider = new StateProvider(dbProvider, LimboLogs.Instance);
+
+            _stateDb = new MemDb();
+            ITrieStore trieStore = new TrieStore(_stateDb, LimboLogs.Instance);
+            _stateProvider = new StateProvider(trieStore, new MemDb(), LimboLogs.Instance);
+
             _stateProvider.CreateAccount(TestItem.AddressA, 1000.Ether());
             _stateProvider.CreateAccount(TestItem.AddressB, 1000.Ether());
             _stateProvider.CreateAccount(TestItem.AddressC, 1000.Ether());
@@ -80,12 +83,12 @@ namespace Nethermind.JsonRpc.Test.Modules
             _stateProvider.UpdateCode(code);
             _stateProvider.UpdateCodeHash(TestItem.AddressA, codeHash, specProvider.GenesisSpec);
 
-            IStorageProvider storageProvider = new StorageProvider(_stateDb, _stateProvider, LimboLogs.Instance);
+            IStorageProvider storageProvider = new StorageProvider(trieStore, _stateProvider, LimboLogs.Instance);
             storageProvider.Set(new StorageCell(TestItem.AddressA, UInt256.One), Bytes.FromHexString("0xabcdef"));
             storageProvider.Commit();
 
             _stateProvider.Commit(specProvider.GenesisSpec);
-            _stateProvider.CommitTree();
+            _stateProvider.CommitTree(0);
 
             ITxPool txPool = new TxPool.TxPool(txStorage, ethereumEcdsa, specProvider, new TxPoolConfig(), _stateProvider, LimboLogs.Instance);
             IChainLevelInfoRepository chainLevels = new ChainLevelInfoRepository(dbProvider);
@@ -99,15 +102,14 @@ namespace Nethermind.JsonRpc.Test.Modules
                 Always.Valid,
                 new RewardCalculator(specProvider),
                 txProcessor,
-                dbProvider.StateDb,
-                dbProvider.CodeDb,
                 _stateProvider,
                 storageProvider,
                 txPool,
                 receiptStorage,
+                NullWitnessCollector.Instance, 
                 LimboLogs.Instance);
 
-            var signatureRecovery = new RecoverSignatures(ethereumEcdsa, txPool, specProvider, LimboLogs.Instance);
+            RecoverSignatures signatureRecovery = new RecoverSignatures(ethereumEcdsa, txPool, specProvider, LimboLogs.Instance);
             BlockchainProcessor blockchainProcessor = new BlockchainProcessor(blockTree, blockProcessor, signatureRecovery, LimboLogs.Instance, BlockchainProcessor.Options.Default);
             
             blockchainProcessor.Start();
@@ -140,7 +142,7 @@ namespace Nethermind.JsonRpc.Test.Modules
                     transactions.Add(Build.A.Transaction.WithNonce((UInt256)j).SignedAndResolved().TestObject);
                 }
                 
-                BlockBuilder builder = Build.A.Block.WithNumber(i).WithParent(previousBlock).WithTransactions(transactions.ToArray()).WithStateRoot(new Keccak("0x1ef7300d8961797263939a3d29bbba4ccf1702fabf02d8ad7a20b454edb6fd2f"));
+                BlockBuilder builder = Build.A.Block.WithNumber(i).WithParent(previousBlock).WithTransactions(MuirGlacier.Instance, transactions.ToArray()).WithStateRoot(new Keccak("0x1ef7300d8961797263939a3d29bbba4ccf1702fabf02d8ad7a20b454edb6fd2f"));
                 if (auRa)
                 {
                     builder.WithAura(i, i.ToByteArray());
@@ -155,12 +157,13 @@ namespace Nethermind.JsonRpc.Test.Modules
             IReceiptFinder receiptFinder = new FullInfoReceiptFinder(receiptStorage, receiptsRecovery, blockTree);
 
             resetEvent.Wait(2000);
+            
             _traceModule = new TraceModule(receiptFinder, new Tracer(_stateProvider, blockchainProcessor), blockTree, _jsonRpcConfig);
         }
 
         private ITraceModule _traceModule;
         private IStateProvider _stateProvider;
-        private ISnapshotableDb _stateDb;
+        private MemDb _stateDb;
 
         [Test]
         public void Tx_positions_are_fine()

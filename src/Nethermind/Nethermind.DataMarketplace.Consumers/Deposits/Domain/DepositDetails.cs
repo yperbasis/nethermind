@@ -17,9 +17,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.DataMarketplace.Core.Domain;
+using Nethermind.Int256;
 
 namespace Nethermind.DataMarketplace.Consumers.Deposits.Domain
 {
@@ -56,6 +58,8 @@ namespace Nethermind.DataMarketplace.Consumers.Deposits.Domain
         public TransactionInfo? ClaimedRefundTransaction { get; private set; }
         public bool RefundCancelled { get; private set; }
         public bool RefundClaimed { get; private set; }
+
+        // Consumed units are set by DepositUnitsCalculator - not readable from DB
         public uint ConsumedUnits { get; private set; }
         public string? Kyc { get; private set; }
         public uint Confirmations { get; private set; }
@@ -199,8 +203,27 @@ namespace Nethermind.DataMarketplace.Consumers.Deposits.Domain
             => Claimable && !(EarlyRefundTicket is null) && (depositTimestamp + EarlyRefundTicket.ClaimableAfter <= currentBlockTimestamp);
 
         public bool CanClaimRefund(ulong currentBlockTimestamp)
-            => Claimable && currentBlockTimestamp >= Deposit.ExpiryTime &&
-               ConfirmationTimestamp + Deposit.Units + DataAsset.Rules.Expiry.Value <= currentBlockTimestamp;
+            => Claimable && (currentBlockTimestamp >= Deposit.ExpiryTime);
+
+        public UInt256 GetTimeLeftToClaimRefund(ulong currentBlockTimestamp)
+        {
+            UInt256 timeLeftToClaimRefund;
+            try
+            {
+                timeLeftToClaimRefund = checked(Deposit.ExpiryTime - currentBlockTimestamp);
+            }
+            catch(OverflowException)
+            {
+                timeLeftToClaimRefund = 0;
+            }
+
+            if (Claimable && timeLeftToClaimRefund > 0)
+            {
+                return timeLeftToClaimRefund;
+            }
+
+            return 0;
+        }
 
         private bool Claimable => Confirmed && !Rejected && !Cancelled && !RefundClaimed && !RefundCancelled;
 

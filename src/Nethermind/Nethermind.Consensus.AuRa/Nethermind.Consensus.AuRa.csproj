@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <TargetFramework>net5.0</TargetFramework>
+        <Nullable>annotations</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
@@ -13,7 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Nito.Collections.Deque" Version="1.0.4" />
+        <PackageReference Include="Nito.Collections.Deque" Version="1.1.0" />
     </ItemGroup>
 
     <ItemGroup>

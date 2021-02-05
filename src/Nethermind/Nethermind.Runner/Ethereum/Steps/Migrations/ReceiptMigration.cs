@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -180,8 +180,8 @@ namespace Nethermind.Runner.Ethereum.Steps.Migrations
                 {
                     foreach (var block in GetBlockBodiesForMigration())
                     {
-                        var receipts = _receiptStorage.Get(block);
-                        var notNullReceipts = receipts.Length == 0 ? receipts : receipts.Where(r => r != null).ToArray();
+                        TxReceipt?[] receipts = _receiptStorage.Get(block);
+                        TxReceipt[] notNullReceipts = receipts.Length == 0 ? receipts : receipts.Where(r => r != null).ToArray();
 
                         if (receipts.Length == 0 || notNullReceipts.Length != 0) // if notNullReceipts.Length is 0 and receipts are not 0 - we are missing all receipts, they are not processed yet.
                         {
@@ -190,7 +190,7 @@ namespace Nethermind.Runner.Ethereum.Steps.Migrations
                             
                             for (int i = 0; i < notNullReceipts.Length; i++)
                             {
-                                receiptsDb.Delete(notNullReceipts[i].TxHash);
+                                receiptsDb.Delete(notNullReceipts[i].TxHash!);
                             }
                             
                             if (notNullReceipts.Length != receipts.Length)
@@ -246,7 +246,7 @@ namespace Nethermind.Runner.Ethereum.Steps.Migrations
                             yield break;
                         }
                         
-                        if (TryGetMainChainBlockHashFromLevel(i, out var blockHash))
+                        if (TryGetMainChainBlockHashFromLevel(i, out Keccak? blockHash))
                         {
                             var header = _blockTree.FindBlock(blockHash, BlockTreeLookupOptions.None);
                             yield return header ?? GetMissingBlock(i, blockHash);

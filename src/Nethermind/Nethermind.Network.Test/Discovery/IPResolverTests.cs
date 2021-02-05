@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -35,10 +35,10 @@ namespace Nethermind.Network.Test.Discovery
             Assert.IsNotNull(address);
         }
         
-        [Test]
-        public async Task Can_resolve_external_ip_with_override()
+        [TestCase("99.99.99.99")]
+        [TestCase("10.50.50.50")]
+        public async Task Can_resolve_external_ip_with_override(string ipOverride)
         {
-            string ipOverride = "99.99.99.99";
             INetworkConfig networkConfig = new NetworkConfig();
             networkConfig.ExternalIp = ipOverride;
             var ipResolver = new IPResolver(networkConfig, LimboLogs.Instance);

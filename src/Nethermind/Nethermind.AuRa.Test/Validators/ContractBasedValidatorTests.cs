@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -54,7 +54,7 @@ namespace Nethermind.AuRa.Test.Validators
         private AuRaParameters.Validator _validator;
         private Block _block;
         private BlockHeader _parentHeader;
-        private ITransactionProcessor _transactionProcessor;
+        private IReadOnlyTransactionProcessor _transactionProcessor;
         private IBlockFinalizationManager _blockFinalizationManager;
         private static Address _contractAddress = Address.FromNumber(1000);
         private (Address Sender, byte[] TransactionData) _getValidatorsData = (Address.Zero, new byte[] {0, 1, 2});
@@ -64,7 +64,7 @@ namespace Nethermind.AuRa.Test.Validators
         private IReceiptStorage _receiptsStorage;
         private IValidatorStore _validatorStore;
         private IValidSealerStrategy _validSealerStrategy;
-        private IReadOnlyTransactionProcessorSource _readOnlyTransactionProcessorSource;
+        private IReadOnlyTxProcessorSource _readOnlyTxProcessorSource;
         private ValidatorContract _validatorContract;
         private IAuRaStepCalculator _auraStepCalculator;
 
@@ -88,8 +88,9 @@ namespace Nethermind.AuRa.Test.Validators
             _block = new Block( Build.A.BlockHeader.WithNumber(1).WithAura(1, Array.Empty<byte>()).TestObject, new BlockBody());
 
             _transactionProcessor = Substitute.For<IReadOnlyTransactionProcessor>();
-            _readOnlyTransactionProcessorSource = Substitute.For<IReadOnlyTransactionProcessorSource>();
-            _readOnlyTransactionProcessorSource.Get(Arg.Any<Keccak>()).Returns(_transactionProcessor);
+            _transactionProcessor.IsContractDeployed(_contractAddress).Returns(true);
+            _readOnlyTxProcessorSource = Substitute.For<IReadOnlyTxProcessorSource>();
+            _readOnlyTxProcessorSource.Build(Arg.Any<Keccak>()).Returns(_transactionProcessor);
             _stateProvider.StateRoot.Returns(TestItem.KeccakA);
             _blockTree.Head.Returns(_block);
             
@@ -101,7 +102,7 @@ namespace Nethermind.AuRa.Test.Validators
                 .Encode(AbiEncodingStyle.IncludeSignature, Arg.Is<AbiSignature>(s => s.Name == "finalizeChange"), Arg.Any<object[]>())
                 .Returns(_finalizeChangeData.TransactionData);
             
-            _validatorContract = new ValidatorContract(_transactionProcessor, _abiEncoder, _contractAddress, _stateProvider, _readOnlyTransactionProcessorSource, new Signer(0, TestItem.PrivateKeyD, LimboLogs.Instance));
+            _validatorContract = new ValidatorContract(_transactionProcessor, _abiEncoder, _contractAddress, _stateProvider, _readOnlyTxProcessorSource, new Signer(0, TestItem.PrivateKeyD, LimboLogs.Instance));
         }
         
         [Test]
@@ -616,7 +617,7 @@ namespace Nethermind.AuRa.Test.Validators
         {
             _initialValidators = initialValidators;
 
-            if (parentHeader == null)
+            if (parentHeader is null)
             {
                 parentHeader = _parentHeader = Build.A.BlockHeader.WithNumber(header.Number - 1).TestObject;
                 _blockTree.FindHeader(header.ParentHash, BlockTreeLookupOptions.None).Returns(_parentHeader);
@@ -682,7 +683,7 @@ namespace Nethermind.AuRa.Test.Validators
             public TxReceipt[] GetReceipts(ValidatorContract validatorContract, Block block, Address contractAddress, IAbiEncoder encoder, Func<Address[], byte[]> dataFunc)
             {
                 var validators = Current.Validators?.FirstOrDefault(v => v.InitializeBlock == block.Number)?.Addresses;
-                if (validators == null)
+                if (validators is null)
                 {
                     return Array.Empty<TxReceipt>();
                 }

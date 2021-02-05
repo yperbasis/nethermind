@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -22,7 +22,7 @@ namespace Nethermind.Blockchain.Receipts
 {
     public ref struct LogEntriesIterator
     {
-        private readonly LogEntry[] _logs;
+        private readonly LogEntry[]? _logs;
         private readonly int _length;
         private Rlp.ValueDecoderContext _decoderContext;
         public long Index { get; private set; }
@@ -45,7 +45,7 @@ namespace Nethermind.Blockchain.Receipts
 
         public bool TryGetNext(out LogEntryStructRef current)
         {
-            if (_logs == null)
+            if (_logs is null)
             {
                 if (_decoderContext.Position < _length)
                 {
@@ -71,7 +71,7 @@ namespace Nethermind.Blockchain.Receipts
         {
             Index = -1;
             
-            if (_logs == null)
+            if (_logs is null)
             {
                 _decoderContext.Position = 0;
                 _decoderContext.ReadSequenceLength();
@@ -80,7 +80,7 @@ namespace Nethermind.Blockchain.Receipts
 
         public bool TrySkipNext()
         {
-            if (_logs == null)
+            if (_logs is null)
             {
                 if (_decoderContext.Position < _length)
                 {

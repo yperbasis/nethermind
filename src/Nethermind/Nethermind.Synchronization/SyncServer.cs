@@ -1,4 +1,4 @@
-//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -32,6 +32,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.State;
 using Nethermind.Synchronization.FastSync;
 using Nethermind.Synchronization.LesSync;
 using Nethermind.Synchronization.ParallelSync;
@@ -51,9 +52,10 @@ namespace Nethermind.Synchronization
         private readonly IReceiptFinder _receiptFinder;
         private readonly IBlockValidator _blockValidator;
         private readonly ISealValidator _sealValidator;
-        private readonly ISnapshotableDb _stateDb;
-        private readonly ISnapshotableDb _codeDb;
+        private readonly IDb _stateDb;
+        private readonly IDb _codeDb;
         private readonly ISyncConfig _syncConfig;
+        private readonly IWitnessRepository _witnessRepository;
         private readonly CanonicalHashTrie? _cht;
         private object _dummyValue = new object();
 
@@ -65,8 +67,8 @@ namespace Nethermind.Synchronization
         private BlockHeader? _pivotHeader;
 
         public SyncServer(
-            ISnapshotableDb stateDb,
-            ISnapshotableDb codeDb,
+            IDb stateDb,
+            IDb codeDb,
             IBlockTree blockTree,
             IReceiptFinder receiptFinder,
             IBlockValidator blockValidator,
@@ -74,10 +76,12 @@ namespace Nethermind.Synchronization
             ISyncPeerPool pool,
             ISyncModeSelector syncModeSelector,
             ISyncConfig syncConfig,
+            IWitnessRepository? witnessRepository,
             ILogManager logManager,
             CanonicalHashTrie? cht = null)
         {
             _syncConfig = syncConfig ?? throw new ArgumentNullException(nameof(syncConfig));
+            _witnessRepository = witnessRepository ?? throw new ArgumentNullException(nameof(witnessRepository));
             _pool = pool ?? throw new ArgumentNullException(nameof(pool));
             _syncModeSelector = syncModeSelector ?? throw new ArgumentNullException(nameof(syncModeSelector));
             _sealValidator = sealValidator ?? throw new ArgumentNullException(nameof(sealValidator));
@@ -94,7 +98,7 @@ namespace Nethermind.Synchronization
             _pivotHash = new Keccak(_syncConfig.PivotHash ?? Keccak.Zero.ToString());
         }
 
-        public int ChainId => _blockTree.ChainId;
+        public long ChainId => _blockTree.ChainId;
         public BlockHeader Genesis => _blockTree.Genesis;
 
         public BlockHeader? Head
@@ -118,6 +122,11 @@ namespace Nethermind.Synchronization
             }
         }
 
+        public Keccak[]? GetBlockWitnessHashes(Keccak blockHash)
+        {
+            return _witnessRepository.Load(blockHash);
+        }
+
         public int GetPeerCount()
         {
             return _pool.PeerCount;
@@ -130,6 +139,11 @@ namespace Nethermind.Synchronization
             if (block.TotalDifficulty == null)
             {
                 throw new InvalidDataException("Cannot add a block with unknown total difficulty");
+            }
+            
+            if (block.Hash == null)
+            {
+                throw new InvalidDataException("Cannot add a block with unknown hash");
             }
 
             // Now, there are some complexities here.
@@ -204,7 +218,7 @@ namespace Nethermind.Synchronization
             }
         }
 
-        private void SyncBlock(Block block, ISyncPeer syncPeer)
+        private void SyncBlock(Block block, ISyncPeer? syncPeer)
         {
             if (_logger.IsTrace) _logger.Trace($"{block}");
 
@@ -221,7 +235,7 @@ namespace Nethermind.Synchronization
                     if (_logger.IsDebug) _logger.Debug(message);
                     lock (_recentlySuggested)
                     {
-                        _recentlySuggested.Delete(block.Hash);
+                        _recentlySuggested.Delete(block.Hash!);
                     }
 
                     throw new EthSyncException(message);
@@ -354,8 +368,9 @@ namespace Nethermind.Synchronization
         // TODO - not a fan of this function name - CatchUpCHT, AddMissingCHTBlocks, ...?
         public Task BuildCHT()
         {
-            return Task.CompletedTask;
+            return Task.CompletedTask; // removing LES code
 
+#pragma warning disable 162
             return Task.Run(() =>
             {
                 lock (_chtLock)
@@ -383,6 +398,7 @@ namespace Nethermind.Synchronization
                     }
                 }
             });
+#pragma warning restore 162
         }
 
         public CanonicalHashTrie? GetCHT()

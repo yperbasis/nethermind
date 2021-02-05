@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -42,7 +42,7 @@ namespace Nethermind.Consensus.Ethash
 
         public async Task<Block> SealBlock(Block processed, CancellationToken cancellationToken)
         {
-            Block block = await MineAsync(cancellationToken, processed, null).ContinueWith(t =>
+            Block? block = await MineAsync(cancellationToken, processed, null).ContinueWith(t =>
             {
                 if (t.IsFaulted)
                 {
@@ -53,7 +53,7 @@ namespace Nethermind.Consensus.Ethash
                 return t.Result;
             }, cancellationToken);
 
-            if (block == null)
+            if (block is null)
             {
                 throw new SealEngineException($"{nameof(SealBlock)} failed");
             }

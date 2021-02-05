@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -32,22 +32,19 @@ namespace Nethermind.Consensus.AuRa.Contracts
         public TransactionPermissionContractV3(
             IAbiEncoder abiEncoder,
             Address contractAddress,
-            IReadOnlyTransactionProcessorSource readOnlyTransactionProcessorSource)
-            : base(abiEncoder, contractAddress, readOnlyTransactionProcessorSource)
+            IReadOnlyTxProcessorSource readOnlyTxProcessorSource)
+            : base(abiEncoder, contractAddress, readOnlyTxProcessorSource)
         {
         }
-
-        public override (ITransactionPermissionContract.TxPermissions Permissions, bool ShouldCache) AllowedTxTypes(BlockHeader parentHeader, Transaction tx) =>
+        
+        
+        protected override object[] GetAllowedTxTypesParameters(Transaction tx) =>
             // _sender Transaction sender address.
             // _to Transaction recipient address. If creating a contract, the `_to` address is zero.
             // _value Transaction amount in wei.
             // _gasPrice Gas price in wei for the transaction.
             // _data Transaction data.
-            Constant.Call<ITransactionPermissionContract.TxPermissions, bool>(
-                parentHeader,
-                nameof(AllowedTxTypes),
-                Address.Zero,
-                tx.SenderAddress, tx.To ?? Address.Zero, tx.Value, tx.GasPrice, tx.Data ?? tx.Init ?? Array.Empty<byte>());
+            new object[] {tx.SenderAddress, tx.To ?? Address.Zero, tx.Value, tx.GasPrice, tx.Data ?? tx.Init ?? Array.Empty<byte>()};
 
         public override UInt256 Version => Three;
     }

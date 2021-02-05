@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -95,14 +95,14 @@ namespace Nethermind.Consensus.AuRa.Contracts
         public RandomContract(
             IAbiEncoder abiEncoder,
             Address contractAddress,
-            IReadOnlyTransactionProcessorSource readOnlyTransactionProcessorSource,
+            IReadOnlyTxProcessorSource readOnlyTxProcessorSource,
             long transitionBlock,
             ISigner signer)
             : base(abiEncoder, contractAddress)
         {
             _signer = signer;
             Activation = transitionBlock;
-            Constant = GetConstant(readOnlyTransactionProcessorSource);
+            Constant = GetConstant(readOnlyTxProcessorSource);
         }
 
         public long Activation { get; }
