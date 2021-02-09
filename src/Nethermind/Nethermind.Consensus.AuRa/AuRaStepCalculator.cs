@@ -72,6 +72,15 @@ namespace Nethermind.Consensus.AuRa
 
         public bool ValidateStep(long blockNumber) => true;
 
+        public long CurrentStepDuration
+        {
+            get
+            {
+                UnixTime epoch = _timestamper.UnixTime;
+                return GetStepInfo(epoch.SecondsLong).StepDuration;
+            }
+        }
+
         private long TimeToNextStepInTicks
         {
             get
@@ -194,5 +203,7 @@ namespace Nethermind.Consensus.AuRa
             return !(_faultyBlocksTransition.TryGetValue(_signer.Address, out long transition) && blockNumber >= transition)
                 && !(_reportMalicious.TryGetValue(blockNumber, out Address signer) && signer == _signer.Address);
         }
+
+        public long CurrentStepDuration => _innerCalculator.CurrentStepDuration;
     }
 }
