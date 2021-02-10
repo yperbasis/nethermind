@@ -142,6 +142,13 @@ namespace Nethermind.Blockchain.Validators
             {
                 UInt256? expectedBaseFee = BlockHeader.CalculateBaseFee(parent, spec);
                 baseFeeIsCorrect = expectedBaseFee == header.BaseFee;
+
+                if (!baseFeeIsCorrect)
+                {
+                    if (_logger.IsWarn)
+                        _logger.Warn($"Invalid block header ({header.Hash}) - baseFee is incorrect expectedBaseFee: {expectedBaseFee}, header.BaseFee: {header.BaseFee}");
+                }
+
             }
 
             return

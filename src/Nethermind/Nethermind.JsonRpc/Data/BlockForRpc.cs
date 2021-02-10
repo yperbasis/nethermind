@@ -25,7 +25,7 @@ using Nethermind.Serialization.Json;
 using Nethermind.Serialization.Rlp;
 using Newtonsoft.Json;
 
-namespace Nethermind.JsonRpc.Modules.Eth
+namespace Nethermind.JsonRpc.Data
 {
     public class BlockForRpc
     {
