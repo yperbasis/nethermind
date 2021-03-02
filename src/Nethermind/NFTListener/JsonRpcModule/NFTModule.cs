@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Nethermind.Core.Crypto;
 using Nethermind.JsonRpc;
 using Nethermind.JsonRpc.Modules;
@@ -14,18 +15,33 @@ namespace NFTListener.JsonRpcModule
         public NFTModule(ILogManager logManager, ListenerPlugin plugin)
         {
            _logger = logManager.GetClassLogger(); 
+           _plugin = plugin;
         }
 
-        public ResultWrapper<IEnumerable<Keccak>> nft_lastTransactions()
+        public ResultWrapper<NFTJsonRpcResult> nft_lastTransactions()
         {
-            var transactionHashes = _plugin.LastFoundTransactions.ToArray();
+            var result = _plugin.GetLastNftTransactions();
 
-            if(transactionHashes.Length > 0)
+            var response = new NFTJsonRpcResult(result.transactions, result.blockNumber);
+
+            if(response.Transactions.ToArray().Length > 0)
             {
-                return ResultWrapper<IEnumerable<Keccak>>.Success(transactionHashes);
+                return ResultWrapper<NFTJsonRpcResult>.Success(response);
             }
 
-            return ResultWrapper<IEnumerable<Keccak>>.Fail("No transactions to NFT were found in the latest block");
+            return ResultWrapper<NFTJsonRpcResult>.Fail($"No transactions to NFT were found in the latest block (Number: {response.Number})");
+        }
+    }
+
+    public class NFTJsonRpcResult
+    {
+        public readonly IEnumerable<Keccak> Transactions;
+        public readonly long Number;
+
+        public NFTJsonRpcResult(IEnumerable<Keccak> transactions, long blockNumber)
+        {
+            Transactions = transactions; 
+            Number = blockNumber;            
         }
     }
 }

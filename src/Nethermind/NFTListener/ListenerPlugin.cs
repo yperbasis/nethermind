@@ -24,7 +24,8 @@ namespace NFTListener
 
         public string Author { get; private set; } = "Nethermind Team";
         private readonly string[] erc721Signatures = new string[] { "ddf252ad","8c5be1e5","17307eab","70a08231","6352211e","b88d4fde","42842e0e","23b872dd","095ea7b3","a22cb465","081812fc","e985e9c5" };
-        public List<Keccak> LastFoundTransactions { get; private set; }
+        private List<Keccak> LastFoundTransactions;
+        private long LastBlockNumber;
 
         public void Dispose()
         {
@@ -59,9 +60,15 @@ namespace NFTListener
             return Task.CompletedTask;
         }
 
+        public (IEnumerable<Keccak> transactions, long blockNumber) GetLastNftTransactions()
+        {
+            return (LastFoundTransactions, LastBlockNumber);
+        }
+
         private void OnBlockProcessed(object sender, BlockProcessedEventArgs args)
         {
             Block block = args.Block;
+            LastBlockNumber = block.Number;
             
             foreach(Transaction transaction in block.Transactions)
             {
