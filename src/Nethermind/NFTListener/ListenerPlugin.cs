@@ -52,7 +52,6 @@ namespace NFTListener
             //Doing it here because on .Init() MainBlockProcessor and StateProvider are both nulls - not initialized yet
             _api.MainBlockProcessor.BlockProcessed += OnBlockProcessed;
             _stateProvider = _api.StateProvider;
-            //
             
             if(_logger.IsInfo) _logger.Info("Initialization of NFT json rpc module");
             INFTModule nftModule = new NFTModule(_api.LogManager, this);
@@ -71,13 +70,17 @@ namespace NFTListener
         private void OnBlockProcessed(object sender, BlockProcessedEventArgs args)
         {
             Block block = args.Block;
-            
-            foreach(Transaction transaction in block.Transactions)
+
+            if (block.Transactions is null)
+            {
+                return;
+            }
+            foreach (Transaction transaction in block.Transactions)
             {
                 string signature;
 
                 string dataString = transaction.Data.ToHexString();
-                if(dataString.Length < 9)
+                if (dataString.Length < 9)
                 {
                     return;
                 }
@@ -86,13 +89,13 @@ namespace NFTListener
                 {
                     signature = dataString.Substring(0, 8);
                 }
-                catch(ArgumentOutOfRangeException)
+                catch (ArgumentOutOfRangeException)
                 {
                     continue;
                 }
 
                 bool isERC721Signature = _erc721Signatures.Contains(signature);
-                if(!isERC721Signature)
+                if (!isERC721Signature)
                 {
                     continue;
                 }
@@ -100,9 +103,10 @@ namespace NFTListener
                 string contractCode = GetContractCode(transaction.To);
                 bool implementsERC721 = ImplementsERC721(contractCode);
 
-                if(implementsERC721)
+                if (implementsERC721)
                 {
-                    _lastFoundTransactions.Append(new NFTTransaction(transaction.Hash, transaction.SenderAddress, transaction.To)); 
+                    _lastFoundTransactions.Append(new NFTTransaction(transaction.Hash, transaction.SenderAddress,
+                        transaction.To));
                 }
             }
         }
