@@ -6,7 +6,6 @@ using Nethermind.Api;
 using Nethermind.Api.Extensions;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
-using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.JsonRpc.Modules;
 using Nethermind.Logging;
@@ -22,12 +21,10 @@ namespace NFTListener
         private ILogger _logger;
         private IReadOnlyStateProvider _stateProvider;
         public string Name { get; private set; } = "NFTListener";
-
         public string Description { get; private set; } = "Listener plugin for new calls to ERC-721 tokens";
-
         public string Author { get; private set; } = "Nethermind Team";
-        private readonly string[] erc721Signatures = new string[] { "ddf252ad","8c5be1e5","17307eab","70a08231","6352211e","b88d4fde","42842e0e","23b872dd","095ea7b3","a22cb465","081812fc","e985e9c5" };
-        private IEnumerable<NFTTransaction> LastFoundTransactions;
+        private readonly string[] _erc721Signatures = { "ddf252ad","8c5be1e5","17307eab","70a08231","6352211e","b88d4fde","42842e0e","23b872dd","095ea7b3","a22cb465","081812fc","e985e9c5" };
+        private IEnumerable<NFTTransaction> _lastFoundTransactions;
 
         public void Dispose()
         {
@@ -39,7 +36,7 @@ namespace NFTListener
             _logger = nethermindApi.LogManager.GetClassLogger();
             if(_logger.IsInfo) _logger.Info("Initialization of ListenerPlugin");
 
-            LastFoundTransactions = new List<NFTTransaction>();
+            _lastFoundTransactions = new List<NFTTransaction>();
 
             if(_logger.IsInfo) _logger.Info("ListenerPlugin initialized");
             return Task.CompletedTask;
@@ -68,7 +65,7 @@ namespace NFTListener
 
         public IEnumerable<NFTTransaction> GetLastNftTransactions()
         {
-            return LastFoundTransactions;
+            return _lastFoundTransactions;
         }
 
         private void OnBlockProcessed(object sender, BlockProcessedEventArgs args)
@@ -94,7 +91,7 @@ namespace NFTListener
                     continue;
                 }
 
-                bool isERC721Signature = erc721Signatures.Contains(signature);
+                bool isERC721Signature = _erc721Signatures.Contains(signature);
                 if(!isERC721Signature)
                 {
                     continue;
@@ -105,7 +102,7 @@ namespace NFTListener
 
                 if(implementsERC721)
                 {
-                    LastFoundTransactions.Append(new NFTTransaction(transaction.Hash, transaction.SenderAddress, transaction.To)); 
+                    _lastFoundTransactions.Append(new NFTTransaction(transaction.Hash, transaction.SenderAddress, transaction.To)); 
                 }
             }
         }
@@ -117,7 +114,7 @@ namespace NFTListener
 
         private bool ImplementsERC721(string code)
         {
-            return erc721Signatures.All(signature => code.Contains(signature));
+            return _erc721Signatures.All(signature => code.Contains(signature));
         }
     }
 }
