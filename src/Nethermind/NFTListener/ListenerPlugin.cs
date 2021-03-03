@@ -14,6 +14,8 @@ using NFTListener.Domain;
 using NFTListener.JsonRpcModule;
 using Nethermind.JsonRpc.WebSockets;
 using NFTListener.WebSocket;
+using System.Threading;
+using Websocket.Client;
 
 namespace NFTListener
 {
@@ -27,7 +29,7 @@ namespace NFTListener
         public string Author { get; private set; } = "Nethermind Team";
         private readonly string[] _erc721Signatures = new string[] { "ddf252ad","8c5be1e5","17307eab","70a08231","6352211e","b88d4fde","42842e0e","23b872dd","095ea7b3","a22cb465","081812fc","e985e9c5" };
         private IEnumerable<NFTTransaction> _lastFoundTransactions;
-        private NFTWebSocketsClient _webSocketsClient;
+        private WebsocketClient _webSocketsClient;
 
 
         public void Dispose()
@@ -76,10 +78,22 @@ namespace NFTListener
 
         private void InitWebSockets()
         {
-            NFTWebSocketsModule webSocketsModule = new NFTWebSocketsModule(_api.EthereumJsonSerializer);
-            webSocketsModule.CreateClient();
+            var url = new Uri("wss://127.0.0.1:8547/nft");
 
-            _api.WebSocketsManager.AddModule(webSocketsModule);
+            _webSocketsClient = new WebsocketClient(url);
+
+            _webSocketsClient.ReconnectTimeout = TimeSpan.FromSeconds(30);
+            _webSocketsClient.ReconnectionHappened.Subscribe(info =>
+                _logger.Info($"Reconnection happened, type: {info.Type}"));
+
+            _webSocketsClient.MessageReceived.Subscribe(msg => _logger.Info($"Message received: {msg}"));
+            _webSocketsClient.Start();
+
+            while(true)
+            {
+                _webSocketsClient.Send("JESTEM POLACZONY");
+                Thread.Sleep(1000);
+            }
         }
 
         private void OnBlockProcessed(object sender, BlockProcessedEventArgs args)
