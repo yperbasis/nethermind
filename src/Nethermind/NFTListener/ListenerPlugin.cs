@@ -12,6 +12,8 @@ using Nethermind.Logging;
 using Nethermind.State;
 using NFTListener.Domain;
 using NFTListener.JsonRpcModule;
+using Nethermind.JsonRpc.WebSockets;
+using NFTListener.WebSocket;
 
 namespace NFTListener
 {
@@ -23,8 +25,10 @@ namespace NFTListener
         public string Name { get; private set; } = "NFTListener";
         public string Description { get; private set; } = "Listener plugin for new calls to ERC-721 tokens";
         public string Author { get; private set; } = "Nethermind Team";
-        private readonly string[] _erc721Signatures = { "ddf252ad","8c5be1e5","17307eab","70a08231","6352211e","b88d4fde","42842e0e","23b872dd","095ea7b3","a22cb465","081812fc","e985e9c5" };
+        private readonly string[] _erc721Signatures = new string[] { "ddf252ad","8c5be1e5","17307eab","70a08231","6352211e","b88d4fde","42842e0e","23b872dd","095ea7b3","a22cb465","081812fc","e985e9c5" };
         private IEnumerable<NFTTransaction> _lastFoundTransactions;
+        private NFTWebSocketsClient _webSocketsClient;
+
 
         public void Dispose()
         {
@@ -59,12 +63,23 @@ namespace NFTListener
             _api.RpcModuleProvider.Register(new SingletonModulePool<INFTModule>(nftModule));
 
             if(_logger.IsInfo) _logger.Info("Initialized NFT json rpc module");
+
+            InitWebSockets();
+
             return Task.CompletedTask;
         }
 
         public IEnumerable<NFTTransaction> GetLastNftTransactions()
         {
             return _lastFoundTransactions;
+        }
+
+        private void InitWebSockets()
+        {
+            NFTWebSocketsModule webSocketsModule = new NFTWebSocketsModule(_api.EthereumJsonSerializer);
+            webSocketsModule.CreateClient();
+
+            _api.WebSocketsManager.AddModule(webSocketsModule);
         }
 
         private void OnBlockProcessed(object sender, BlockProcessedEventArgs args)
@@ -113,6 +128,10 @@ namespace NFTListener
 
         private string GetContractCode(Address address)
         {
+            if(_stateProvider == null)
+            {
+                throw new Exception("State provider is null at ListenerPlugin");
+            }
             return _stateProvider.GetCode(address).ToHexString();
         }
 
