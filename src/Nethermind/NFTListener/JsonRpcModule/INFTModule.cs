@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Nethermind.Core.Crypto;
 using Nethermind.JsonRpc;
 using Nethermind.JsonRpc.Modules;
+using NFTListener.Domain;
 
 namespace NFTListener.JsonRpcModule
 {
@@ -9,6 +10,6 @@ namespace NFTListener.JsonRpcModule
     public interface INFTModule : IModule
     {
         [JsonRpcMethod(IsImplemented = true, IsSharable = true)]
-        ResultWrapper<NFTJsonRpcResult> nft_lastTransactions();
+        ResultWrapper<IEnumerable<NFTTransaction>> nft_lastTransactions();
     }
 }

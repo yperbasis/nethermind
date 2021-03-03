@@ -10,6 +10,8 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.JsonRpc.Modules;
 using Nethermind.Logging;
+using Nethermind.State;
+using NFTListener.Domain;
 using NFTListener.JsonRpcModule;
 
 namespace NFTListener
@@ -18,14 +20,14 @@ namespace NFTListener
     {
         private INethermindApi _api;
         private ILogger _logger;
+        private IReadOnlyStateProvider _stateProvider;
         public string Name { get; private set; } = "NFTListener";
 
         public string Description { get; private set; } = "Listener plugin for new calls to ERC-721 tokens";
 
         public string Author { get; private set; } = "Nethermind Team";
-        private readonly string[] erc721Signatures = new string[] { "ddf252ad","8c5be1e5","17307eab","70a08231","6352211e","b88d4fde","42842e0e","23b872dd","095ea7b3","a22cb465","081812fc","e985e9c5", "a9059cbb" };
-        private List<Keccak> LastFoundTransactions;
-        private long LastBlockNumber;
+        private readonly string[] erc721Signatures = new string[] { "ddf252ad","8c5be1e5","17307eab","70a08231","6352211e","b88d4fde","42842e0e","23b872dd","095ea7b3","a22cb465","081812fc","e985e9c5" };
+        private IEnumerable<NFTTransaction> LastFoundTransactions;
 
         public void Dispose()
         {
@@ -34,10 +36,11 @@ namespace NFTListener
         public Task Init(INethermindApi nethermindApi)
         {
             _api = nethermindApi;
+            _stateProvider = _api.StateProvider;
             _logger = nethermindApi.LogManager.GetClassLogger();
             if(_logger.IsInfo) _logger.Info("Initialization of ListenerPlugin");
 
-            LastFoundTransactions = new List<Keccak>();
+            LastFoundTransactions = new List<NFTTransaction>();
 
             if(_logger.IsInfo) _logger.Info("ListenerPlugin initialized");
             return Task.CompletedTask;
@@ -60,15 +63,14 @@ namespace NFTListener
             return Task.CompletedTask;
         }
 
-        public (IEnumerable<Keccak> transactions, long blockNumber) GetLastNftTransactions()
+        public IEnumerable<NFTTransaction> GetLastNftTransactions()
         {
-            return (LastFoundTransactions, LastBlockNumber);
+            return LastFoundTransactions;
         }
 
         private void OnBlockProcessed(object sender, BlockProcessedEventArgs args)
         {
             Block block = args.Block;
-            LastBlockNumber = block.Number;
             
             foreach(Transaction transaction in block.Transactions)
             {
@@ -86,14 +88,41 @@ namespace NFTListener
                 }
                 catch(ArgumentOutOfRangeException)
                 {
-                    return; 
+                    continue;
                 }
 
-                if(erc721Signatures.Contains(signature))
+                bool isERC721Signature = erc721Signatures.Contains(signature);
+                if(!isERC721Signature)
                 {
-                    LastFoundTransactions.Add(transaction.Hash); 
+                    continue;
+                }
+
+                string contractCode = GetContractCode(transaction.To);
+                bool implementsERC721 = ImplementsERC721(contractCode);
+
+                if(implementsERC721)
+                {
+                    LastFoundTransactions.Append(new NFTTransaction(transaction.Hash, transaction.SenderAddress, transaction.To)); 
                 }
             }
+        }
+
+        private string GetContractCode(Address address)
+        {
+            return _stateProvider.GetCode(address).ToHexString();
+        }
+
+        private bool ImplementsERC721(string code)
+        {
+            foreach(string signature in erc721Signatures)
+            {
+                if(!code.Contains(signature))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }
