@@ -36,7 +36,6 @@ namespace NFTListener
         public Task Init(INethermindApi nethermindApi)
         {
             _api = nethermindApi;
-            _stateProvider = _api.StateProvider;
             _logger = nethermindApi.LogManager.GetClassLogger();
             if(_logger.IsInfo) _logger.Info("Initialization of ListenerPlugin");
 
@@ -53,7 +52,11 @@ namespace NFTListener
 
         public Task InitRpcModules()
         {
+            //Doing it here because on .Init() MainBlockProcessor and StateProvider are both nulls - not initialized yet
             _api.MainBlockProcessor.BlockProcessed += OnBlockProcessed;
+            _stateProvider = _api.StateProvider;
+            //
+            
             if(_logger.IsInfo) _logger.Info("Initialization of NFT json rpc module");
             INFTModule nftModule = new NFTModule(_api.LogManager, this);
 
