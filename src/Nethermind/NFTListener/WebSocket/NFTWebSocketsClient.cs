@@ -12,9 +12,7 @@ namespace NFTListener.WebSocket
         public string Id => _client.Id;
         public string Client { get; }
 
-        public NFTWebSocketsClient(
-            IWebSocketsClient client
-            )
+        public NFTWebSocketsClient(IWebSocketsClient client)
         {
             _client = client;
         }

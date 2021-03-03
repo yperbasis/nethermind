@@ -9,13 +9,11 @@ using Nethermind.Core;
 using Nethermind.Core.Extensions;
 using Nethermind.JsonRpc.Modules;
 using Nethermind.Logging;
+using Nethermind.PubSub;
 using Nethermind.State;
 using NFTListener.Domain;
 using NFTListener.JsonRpcModule;
-using Nethermind.JsonRpc.WebSockets;
 using NFTListener.WebSocket;
-using System.Threading;
-using Websocket.Client;
 
 namespace NFTListener
 {
@@ -29,8 +27,7 @@ namespace NFTListener
         public string Author { get; private set; } = "Nethermind Team";
         private readonly string[] _erc721Signatures = new string[] { "ddf252ad","8c5be1e5","17307eab","70a08231","6352211e","b88d4fde","42842e0e","23b872dd","095ea7b3","a22cb465","081812fc","e985e9c5" };
         private IEnumerable<NFTTransaction> _lastFoundTransactions;
-        private WebsocketClient _webSocketsClient;
-
+        private IList<IPublisher> _publishers;
 
         public void Dispose()
         {
@@ -78,22 +75,20 @@ namespace NFTListener
 
         private void InitWebSockets()
         {
-            var url = new Uri("wss://127.0.0.1:8547/nft");
+            var (getFromAPi, _) = _api.ForNetwork;
+            // if (_isOn)
+            // {
+            //     getFromAPi.TxPool!.NewDiscovered += TxPoolOnNewDiscovered;
+            // }
+            //
+            // if (_isOn)
+            // {
+                NFTWebSocketsModule webSocketsModule = new(getFromAPi.EthereumJsonSerializer);
+                getFromAPi.WebSocketsManager!.AddModule(webSocketsModule, true);
+                getFromAPi.Publishers.Add(webSocketsModule);
+            // }
 
-            _webSocketsClient = new WebsocketClient(url);
-
-            _webSocketsClient.ReconnectTimeout = TimeSpan.FromSeconds(30);
-            _webSocketsClient.ReconnectionHappened.Subscribe(info =>
-                _logger.Info($"Reconnection happened, type: {info.Type}"));
-
-            _webSocketsClient.MessageReceived.Subscribe(msg => _logger.Info($"Message received: {msg}"));
-            _webSocketsClient.Start();
-
-            while(true)
-            {
-                _webSocketsClient.Send("JESTEM POLACZONY");
-                Thread.Sleep(1000);
-            }
+            _publishers = getFromAPi.Publishers;
         }
 
         private void OnBlockProcessed(object sender, BlockProcessedEventArgs args)
@@ -104,6 +99,7 @@ namespace NFTListener
             {
                 return;
             }
+
             foreach (Transaction transaction in block.Transactions)
             {
                 string signature;
@@ -132,10 +128,18 @@ namespace NFTListener
                 string contractCode = GetContractCode(transaction.To);
                 bool implementsERC721 = ImplementsERC721(contractCode);
 
-                if (implementsERC721)
+                if (!implementsERC721)
                 {
-                    _lastFoundTransactions.Append(new NFTTransaction(transaction.Hash, transaction.SenderAddress,
-                        transaction.To));
+                    continue;
+                }
+
+                var NFTtransaction = new NFTTransaction(transaction.Hash, transaction.SenderAddress,
+                    transaction.To);
+                _lastFoundTransactions.Append(NFTtransaction);
+                foreach (IPublisher publisher in _publishers)
+                {
+                    // TODO: probably need to serialize first
+                    publisher.PublishAsync(NFTtransaction);
                 }
             }
         }
