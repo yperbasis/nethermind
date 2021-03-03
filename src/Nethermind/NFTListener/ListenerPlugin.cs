@@ -117,15 +117,7 @@ namespace NFTListener
 
         private bool ImplementsERC721(string code)
         {
-            foreach(string signature in erc721Signatures)
-            {
-                if(!code.Contains(signature))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return erc721Signatures.All(signature => code.Contains(signature));
         }
     }
 }
