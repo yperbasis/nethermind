@@ -103,6 +103,7 @@ namespace NFTListener
             foreach (Transaction transaction in block.Transactions)
             {
                 string signature;
+                string tokenID;
 
                 string dataString = transaction.Data.ToHexString();
                 if (dataString.Length < 9)
@@ -113,6 +114,7 @@ namespace NFTListener
                 try
                 {
                     signature = dataString.Substring(0, 8);
+                    tokenID = dataString.Substring(136, 64);
                 }
                 catch (ArgumentOutOfRangeException)
                 {
