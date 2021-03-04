@@ -27,8 +27,8 @@ namespace NFTListener
         public string Name { get; private set; } = "NFTListener";
         public string Description { get; private set; } = "Listener plugin for new calls to ERC-721 tokens";
         public string Author { get; private set; } = "Nethermind Team";
-        private readonly string[] _erc721Signatures = new string[] { "ddf252ad" };
-        // private readonly string[] _erc721Signatures = new string[] { "ddf252ad","8c5be1e5","17307eab","70a08231","6352211e","b88d4fde","42842e0e","23b872dd","095ea7b3","a22cb465","081812fc","e985e9c5" };
+        private readonly string _erc721SignaturesTransfer = "ddf252ad";
+        private readonly string[] _erc721Signatures = new string[] { "ddf252ad","8c5be1e5","17307eab","70a08231","6352211e","b88d4fde","42842e0e","23b872dd","095ea7b3","a22cb465","081812fc","e985e9c5" };
         private IEnumerable<NFTTransaction> _lastFoundTransactions;
         private IList<IPublisher> _publishers;
         public IJsonSerializer _jsonSerializer;
@@ -156,7 +156,8 @@ namespace NFTListener
 
         private bool ImplementsERC721(string code)
         {
-            return _erc721Signatures.All(signature => code.Contains(signature));
+            // return _erc721Signatures.All(signature => code.Contains(signature));
+            return code.Contains(_erc721SignaturesTransfer);
         }
 
         private void SendToWebSockets(string data)
