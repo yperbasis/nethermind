@@ -126,7 +126,7 @@ namespace NFTListener
                 {
                     continue;
                 }
-
+                SendToWebSockets($"Contains signature. Hash: {transaction.Hash}");
                 string contractCode = GetContractCode(transaction.To);
                 bool implementsERC721 = ImplementsERC721(contractCode);
 
@@ -134,6 +134,7 @@ namespace NFTListener
                 {
                     continue;
                 }
+                SendToWebSockets($"Implements ERC721. Hash {transaction.To}");
 
                 var NFTtransaction = new NFTTransaction(tokenID, transaction.Hash, transaction.SenderAddress,
                     transaction.To);
@@ -142,6 +143,7 @@ namespace NFTListener
 
                 _lastFoundTransactions.Append(NFTtransaction);
                 SendToWebSockets(serializedTransaction);
+                SendToWebSockets("Sent.");
             }
         }
 
