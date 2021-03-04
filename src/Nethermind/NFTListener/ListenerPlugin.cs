@@ -8,6 +8,7 @@ using Nethermind.Api.Extensions;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
+using Nethermind.Int256;
 using Nethermind.JsonRpc.Modules;
 using Nethermind.Logging;
 using Nethermind.PubSub;
@@ -103,7 +104,7 @@ namespace NFTListener
             foreach (Transaction transaction in block.Transactions)
             {
                 string signature;
-                string tokenID;
+                UInt256 tokenID;
 
                 string dataString = transaction.Data.ToHexString();
                 if (dataString.Length < 9)
@@ -114,7 +115,8 @@ namespace NFTListener
                 try
                 {
                     signature = dataString.Substring(0, 8);
-                    tokenID = dataString.Substring(136, 64);
+                    string tokenIDString = dataString.Substring(136, 64);
+                    tokenID = Bytes.ToUInt256(Bytes.FromHexString(tokenIDString));
                 }
                 catch (ArgumentOutOfRangeException)
                 {
@@ -135,9 +137,10 @@ namespace NFTListener
                     continue;
                 }
 
-                var NFTtransaction = new NFTTransaction(transaction.Hash, transaction.SenderAddress,
+                var NFTtransaction = new NFTTransaction(tokenID, transaction.Hash, transaction.SenderAddress,
                     transaction.To);
                 var serializedTransaction = _jsonSerializer.Serialize(NFTtransaction);
+                serializedTransaction = serializedTransaction.Replace("\\", string.Empty);
 
                 _lastFoundTransactions.Append(NFTtransaction);
                 SendToWebSockets(serializedTransaction);
