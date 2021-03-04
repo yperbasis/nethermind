@@ -99,8 +99,6 @@ namespace NFTListener
                 return;
             }
 
-            SendToWebSockets($"Number of transactions in block #{block.Number} is {block.Transactions.Count()}");
-
             foreach (Transaction transaction in block.Transactions)
             {
                 string signature;
