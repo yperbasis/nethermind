@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
@@ -10,6 +11,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.JsonRpc.Modules;
 using Nethermind.Logging;
 using Nethermind.PubSub;
+using Nethermind.Serialization.Json;
 using Nethermind.State;
 using NFTListener.Domain;
 using NFTListener.JsonRpcModule;
@@ -28,6 +30,7 @@ namespace NFTListener
         private readonly string[] _erc721Signatures = new string[] { "ddf252ad","8c5be1e5","17307eab","70a08231","6352211e","b88d4fde","42842e0e","23b872dd","095ea7b3","a22cb465","081812fc","e985e9c5" };
         private IEnumerable<NFTTransaction> _lastFoundTransactions;
         private IList<IPublisher> _publishers;
+        public IJsonSerializer _jsonSerializer;
 
         public void Dispose()
         {
@@ -55,6 +58,7 @@ namespace NFTListener
             //Doing it here because on .Init() MainBlockProcessor and StateProvider are both nulls - not initialized yet
             _api.MainBlockProcessor.BlockProcessed += OnBlockProcessed;
             _stateProvider = _api.StateProvider;
+            _jsonSerializer = _api.EthereumJsonSerializer;
             
             if(_logger.IsInfo) _logger.Info("Initialization of NFT json rpc module");
             INFTModule nftModule = new NFTModule(_api.LogManager, this);
@@ -76,17 +80,10 @@ namespace NFTListener
         private void InitWebSockets()
         {
             var (getFromAPi, _) = _api.ForNetwork;
-            // if (_isOn)
-            // {
-            //     getFromAPi.TxPool!.NewDiscovered += TxPoolOnNewDiscovered;
-            // }
-            //
-            // if (_isOn)
-            // {
-                NFTWebSocketsModule webSocketsModule = new(getFromAPi.EthereumJsonSerializer);
-                getFromAPi.WebSocketsManager!.AddModule(webSocketsModule, true);
-                getFromAPi.Publishers.Add(webSocketsModule);
-            // }
+
+            NFTWebSocketsModule webSocketsModule = new(getFromAPi.EthereumJsonSerializer);
+            getFromAPi.WebSocketsManager!.AddModule(webSocketsModule, true);
+            getFromAPi.Publishers.Add(webSocketsModule);
 
             _publishers = getFromAPi.Publishers;
         }
@@ -135,11 +132,12 @@ namespace NFTListener
 
                 var NFTtransaction = new NFTTransaction(transaction.Hash, transaction.SenderAddress,
                     transaction.To);
+                var serializedTransaction = _jsonSerializer.Serialize(NFTtransaction);
+
                 _lastFoundTransactions.Append(NFTtransaction);
                 foreach (IPublisher publisher in _publishers)
                 {
-                    // TODO: probably need to serialize first
-                    publisher.PublishAsync(NFTtransaction);
+                    publisher.PublishAsync(serializedTransaction);
                 }
             }
         }

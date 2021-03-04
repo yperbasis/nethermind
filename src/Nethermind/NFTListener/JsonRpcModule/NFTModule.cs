@@ -20,16 +20,25 @@ namespace NFTListener.JsonRpcModule
            _plugin = plugin;
         }
 
-        public ResultWrapper<IEnumerable<NFTTransaction>> nft_lastTransactions()
+        public ResultWrapper<IEnumerable<string>> nft_lastTransactions()
         {
             var transactions = _plugin.GetLastNftTransactions();
+            var serializedTransactions = GetSerializedTransactions(transactions); 
 
             if(transactions.ToArray().Length > 0)
             {
-                return ResultWrapper<IEnumerable<NFTTransaction>>.Success(transactions);
+                return ResultWrapper<IEnumerable<string>>.Success(serializedTransactions);
             }
 
-            return ResultWrapper<IEnumerable<NFTTransaction>>.Fail($"No transactions to NFT were found in the latest block");
+            return ResultWrapper<IEnumerable<string>>.Fail($"No transactions to NFT were found in the latest block");
+        }
+
+        private IEnumerable<string> GetSerializedTransactions(IEnumerable<NFTTransaction> transactions)
+        {
+            foreach(var t in transactions)
+            {
+                yield return _plugin._jsonSerializer.Serialize(t);
+            }
         }
     }
 }

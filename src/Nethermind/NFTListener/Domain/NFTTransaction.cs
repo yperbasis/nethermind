@@ -5,13 +5,14 @@ namespace NFTListener.Domain
 {
     public class NFTTransaction
     {
-        public readonly Keccak Transaction;
+        public readonly Keccak Hash;
         public readonly Address From; 
         public readonly Address To;
 
-        public NFTTransaction(Keccak transaction, Address from, Address to)
+        public NFTTransaction(Keccak hash, Address from, Address to)
         {
-            Transaction = transaction;
+            //NFT ID missing 
+            Hash = hash;
             From = from;
             To = to;
         }
