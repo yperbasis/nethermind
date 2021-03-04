@@ -128,7 +128,7 @@ namespace NFTListener
 
                 string contractCode = GetContractCode(transaction.To);
                 SendToWebSockets(contractCode);
-                SendToWebSockets(transaction.To);
+                SendToWebSockets(transaction.To.ToString());
                 bool implementsERC721 = ImplementsERC721(contractCode);
 
                 if (!implementsERC721)
