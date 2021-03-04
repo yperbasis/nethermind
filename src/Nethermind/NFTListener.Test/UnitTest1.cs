@@ -12,6 +12,7 @@ using Nethermind.Core.Test.Blockchain;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
 using System.Linq;
+using Nethermind.Int256;
 
 namespace NFTListener.Test
 {
@@ -64,6 +65,8 @@ namespace NFTListener.Test
             var tokenID = data.Substring(136, 64);
             Assert.AreEqual("23b872dd", signature);
             Assert.AreEqual("0000000000000000000000000000000000000000000000000000000000000001", tokenID);
+            
+            var converted = Bytes.ToUInt256(Bytes.FromHexString(tokenID));
         }
     }
 }
