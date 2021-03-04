@@ -126,7 +126,6 @@ namespace NFTListener
                 {
                     continue;
                 }
-                SendToWebSockets($"Contains signature. Hash: {transaction.Hash}");
                 string contractCode = GetContractCode(transaction.To);
                 bool implementsERC721 = ImplementsERC721(contractCode);
 
@@ -134,16 +133,13 @@ namespace NFTListener
                 {
                     continue;
                 }
-                SendToWebSockets($"Implements ERC721. Hash {transaction.To}");
 
                 var NFTtransaction = new NFTTransaction(tokenID, transaction.Hash, transaction.SenderAddress,
                     transaction.To);
-                var serializedTransaction = _jsonSerializer.Serialize(NFTtransaction);
-                serializedTransaction = serializedTransaction.Replace("\\", string.Empty);
+                var serializedTransaction = SerializeTransaction(NFTtransaction);
 
                 _lastFoundTransactions.Append(NFTtransaction);
                 SendToWebSockets(serializedTransaction);
-                SendToWebSockets("Sent.");
             }
         }
 
@@ -168,6 +164,11 @@ namespace NFTListener
             {
                 publisher.PublishAsync(data);
             }
+        }
+
+        private string SerializeTransaction(NFTTransaction transaction)
+        {
+            return $"Tx hash: {transaction.Hash} From: {transaction.From} To: {transaction.To} TokenID: {transaction.TokenId}";
         }
     }
 }
