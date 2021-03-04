@@ -10,6 +10,6 @@ namespace NFTListener.JsonRpcModule
     public interface INFTModule : IModule
     {
         [JsonRpcMethod(IsImplemented = true, IsSharable = true)]
-        ResultWrapper<IEnumerable<NFTTransaction>> nft_lastTransactions();
+        ResultWrapper<IEnumerable<string>> nft_lastTransactions();
     }
 }

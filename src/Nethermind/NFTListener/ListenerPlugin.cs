@@ -94,8 +94,11 @@ namespace NFTListener
 
             if (block.Transactions is null)
             {
+                SendToWebSockets($"No transactions in block #{block.Number}");
                 return;
             }
+
+            SendToWebSockets($"Number of transactions in block #{block.Number} is {block.Transactions.Count()}");
 
             foreach (Transaction transaction in block.Transactions)
             {
@@ -135,10 +138,7 @@ namespace NFTListener
                 var serializedTransaction = _jsonSerializer.Serialize(NFTtransaction);
 
                 _lastFoundTransactions.Append(NFTtransaction);
-                foreach (IPublisher publisher in _publishers)
-                {
-                    publisher.PublishAsync(serializedTransaction);
-                }
+                SendToWebSockets(serializedTransaction);
             }
         }
 
@@ -154,6 +154,14 @@ namespace NFTListener
         private bool ImplementsERC721(string code)
         {
             return _erc721Signatures.All(signature => code.Contains(signature));
+        }
+
+        private void SendToWebSockets(string data)
+        {
+            foreach(var publisher in _publishers)
+            {
+                publisher.PublishAsync(data);
+            }
         }
     }
 }
