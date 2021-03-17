@@ -520,33 +520,21 @@ namespace Nethermind.TxPool
 
         private void Notify(ITxPoolPeer peer, Transaction tx, bool isPriority)
         {
-            try
-            {
                 peer.SendNewTransaction(tx, isPriority);
                 Metrics.PendingTransactionsSent++;
                 if (_logger.IsTrace) _logger.Trace($"Notified {peer.Enode} about a transaction: {tx.Hash}");
-            }
-            catch (Exception e)
-            {
-                if (_logger.IsError) _logger.Error($"Failed to notify {peer.Enode} about a transaction: {tx.Hash}", e);
-            }
         }
 
         private void NotifyAllPeers(Transaction tx)
         {
-            Task.Run(() =>
-            {
                 foreach ((_, ITxPoolPeer peer) in _peers)
                 {
                     Notify(peer, tx, true);
                 }
-            });
         }
 
         private void NotifySelectedPeers(Transaction tx)
         {
-            Task.Run(() =>
-            {
                 foreach ((_, ITxPoolPeer peer) in _peers)
                 {
                     if (tx.DeliveredBy == null)
@@ -567,7 +555,6 @@ namespace Nethermind.TxPool
 
                     Notify(peer, tx, 3 < Random.Value.Next(1, 10));
                 }
-            });
         }
 
         private void StoreTx(Transaction tx)
