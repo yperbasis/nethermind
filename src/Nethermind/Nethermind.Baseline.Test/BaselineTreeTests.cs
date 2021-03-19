@@ -538,7 +538,7 @@ namespace Nethermind.Baseline.Test
             MemDb mainDb = new MemDb();
             MemDb metadataDb = new MemDb();
             Address address = Address.Zero;
-            BaselineTreeHelper helper = new BaselineTreeHelper(
+            BaselineTreeHelper helper = new BaselineTreeHelper(Substitute.For<IBlockFinder>(),
                 Substitute.For<ILogFinder>(), mainDb, metadataDb, LimboNoErrorLogger.Instance);
             BaselineTree baselineTree = new ShaBaselineTree(
                 mainDb, metadataDb, address.Bytes, 0, LimboNoErrorLogger.Instance);
