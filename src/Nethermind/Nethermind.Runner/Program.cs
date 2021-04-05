@@ -58,7 +58,7 @@ namespace Nethermind.Runner
 
         public static void Main(string[] args)
         {
-            AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
+            AppDomain.CurrentDomain.UnhandledException += (_, eventArgs) =>
             {
                 ILogger logger = new NLogLogger("logs.txt");
                 if (eventArgs.ExceptionObject is Exception e)
@@ -94,9 +94,9 @@ namespace Nethermind.Runner
             AppDomain.CurrentDomain.ProcessExit += CurrentDomainOnProcessExit;
             IFileSystem fileSystem = new FileSystem(); ;
 
-            PluginLoader pluginLoader = new("plugins", fileSystem, typeof(CliquePlugin), typeof(EthashPlugin), typeof(NethDevPlugin));
-            CompositePluginLoader compositePluginLoader =
-                new (pluginLoader, SinglePluginLoader<TomPlugin>.Instance);
+            IPluginLoader pluginLoader = new PluginLoader("plugins", fileSystem, typeof(CliquePlugin), typeof(EthashPlugin), typeof(NethDevPlugin));
+            pluginLoader =
+                new CompositePluginLoader(pluginLoader, SinglePluginLoader<TomPlugin>.Instance);
             pluginLoader.Load(SimpleConsoleLogManager.Instance);
 
             Type configurationType = typeof(IConfig);
