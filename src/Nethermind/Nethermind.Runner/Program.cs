@@ -95,6 +95,8 @@ namespace Nethermind.Runner
             IFileSystem fileSystem = new FileSystem(); ;
 
             PluginLoader pluginLoader = new("plugins", fileSystem, typeof(CliquePlugin), typeof(EthashPlugin), typeof(NethDevPlugin));
+            CompositePluginLoader compositePluginLoader =
+                new (pluginLoader, SinglePluginLoader<TomPlugin>.Instance);
             pluginLoader.Load(SimpleConsoleLogManager.Instance);
 
             Type configurationType = typeof(IConfig);
