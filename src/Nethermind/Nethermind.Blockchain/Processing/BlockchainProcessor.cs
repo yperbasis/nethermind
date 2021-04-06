@@ -18,6 +18,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Find;
@@ -288,10 +289,16 @@ namespace Nethermind.Blockchain.Processing
             }
 
             ProcessingBranch processingBranch = PrepareProcessingBranch(suggestedBlock, options);
-            PrepareBlocksToProcess(suggestedBlock, options, processingBranch);
+            if ((options & ProcessingOptions.ForceProcessing) != 0)
+            {
+                processingBranch.LongBranchBlocksHashes.Clear();
+            }
+            
+            if (processingBranch.LongBranchBlocksHashes.Any() == false)
+                PrepareBlocksToProcess(suggestedBlock, options, processingBranch);
 
             Stopwatch stopwatch = Stopwatch.StartNew();
-            Block[]? processedBlocks = ProcessBranch(processingBranch, options, tracer);
+            Block[]? processedBlocks = ProcessBranch(processingBranch, suggestedBlock, options, tracer);
             stopwatch.Stop();
             if (processedBlocks == null)
             {
@@ -352,17 +359,49 @@ namespace Nethermind.Blockchain.Processing
         }
 
         private Block[]? ProcessBranch(ProcessingBranch processingBranch,
+            Block suggestedBlock,
             ProcessingOptions options,
             IBlockTracer tracer)
         {
             Block[]? processedBlocks;
             try
             {
-                processedBlocks = _blockProcessor.Process(
-                    processingBranch.Root,
-                    processingBranch.BlocksToProcess,
-                    options,
-                    tracer);
+                if (processingBranch.LongBranchBlocksHashes.Any() == false)
+                {
+                    processedBlocks = _blockProcessor.Process(
+                        processingBranch.Root,
+                        processingBranch.BlocksToProcess,
+                        options,
+                        tracer);
+                }
+                else
+                {
+                    List<Keccak> longBranchBlocksHashes = processingBranch.LongBranchBlocksHashes;
+                    for (int i = longBranchBlocksHashes.Count - 1; i > 0; --i)
+                    {
+                        Block block = _blockTree.FindBlock(longBranchBlocksHashes[i], BlockTreeLookupOptions.TotalDifficultyNotNeeded);
+                        if (block.Hash != null && _blockTree.WasProcessed(block.Number, block.Hash))
+                        {
+                            if (_logger.IsInfo) _logger.Info($"Rerunning block after reorg or pruning: {block.ToString(Block.Format.FullHashAndNumber)}");
+                        }
+                        
+                        _recoveryStep.RecoverData(block);
+                        // ToDo new List<Block>() { block } is temp hack
+                        _blockProcessor.Process(
+                            processingBranch.Root,
+                            new List<Block>() { block },
+                            options,
+                            tracer);
+                    }
+
+                    PrepareBlocksToProcess(suggestedBlock, options, processingBranch);
+                    processedBlocks = _blockProcessor.Process(
+                        processingBranch.Root,
+                        processingBranch.BlocksToProcess,
+                        options,
+                        tracer);
+
+                }
             }
             catch (InvalidBlockException ex)
             {
@@ -398,6 +437,7 @@ namespace Nethermind.Blockchain.Processing
             if ((options & ProcessingOptions.ForceProcessing) != 0)
             {
                 processingBranch.Blocks.Clear();
+                processingBranch.LongBranchBlocksHashes.Clear();
                 blocksToProcess.Add(suggestedBlock);
             }
             else
@@ -429,11 +469,21 @@ namespace Nethermind.Blockchain.Processing
         {
             BlockHeader branchingPoint = null;
             List<Block> blocksToBeAddedToMain = new();
+            List<Keccak> longBranchBlockHashes = new List<Keccak>();
+            int iterationCount = 0;
 
             Block toBeProcessed = suggestedBlock;
             do
             {
-                blocksToBeAddedToMain.Add(toBeProcessed);
+                if (iterationCount < Reorganization.MaxDepth)
+                {
+                    blocksToBeAddedToMain.Add(toBeProcessed);
+                }
+                else
+                {
+                    longBranchBlockHashes.Add(toBeProcessed.Hash);
+                }
+
                 if (_logger.IsTrace) _logger.Trace($"To be processed (of {suggestedBlock.ToString(Block.Format.Short)}) is {toBeProcessed?.ToString(Block.Format.Short)}");
                 if (toBeProcessed.IsGenesis)
                 {
@@ -478,6 +528,7 @@ namespace Nethermind.Blockchain.Processing
                 // then on restart we would find 14 as the branch head (since 14 is on the main chain)
                 // we need to dig deeper to go all the way to the false (reorg boundary) head
                 // otherwise some nodes would be missing
+                ++iterationCount;
             } while (!_blockTree.IsMainChain(branchingPoint.Hash) || branchingPoint.Number > (_blockTree.Head?.Header.Number ?? 0));
 
             if (branchingPoint != null && branchingPoint.Hash != _blockTree.Head?.Hash)
@@ -492,7 +543,7 @@ namespace Nethermind.Blockchain.Processing
 
             Keccak stateRoot = branchingPoint?.StateRoot;
             if (_logger.IsTrace) _logger.Trace($"State root lookup: {stateRoot}");
-            return new ProcessingBranch(stateRoot, blocksToBeAddedToMain);
+            return new ProcessingBranch(stateRoot, blocksToBeAddedToMain, longBranchBlockHashes);
         }
 
         [Todo(Improve.Refactor, "This probably can be made conditional (in DEBUG only)")]
@@ -542,16 +593,19 @@ namespace Nethermind.Blockchain.Processing
 
         private readonly struct ProcessingBranch
         {
-            public ProcessingBranch(Keccak root, List<Block> blocks)
+            public ProcessingBranch(Keccak root, List<Block> blocks, List<Keccak> longBranchBlocksHashes)
             {
                 Root = root;
                 Blocks = blocks;
+                LongBranchBlocksHashes = longBranchBlocksHashes;
                 BlocksToProcess = new List<Block>();
             }
 
             public Keccak Root { get; }
             public List<Block> Blocks { get; }
             public List<Block> BlocksToProcess { get; }
+            
+            public List<Keccak> LongBranchBlocksHashes { get; }
         }
 
         public class Options
