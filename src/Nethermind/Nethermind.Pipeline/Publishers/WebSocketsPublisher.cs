@@ -10,7 +10,7 @@ using Nethermind.WebSockets;
 
 namespace Nethermind.Pipeline.Publishers
 {
-    public class WebSocketsPublisher<T> : IPipelineElement<T> ,IPublisher, IWebSocketsModule
+    public class WebSocketsPublisher<T> : IPipelineElement<T>, IPublisher, IWebSocketsModule
     {
         private readonly ConcurrentDictionary<string, IWebSocketsClient> _clients = new();
         private IJsonSerializer _jsonSerializer;
