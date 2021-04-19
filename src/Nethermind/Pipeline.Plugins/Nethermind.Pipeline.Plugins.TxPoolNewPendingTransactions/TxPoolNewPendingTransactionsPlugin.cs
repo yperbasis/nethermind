@@ -24,11 +24,11 @@ using Nethermind.Pipeline.Publishers;
 using Nethermind.Serialization.Json;
 using Nethermind.TxPool;
 
-namespace Nethermind.Pipeline.Plugins.TxPoolOnPendingTransactions
+namespace Nethermind.Pipeline.Plugins.TxPoolNewPendingTransactions
 {
-    public class TxPoolOnPendingTransactionsPlugin : INethermindPlugin
+    public class TxPoolNewPendingTransactionsPlugin : INethermindPlugin
     {
-        public string Name => "TxPool OnPending Transactions Plugin";
+        public string Name => "TxPool NewPending Transactions Pipeline Plugin";
         public string Description => "Pipeline plugin streaming pending txs from txpool";
         public string Author => "Nethermind";
         private INethermindApi _api;

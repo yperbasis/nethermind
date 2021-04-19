@@ -216,7 +216,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Analytics", "Analytics", "{
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Pipeline.Plugins", "Pipeline.Plugins", "{75B935B3-898F-4B98-BF63-3C8C2AE9CF09}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline.Plugins.TxPoolOnPendingTransactions", "Pipeline.Plugins\Nethermind.Pipeline.Plugins.TxPoolOnPendingTransactions\Nethermind.Pipeline.Plugins.TxPoolOnPendingTransactions.csproj", "{74EB7F21-7A62-490E-8D8E-26982F5C2850}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline.Plugins.TxPoolNewPendingTransactions", "Pipeline.Plugins\Nethermind.Pipeline.Plugins.TxPoolNewPendingTransactions\Nethermind.Pipeline.Plugins.TxPoolNewPendingTransactions.csproj", "{74EB7F21-7A62-490E-8D8E-26982F5C2850}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
