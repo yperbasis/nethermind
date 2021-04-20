@@ -8,5 +8,10 @@
       <ProjectReference Include="..\Nethermind.Api\Nethermind.Api.csproj" />
       <ProjectReference Include="..\Nethermind.Pipeline\Nethermind.Pipeline.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Contracts\Erc721Metadata.json" />
+      <EmbeddedResource Include="Contracts\Erc721Metadata.json" />
+    </ItemGroup>
   
 </Project>
