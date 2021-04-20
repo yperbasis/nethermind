@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Core", "Nethermi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline", "Nethermind.Pipeline\Nethermind.Pipeline.csproj", "{860832DA-3A50-4408-B5C2-D4D096B00153}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline.Plugins.Erc721Transactions", "Nethermind.Pipeline.Plugins.Erc721Transactions\Nethermind.Pipeline.Plugins.Erc721Transactions.csproj", "{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -74,6 +76,18 @@ Global
 		{860832DA-3A50-4408-B5C2-D4D096B00153}.Release|x64.Build.0 = Release|Any CPU
 		{860832DA-3A50-4408-B5C2-D4D096B00153}.Release|x86.ActiveCfg = Release|Any CPU
 		{860832DA-3A50-4408-B5C2-D4D096B00153}.Release|x86.Build.0 = Release|Any CPU
+		{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}.Debug|x64.Build.0 = Debug|Any CPU
+		{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}.Debug|x86.Build.0 = Debug|Any CPU
+		{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}.Release|x64.ActiveCfg = Release|Any CPU
+		{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}.Release|x64.Build.0 = Release|Any CPU
+		{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}.Release|x86.ActiveCfg = Release|Any CPU
+		{C26B6A3E-8A4E-4527-BC53-D6CAD2B0F730}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{08C5069A-2B9F-45AA-9785-0AA954AB6EC3} = {1408D8FE-565B-403D-A585-85C1582E030A}
