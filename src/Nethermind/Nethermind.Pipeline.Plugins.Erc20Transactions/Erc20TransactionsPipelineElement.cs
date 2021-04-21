@@ -104,7 +104,7 @@ namespace Nethermind.Pipeline.Plugins.Erc20Transactions
             }
             catch (Exception ex)
             {
-                throw new Exception("There was an error while getting contract code.");
+                return string.Empty;
             }
         }
         
