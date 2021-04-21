@@ -89,42 +89,47 @@ namespace Nethermind.State
 
         public byte[] GetCode(Keccak stateRoot, Address address)
         {
-            Account? account = GetState(stateRoot, address);
-            if (account is null)
+            // Account? account = GetState(stateRoot, address);
+            // if (account is null)
+            // {
+            //     return Array.Empty<byte>();
+            // }
+            //
+            // //code hash null? zalogowac
+            //
+            // return GetCode(account.CodeHash);
+
+
+            try
             {
-                return Array.Empty<byte>();
+                Account? account = GetState(stateRoot, address);
+                if (account is null)
+                {
+                    return Array.Empty<byte>();
+                }
+
+                if (account.CodeHash is null)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.WriteLine("Exception: GetCode: account.CodeHash");
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.WriteLine();
+                }
+
+                //code hash null? zalogowac
+
+                return GetCode(account.CodeHash);
+
             }
-            
-            //code hash null? zalogowac
-
-            return GetCode(account.CodeHash);
-
-
-            try {
-            Account? account = GetState(stateRoot, address);
-            if (account is null)
+            catch (Exception ex)
             {
-                return Array.Empty<byte>();
-            }
-            if (account.CodeHash) {
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine("Exception: GetCode: account.CodeHash");
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-            }
-            
-            //code hash null? zalogowac
-
-            return GetCode(account.CodeHash);
-
-            }   catch (Exception ex) {
                 Console.WriteLine();
                 Console.WriteLine();
                 Console.WriteLine();
@@ -132,12 +137,6 @@ namespace Nethermind.State
                 Console.WriteLine("Exception: GetCode");
                 Console.WriteLine(ex);
                 return Array.Empty<byte>();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
             }
         }
 
