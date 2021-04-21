@@ -33,11 +33,13 @@ using Nethermind.Core;
 using Nethermind.KeyStore.Config;
 using Nethermind.Logging;
 using Nethermind.Logging.NLog;
+using Nethermind.Mev;
 using Nethermind.Runner.Ethereum;
 using Nethermind.Runner.Ethereum.Api;
 using Nethermind.Runner.Logging;
 using Nethermind.Seq.Config;
 using Nethermind.Serialization.Json;
+using Nethermind.Pipeline;
 using NLog;
 using NLog.Config;
 using ILogger = Nethermind.Logging.ILogger;
@@ -49,7 +51,8 @@ namespace Nethermind.Runner
         private const string FailureString = "Failure";
         private const string DefaultConfigsDirectory = "configs";
         private const string DefaultConfigFile = "configs/mainnet.cfg";
-
+        private const string PluginString = "Plugin";
+        
         private static ILogger _logger = SimpleConsoleLogger.Instance;
 
         private static readonly CancellationTokenSource _processCloseCancellationSource = new();
@@ -92,9 +95,12 @@ namespace Nethermind.Runner
             _logger.Info("Nethermind starting initialization.");
 
             AppDomain.CurrentDomain.ProcessExit += CurrentDomainOnProcessExit;
-            IFileSystem fileSystem = new FileSystem(); ;
-
-            PluginLoader pluginLoader = new("plugins", fileSystem, typeof(CliquePlugin), typeof(EthashPlugin), typeof(NethDevPlugin));
+            IFileSystem fileSystem = new FileSystem();
+            
+            PluginLoader filePluginLoader = new("plugins", fileSystem, typeof(CliquePlugin), typeof(EthashPlugin), typeof(NethDevPlugin));
+            IPluginLoader mevLoader = SinglePluginLoader<MevPlugin>.Instance;
+            
+            CompositePluginLoader pluginLoader = new (filePluginLoader, mevLoader);
             pluginLoader.Load(SimpleConsoleLogManager.Instance);
 
             Type configurationType = typeof(IConfig);
@@ -163,12 +169,22 @@ namespace Nethermind.Runner
                 EthereumJsonSerializer serializer = new();
                 if (_logger.IsDebug) _logger.Debug($"Nethermind config:{Environment.NewLine}{serializer.Serialize(initConfig, true)}{Environment.NewLine}");
 
+                IPipelinePluginsConfig pipelinePluginsConfig = configProvider.GetConfig<IPipelinePluginsConfig>() ??
+                                                               new PipelinePluginsConfig();
+                
                 ApiBuilder apiBuilder = new(configProvider, logManager);
                 INethermindApi nethermindApi = apiBuilder.Create();
                 foreach (Type pluginType in pluginLoader.PluginTypes)
                 {
+                    if (IsDisabledPipelinePlugin(pipelinePluginsConfig, pluginType))
+                    {
+                        continue;
+                    }
+                    
                     if (Activator.CreateInstance(pluginType) is INethermindPlugin plugin)
                     {
+                        //for testing
+                        Console.WriteLine($"Added plugin: {plugin.Name}");
                         nethermindApi.Plugins.Add(plugin);
                     }
                 }
@@ -192,6 +208,22 @@ namespace Nethermind.Runner
 
             _ = app.Execute(args);
             appClosed.Wait();
+        }
+        
+        private static bool IsDisabledPipelinePlugin(IPipelinePluginsConfig pipelinePluginsConfig, Type pluginType)
+        {
+            if (!typeof(IPipelinePlugin).IsAssignableFrom(pluginType))
+            {
+                return false;
+            }
+
+            if (pipelinePluginsConfig.Enabled is null)
+            {
+                return true;
+            }
+
+            return !pipelinePluginsConfig.Enabled.Contains(pluginType.Name.Replace(PluginString, ""),
+                StringComparer.InvariantCultureIgnoreCase);
         }
 
         private static IConfigProvider BuildConfigProvider(

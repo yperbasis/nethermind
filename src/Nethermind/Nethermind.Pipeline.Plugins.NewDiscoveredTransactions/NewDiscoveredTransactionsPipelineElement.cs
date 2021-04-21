@@ -1,14 +1,14 @@
-﻿using System;
+using System;
 using Nethermind.Core;
 using Nethermind.TxPool;
 
-namespace Nethermind.Pipeline.Plugins.TxPoolNewDiscoveredTransactions
+namespace Nethermind.Pipeline.Plugins.NewDiscoveredTransactions
 {
-    public class PipelineElement<TOut> : IPipelineElement<TOut> where TOut : Transaction
+    public class NewDiscoveredTransactionsPipelineElement<TOut> : IPipelineElement<TOut> where TOut : Transaction
     {
         public Action<TOut> Emit { get; set; }
 
-        public PipelineElement(ITxPool txPool)
+        public NewDiscoveredTransactionsPipelineElement(ITxPool txPool)
         {
             txPool.NewDiscovered += OnNewDiscovered;
         }

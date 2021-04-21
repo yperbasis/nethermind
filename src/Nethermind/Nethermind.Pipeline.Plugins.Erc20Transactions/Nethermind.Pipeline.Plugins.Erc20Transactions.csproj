@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Nethermind.Api\Nethermind.Api.csproj" />
+      <ProjectReference Include="..\Nethermind.Pipeline\Nethermind.Pipeline.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Contracts\Erc20Metadata.json" />
+      <EmbeddedResource Include="Contracts\Erc20Metadata.json" />
+    </ItemGroup>
+
+</Project>

@@ -1,14 +1,14 @@
-﻿using System;
+using System;
 using Nethermind.Core;
 using Nethermind.TxPool;
 
-namespace Nethermind.Pipeline.Plugins.TxPoolRemovedPendingTransactions
+namespace Nethermind.Pipeline.Plugins.RemovedPendingTransactions
 {
-    public class PipelineElement<TOut> : IPipelineElement<TOut> where TOut : Transaction
+    public class RemovedPendingTransactionsPipelineElement<TOut> : IPipelineElement<TOut> where TOut : Transaction
     {
         public Action<TOut> Emit { get; set; }
 
-        public PipelineElement(ITxPool txPool)
+        public RemovedPendingTransactionsPipelineElement(ITxPool txPool)
         {
             txPool.RemovedPending += OnRemovedPending;
         }
