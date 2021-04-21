@@ -94,8 +94,51 @@ namespace Nethermind.State
             {
                 return Array.Empty<byte>();
             }
+            
+            //code hash null? zalogowac
 
             return GetCode(account.CodeHash);
+
+
+            try {
+            Account? account = GetState(stateRoot, address);
+            if (account is null)
+            {
+                return Array.Empty<byte>();
+            }
+            if (account.CodeHash) {
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine("Exception: GetCode: account.CodeHash");
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+            }
+            
+            //code hash null? zalogowac
+
+            return GetCode(account.CodeHash);
+
+            }   catch (Exception ex) {
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine("Exception: GetCode");
+                Console.WriteLine(ex);
+                return Array.Empty<byte>();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+            }
         }
 
         private Account? GetState(Keccak stateRoot, Address address)
