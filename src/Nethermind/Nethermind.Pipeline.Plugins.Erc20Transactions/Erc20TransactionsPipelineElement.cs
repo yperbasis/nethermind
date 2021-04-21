@@ -97,7 +97,7 @@ namespace Nethermind.Pipeline.Plugins.Erc20Transactions
             {
                 throw new Exception("State provider is null at Erc20 Pipeline Plugin");
             }
-źś
+
             return _stateProvider.GetCode(address)?.ToHexString() ?? string.Empty;
         }
         
