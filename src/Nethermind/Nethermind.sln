@@ -215,15 +215,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Merge", "Merge", "{6466669A
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Analytics", "Analytics", "{1CA19A3B-0E9F-44E6-B9D4-0066E443BBD5}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Pipeline.Plugins", "Pipeline.Plugins", "{75B935B3-898F-4B98-BF63-3C8C2AE9CF09}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Pipeline.Plugins", "Pipeline.Plugins", "{5495D88A-6A49-4860-8F27-8D1EE1C5A516}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline.Plugins.TxPoolNewPendingTransactions", "Pipeline.Plugins\Nethermind.Pipeline.Plugins.TxPoolNewPendingTransactions\Nethermind.Pipeline.Plugins.TxPoolNewPendingTransactions.csproj", "{74EB7F21-7A62-490E-8D8E-26982F5C2850}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline.Plugins.Erc20Transactions", "Pipeline.Plugins\Nethermind.Pipeline.Plugins.Erc20Transactions\Nethermind.Pipeline.Plugins.Erc20Transactions.csproj", "{FAE397A9-FFAC-43C2-B04B-C893FF72660E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline.Plugins.TxPoolNewDiscoveredTransactions", "Pipeline.Plugins\Nethermind.Pipeline.Plugins.TxPoolNewDiscoveredTransactions\Nethermind.Pipeline.Plugins.TxPoolNewDiscoveredTransactions.csproj", "{04853C9B-124A-4DE4-8F0A-912242E609E7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline.Plugins.Erc721Transactions", "Pipeline.Plugins\Nethermind.Pipeline.Plugins.Erc721Transactions\Nethermind.Pipeline.Plugins.Erc721Transactions.csproj", "{CCE19918-0C5E-45C0-9D81-4D974188D5C6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline.Plugins.TxPoolRemovedPendingTransactions", "Pipeline.Plugins\Nethermind.Pipeline.Plugins.TxPoolRemovedPendingTransactions\Nethermind.Pipeline.Plugins.TxPoolRemovedPendingTransactions.csproj", "{C0F7C57B-7795-4530-82BE-7B7BE8337026}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline.Plugins.NewDiscoveredTransactions", "Pipeline.Plugins\Nethermind.Pipeline.Plugins.NewDiscoveredTransactions\Nethermind.Pipeline.Plugins.NewDiscoveredTransactions.csproj", "{38756C4A-F89B-4B4D-A7F1-9BE7668E5E31}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline.Plugins.NftTransactions", "Pipeline.Plugins\Nethermind.Pipeline.Plugins.NftTransactions\Nethermind.Pipeline.Plugins.NftTransactions.csproj", "{02A83C33-E322-4DC2-AE8F-1DACDD9D4FA6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline.Plugins.NewPendingTransactions", "Pipeline.Plugins\Nethermind.Pipeline.Plugins.NewPendingTransactions\Nethermind.Pipeline.Plugins.NewPendingTransactions.csproj", "{2FAD8150-E1B5-454A-AD51-CEBCE4C64061}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Pipeline.Plugins.RemovedPendingTransactions", "Pipeline.Plugins\Nethermind.Pipeline.Plugins.RemovedPendingTransactions\Nethermind.Pipeline.Plugins.RemovedPendingTransactions.csproj", "{0920F03A-4383-4BCA-8960-643924CE527C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -575,22 +577,26 @@ Global
 		{CB8776CC-41B3-4D4C-91DF-669C76F0942B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CB8776CC-41B3-4D4C-91DF-669C76F0942B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CB8776CC-41B3-4D4C-91DF-669C76F0942B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{74EB7F21-7A62-490E-8D8E-26982F5C2850}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{74EB7F21-7A62-490E-8D8E-26982F5C2850}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{74EB7F21-7A62-490E-8D8E-26982F5C2850}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{74EB7F21-7A62-490E-8D8E-26982F5C2850}.Release|Any CPU.Build.0 = Release|Any CPU
-		{04853C9B-124A-4DE4-8F0A-912242E609E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{04853C9B-124A-4DE4-8F0A-912242E609E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{04853C9B-124A-4DE4-8F0A-912242E609E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{04853C9B-124A-4DE4-8F0A-912242E609E7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C0F7C57B-7795-4530-82BE-7B7BE8337026}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C0F7C57B-7795-4530-82BE-7B7BE8337026}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C0F7C57B-7795-4530-82BE-7B7BE8337026}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C0F7C57B-7795-4530-82BE-7B7BE8337026}.Release|Any CPU.Build.0 = Release|Any CPU
-		{02A83C33-E322-4DC2-AE8F-1DACDD9D4FA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{02A83C33-E322-4DC2-AE8F-1DACDD9D4FA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{02A83C33-E322-4DC2-AE8F-1DACDD9D4FA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{02A83C33-E322-4DC2-AE8F-1DACDD9D4FA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAE397A9-FFAC-43C2-B04B-C893FF72660E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAE397A9-FFAC-43C2-B04B-C893FF72660E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAE397A9-FFAC-43C2-B04B-C893FF72660E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAE397A9-FFAC-43C2-B04B-C893FF72660E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CCE19918-0C5E-45C0-9D81-4D974188D5C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CCE19918-0C5E-45C0-9D81-4D974188D5C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CCE19918-0C5E-45C0-9D81-4D974188D5C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CCE19918-0C5E-45C0-9D81-4D974188D5C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38756C4A-F89B-4B4D-A7F1-9BE7668E5E31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38756C4A-F89B-4B4D-A7F1-9BE7668E5E31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38756C4A-F89B-4B4D-A7F1-9BE7668E5E31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38756C4A-F89B-4B4D-A7F1-9BE7668E5E31}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2FAD8150-E1B5-454A-AD51-CEBCE4C64061}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2FAD8150-E1B5-454A-AD51-CEBCE4C64061}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2FAD8150-E1B5-454A-AD51-CEBCE4C64061}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2FAD8150-E1B5-454A-AD51-CEBCE4C64061}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0920F03A-4383-4BCA-8960-643924CE527C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0920F03A-4383-4BCA-8960-643924CE527C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0920F03A-4383-4BCA-8960-643924CE527C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0920F03A-4383-4BCA-8960-643924CE527C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -666,10 +672,11 @@ Global
 		{87ECA5BD-8DB0-4ED6-82FF-9F68D576A8E8} = {6466669A-B504-4E2E-9D20-C7E03FCF7D4F}
 		{1CA19A3B-0E9F-44E6-B9D4-0066E443BBD5} = {78BED57D-720E-4E6C-ABA2-397B73B494F9}
 		{643A1DD3-5DBE-44DB-B56D-9C3C5A46763F} = {1CA19A3B-0E9F-44E6-B9D4-0066E443BBD5}
-		{74EB7F21-7A62-490E-8D8E-26982F5C2850} = {75B935B3-898F-4B98-BF63-3C8C2AE9CF09}
-		{04853C9B-124A-4DE4-8F0A-912242E609E7} = {75B935B3-898F-4B98-BF63-3C8C2AE9CF09}
-		{C0F7C57B-7795-4530-82BE-7B7BE8337026} = {75B935B3-898F-4B98-BF63-3C8C2AE9CF09}
-		{02A83C33-E322-4DC2-AE8F-1DACDD9D4FA6} = {75B935B3-898F-4B98-BF63-3C8C2AE9CF09}
+		{FAE397A9-FFAC-43C2-B04B-C893FF72660E} = {5495D88A-6A49-4860-8F27-8D1EE1C5A516}
+		{CCE19918-0C5E-45C0-9D81-4D974188D5C6} = {5495D88A-6A49-4860-8F27-8D1EE1C5A516}
+		{38756C4A-F89B-4B4D-A7F1-9BE7668E5E31} = {5495D88A-6A49-4860-8F27-8D1EE1C5A516}
+		{2FAD8150-E1B5-454A-AD51-CEBCE4C64061} = {5495D88A-6A49-4860-8F27-8D1EE1C5A516}
+		{0920F03A-4383-4BCA-8960-643924CE527C} = {5495D88A-6A49-4860-8F27-8D1EE1C5A516}
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
