@@ -89,21 +89,13 @@ namespace Nethermind.State
 
         public byte[] GetCode(Keccak stateRoot, Address address)
         {
-            try
+            Account? account = GetState(stateRoot, address);
+            if (account is null)
             {
-                Account? account = GetState(stateRoot, address);
-                if (account is null)
-                {
-                    return Array.Empty<byte>();
-                }
-
-                return GetCode(account.CodeHash);
-
+                return Array.Empty<byte>();
             }
-            catch (Exception ex)
-            {
-                throw new Exception($"There was an error while getting code. StateReader.GetCode. {ex}");
-            }
+
+            return GetCode(account.CodeHash);
         }
 
         private Account? GetState(Keccak stateRoot, Address address)
