@@ -81,7 +81,7 @@ namespace Nethermind.Pipeline.Plugins.Erc20Transactions
                 }
                 catch (AbiException exception)
                 {
-                    if (_logger.IsError) _logger.Error($"There was an error with getting token name. {transaction.Hash}");
+                    if (_logger.IsInfo) _logger.Info("Token name has not been fetched.");
                     continue;
                 }
 

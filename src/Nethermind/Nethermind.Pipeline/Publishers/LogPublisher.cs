@@ -49,7 +49,14 @@ namespace Nethermind.Pipeline.Publishers
         public void SubscribeToData(TIn data)
         {
             if (_logger.IsWarn) _logger.Warn(_jsonSerializer.Serialize(data));
-            _fileSystem.File.AppendAllText(Path.Combine(_logsDir, FileName), _jsonSerializer.Serialize(data, true));
+            try
+            {
+                _fileSystem.File.AppendAllText(Path.Combine(_logsDir, FileName), _jsonSerializer.Serialize(data, true));
+            }
+            catch (Exception ex)
+            {
+                if (_logger.IsInfo) _logger.Info("Data has not been written to the file.");
+            }
         }
     }
 }
