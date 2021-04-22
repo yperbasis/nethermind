@@ -42,40 +42,21 @@ namespace Nethermind.Serialization.Rlp
             Keccak storageRoot = rlpStream.DecodeKeccak();
             return storageRoot;
         }
-
+        
         public Account? Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
         {
-            try
+            int length = rlpStream.ReadSequenceLength();
+            if (length == 1)
             {
-                int length = rlpStream.ReadSequenceLength();
-                if (length == 1)
-                {
-                    return null;
-                }
-
-                UInt256 nonce = rlpStream.DecodeUInt256();
-                UInt256 balance = rlpStream.DecodeUInt256();
-                Keccak storageRoot = rlpStream.DecodeKeccak();
-                Keccak codeHash = rlpStream.DecodeKeccak();
-                Account account = new(nonce, balance, storageRoot, codeHash);
-                return account;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine("Exception: Decode");
-                Console.WriteLine(ex);
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
                 return null;
             }
+            
+            UInt256 nonce = rlpStream.DecodeUInt256();
+            UInt256 balance = rlpStream.DecodeUInt256();
+            Keccak storageRoot = rlpStream.DecodeKeccak();
+            Keccak codeHash = rlpStream.DecodeKeccak();
+            Account account = new(nonce, balance, storageRoot, codeHash);
+            return account;
         }
 
         public Rlp Encode(Account? item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
