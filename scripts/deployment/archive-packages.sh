@@ -76,6 +76,32 @@ cp $RELEASE_DIRECTORY/plugins/Nethermind.Merge.Plugin.dll $OSX_RELEASE/plugins/
 cp $RELEASE_DIRECTORY/plugins/Nethermind.Merge.Plugin.dll $WIN_RELEASE/plugins/
 cp $RELEASE_DIRECTORY/plugins/Nethermind.Merge.Plugin.dll $LIN_ARM64_RELEASE/plugins/
 
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.Erc20Transactions.dll $LIN_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.Erc20Transactions.dll $OSX_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.Erc20Transactions.dll $WIN_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.Erc20Transactions.dll $LIN_ARM64_RELEASE/plugins/
+
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.Erc721Transactions.dll $LIN_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.Erc721Transactions.dll $OSX_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.Erc721Transactions.dll $WIN_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.Erc721Transactions.dll $LIN_ARM64_RELEASE/plugins/
+
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.NewPendingTransactions.dll $LIN_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.NewPendingTransactions.dll $OSX_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.NewPendingTransactions.dll $WIN_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.NewPendingTransactions.dll $LIN_ARM64_RELEASE/plugins/
+
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.NewDiscoveredTransactions.dll $LIN_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.NewDiscoveredTransactions.dll $OSX_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.NewDiscoveredTransactions.dll $WIN_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.NewDiscoveredTransactions.dll $LIN_ARM64_RELEASE/plugins/
+
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.RemovedPendingTransactions.dll $LIN_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.RemovedPendingTransactions.dll $OSX_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.RemovedPendingTransactions.dll $WIN_RELEASE/plugins/
+cp $RELEASE_DIRECTORY/plugins/Nethermind.Pipeline.Plugins.RemovedPendingTransactions.dll $LIN_ARM64_RELEASE/plugins/
+
+
 cd $LIN_RELEASE && zip -r $LIN-$GIT_SHORT_TAG-$GIT_HASH.zip . && cd ..
 cd $OSX_RELEASE && zip -r $OSX-$GIT_SHORT_TAG-$GIT_HASH.zip . && cd ..
 cd $WIN_RELEASE && zip -r $WIN-$GIT_SHORT_TAG-$GIT_HASH.zip . && cd ..
