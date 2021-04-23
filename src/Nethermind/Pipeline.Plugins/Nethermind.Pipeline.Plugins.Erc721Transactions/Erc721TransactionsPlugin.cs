@@ -12,7 +12,7 @@ using Nethermind.State;
 namespace Nethermind.Pipeline.Plugins.Erc721Transactions
 {
     public class Erc721TransactionsPlugin : IPipelinePlugin
-{
+    {
         public string Name => "Erc721TransactionsPipelinePlugin";
         public string Description => "Pipeline plugin streaming Erc721 txs from block processor";
         public string Author => "Nethermind";
@@ -39,7 +39,7 @@ namespace Nethermind.Pipeline.Plugins.Erc721Transactions
             _logger = _api.LogManager.GetClassLogger();
             _logManager = _api.LogManager;
             _jsonSerializer = _api.EthereumJsonSerializer;
-            
+
             if (_logger.IsInfo) _logger.Info("Erc721 Transactions Pipeline plugin initialized");
             return Task.CompletedTask;
         }
