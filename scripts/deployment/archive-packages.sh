@@ -42,6 +42,12 @@ cp $RELEASE_DIRECTORY/nethermind/src/Nethermind/Nethermind.HealthChecks/bin/Rele
 cp $RELEASE_DIRECTORY/nethermind/src/Nethermind/Nethermind.Runner/bin/Release/net5.0/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll .
 cp $RELEASE_DIRECTORY/nethermind/src/Nethermind/Nethermind.Runner/bin/Release/net5.0/Microsoft.Extensions.Diagnostics.HealthChecks.dll .
 cp $RELEASE_DIRECTORY/nethermind/src/Nethermind/Nethermind.Merge.Plugin/bin/Release/net5.0/Nethermind.Merge.Plugin.dll .
+cp $RELEASE_DIRECTORY/nethermind/src/Nethermind/Pipeline.Plugins/Nethermind.Pipeline.Plugins.Erc20Transactions/bin/Release/net5.0/Nethermind.Pipeline.Plugins.Erc20Transactions.dll .
+cp $RELEASE_DIRECTORY/nethermind/src/Nethermind/Pipeline.Plugins/Nethermind.Pipeline.Plugins.Erc721Transactions/bin/Release/net5.0/Nethermind.Pipeline.Plugins.Erc721Transactions.dll .
+cp $RELEASE_DIRECTORY/nethermind/src/Nethermind/Pipeline.Plugins/Nethermind.Pipeline.Plugins.NewPendingTransactions/bin/Release/net5.0/Nethermind.Pipeline.Plugins.NewPendingTransactions.dll .
+cp $RELEASE_DIRECTORY/nethermind/src/Nethermind/Pipeline.Plugins/Nethermind.Pipeline.Plugins.NewDiscoveredTransactions/bin/Release/net5.0/Nethermind.Pipeline.Plugins.NewDiscoveredTransactions.dll .
+cp $RELEASE_DIRECTORY/nethermind/src/Nethermind/Pipeline.Plugins/Nethermind.Pipeline.Plugins.RemovedPendingTransactions/bin/Release/net5.0/Nethermind.Pipeline.Plugins.RemovedPendingTransactions.dll .
+
 
 zip -r plugins-$GIT_SHORT_TAG-$GIT_HASH.zip . && cd ..
 
