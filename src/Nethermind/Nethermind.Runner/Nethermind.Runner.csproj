@@ -133,4 +133,54 @@
           Condition="Exists('$(SolutionDir)Nethermind.Merge.Plugin\bin\$(Configuration)\$(TargetFramework)\Nethermind.Merge.Plugin.pdb')" 
           SkipUnchangedFiles="true"/>
   </Target>
+  <Target Name="CopyErc20TransactionsPluginOnBuild" AfterTargets="AfterBuild">
+    <Copy SourceFiles="$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.Erc20Transactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.Erc20Transactions.dll"
+          DestinationFolder="$(OutDir)plugins"
+          Condition="Exists('$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.Erc20Transactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.Erc20Transactions.dll')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.Erc20Transactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.Erc20Transactions.pdb"
+          DestinationFolder="$(OutDir)plugins"
+          Condition="Exists('$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.Erc20Transactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.Erc20Transactions.pdb')"
+          SkipUnchangedFiles="true"/>
+  </Target>
+  <Target Name="CopyErc721TransactionsPluginOnBuild" AfterTargets="AfterBuild">
+    <Copy SourceFiles="$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.Erc721Transactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.Erc721Transactions.dll"
+          DestinationFolder="$(OutDir)plugins"
+          Condition="Exists('$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.Erc721Transactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.Erc721Transactions.dll')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.Erc721Transactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.Erc721Transactions.pdb"
+          DestinationFolder="$(OutDir)plugins"
+          Condition="Exists('$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.Erc721Transactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.Erc721Transactions.pdb')"
+          SkipUnchangedFiles="true"/>
+  </Target>
+  <Target Name="CopyNewPendingTransactionsPluginOnBuild" AfterTargets="AfterBuild">
+    <Copy SourceFiles="$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.NewPendingTransactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.NewPendingTransactions.dll"
+          DestinationFolder="$(OutDir)plugins"
+          Condition="Exists('$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.NewPendingTransactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.NewPendingTransactions.dll')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.NewPendingTransactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.NewPendingTransactions.pdb"
+          DestinationFolder="$(OutDir)plugins"
+          Condition="Exists('$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.NewPendingTransactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.NewPendingTransactions.pdb')"
+          SkipUnchangedFiles="true"/>
+  </Target>
+  <Target Name="CopyRemovedPendingTransactionsPluginOnBuild" AfterTargets="AfterBuild">
+    <Copy SourceFiles="$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.RemovedPendingTransactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.RemovedPendingTransactions.dll"
+          DestinationFolder="$(OutDir)plugins"
+          Condition="Exists('$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.RemovedPendingTransactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.RemovedPendingTransactions.dll')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.RemovedPendingTransactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.RemovedPendingTransactions.pdb"
+          DestinationFolder="$(OutDir)plugins"
+          Condition="Exists('$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.RemovedPendingTransactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.RemovedPendingTransactions.pdb')"
+          SkipUnchangedFiles="true"/>
+  </Target>
+  <Target Name="CopyNewDiscoveredTransactionsPluginOnBuild" AfterTargets="AfterBuild">
+    <Copy SourceFiles="$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.NewDiscoveredTransactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.NewDiscoveredTransactions.dll"
+          DestinationFolder="$(OutDir)plugins"
+          Condition="Exists('$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.NewDiscoveredTransactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.NewDiscoveredTransactions.dll')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.NewDiscoveredTransactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.NewDiscoveredTransactions.pdb"
+          DestinationFolder="$(OutDir)plugins"
+          Condition="Exists('$(SolutionDir)\Pipeline.Plugins\Nethermind.Pipeline.Plugins.NewDiscoveredTransactions\bin\$(Configuration)\$(TargetFramework)\Nethermind.Pipeline.Plugins.NewDiscoveredTransactions.pdb')"
+          SkipUnchangedFiles="true"/>
+  </Target>
 </Project>
