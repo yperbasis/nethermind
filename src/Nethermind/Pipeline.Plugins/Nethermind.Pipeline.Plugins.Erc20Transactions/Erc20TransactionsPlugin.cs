@@ -53,7 +53,7 @@ namespace Nethermind.Pipeline.Plugins.Erc20Transactions
         private void CreatePublishers()
         {
             _logPublisher = new LogPublisher<Erc20Transaction, Erc20Transaction>(_jsonSerializer, _logManager);
-            _webSocketsPublisher = new WebSocketsPublisher<Erc20Transaction, Erc20Transaction>("erc20", _jsonSerializer);
+            _webSocketsPublisher = new WebSocketsPublisher<Erc20Transaction, Erc20Transaction>("erc20", _jsonSerializer, _logger);
             _api.WebSocketsManager.AddModule(_webSocketsPublisher);
         }
 
