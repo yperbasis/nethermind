@@ -21,7 +21,6 @@ namespace Nethermind.Pipeline.Plugins.Erc20Transactions
         private IBlockProcessor _blockProcessor;
         private Erc20TransactionsPipelineElement<Erc20Transaction> _pipelineElement;
         private LogPublisher<Erc20Transaction, Erc20Transaction> _logPublisher;
-        private WebSocketsPublisher<Erc20Transaction, Erc20Transaction> _webSocketsPublisher;
         private ILogManager _logManager;
         private PipelineBuilder<Erc20Transaction, Erc20Transaction> _builder;
         private IReadOnlyStateProvider? _stateProvider;
@@ -50,11 +49,9 @@ namespace Nethermind.Pipeline.Plugins.Erc20Transactions
             return Task.CompletedTask;
         }
 
-        private void CreatePublishers()
+        private void CreateLogPublisher()
         {
             _logPublisher = new LogPublisher<Erc20Transaction, Erc20Transaction>(_jsonSerializer, _logManager);
-            _webSocketsPublisher = new WebSocketsPublisher<Erc20Transaction, Erc20Transaction>("erc20", _jsonSerializer, _logger);
-            _api.WebSocketsManager.AddModule(_webSocketsPublisher);
         }
 
         private void BuildPipeline()
@@ -66,7 +63,6 @@ namespace Nethermind.Pipeline.Plugins.Erc20Transactions
         {
             _builder = new PipelineBuilder<Erc20Transaction, Erc20Transaction>(_pipelineElement);
             _builder.AddElement(_logPublisher);
-            _builder.AddElement(_webSocketsPublisher);
         }
 
         private void CreatePipelineElement()
@@ -82,7 +78,7 @@ namespace Nethermind.Pipeline.Plugins.Erc20Transactions
             _abiEncoder = _api.AbiEncoder;
             _blockchainBridge = _api.CreateBlockchainBridge();
             CreatePipelineElement();
-            CreatePublishers();
+            CreateLogPublisher();
             CreateBuilder();
             BuildPipeline();
             return Task.CompletedTask;
