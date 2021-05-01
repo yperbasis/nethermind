@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2018 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -13,32 +13,13 @@
 // 
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
+// 
 
-using System;
-using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
-
-namespace Nethermind.Benchmarks.Evm
+namespace Nethermind.Consensus.Transactions
 {
-    [MemoryDiagnoser]
-    [SimpleJob(RuntimeMoniker.NetCoreApp50)]
-    public class Sha2Benchmark
+    public static class TxFilterBuilders
     {
-        [GlobalSetup]
-        public void Setup()
-        {
-        }
-        
-        [Benchmark]
-        public bool Improved()
-        {
-            throw new NotImplementedException();
-        }
-        
-        [Benchmark]
-        public bool Current()
-        {
-            throw new NotImplementedException();
-        }
+        public static ITxFilter CreateStandardTxFilter(IMiningConfig miningConfig)
+            => new MinGasPriceTxFilter(miningConfig.MinGasPrice);
     }
 }
