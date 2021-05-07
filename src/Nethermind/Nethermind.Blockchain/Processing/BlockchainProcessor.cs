@@ -428,12 +428,16 @@ namespace Nethermind.Blockchain.Processing
         private ProcessingBranch PrepareProcessingBranch(Block suggestedBlock, ProcessingOptions options)
         {
             BlockHeader branchingPoint = null;
-            List<Block> blocksToBeAddedToMain = new();
+            List<BlockRef> blocksToBeAddedToMain = new();
 
             Block toBeProcessed = suggestedBlock;
+            var iteration = 0;
             do
             {
-                blocksToBeAddedToMain.Add(toBeProcessed);
+                if (iteration >= Reorganization.MaxDepth && toBeProcessed.Hash != null)
+                    blocksToBeAddedToMain.Add(new BlockRef(toBeProcessed.Hash, options));
+                else
+                    blocksToBeAddedToMain.Add(new BlockRef(toBeProcessed, options));
                 if (_logger.IsTrace) _logger.Trace($"To be processed (of {suggestedBlock.ToString(Block.Format.Short)}) is {toBeProcessed?.ToString(Block.Format.Short)}");
                 if (toBeProcessed.IsGenesis)
                 {
@@ -478,6 +482,7 @@ namespace Nethermind.Blockchain.Processing
                 // then on restart we would find 14 as the branch head (since 14 is on the main chain)
                 // we need to dig deeper to go all the way to the false (reorg boundary) head
                 // otherwise some nodes would be missing
+                ++iteration;
             } while (!_blockTree.IsMainChain(branchingPoint.Hash) || branchingPoint.Number > (_blockTree.Head?.Header.Number ?? 0));
 
             if (branchingPoint != null && branchingPoint.Hash != _blockTree.Head?.Hash)
@@ -542,7 +547,7 @@ namespace Nethermind.Blockchain.Processing
 
         private readonly struct ProcessingBranch
         {
-            public ProcessingBranch(Keccak root, List<Block> blocks)
+            public ProcessingBranch(Keccak root, List<BlockRef> blocks)
             {
                 Root = root;
                 Blocks = blocks;
@@ -550,7 +555,7 @@ namespace Nethermind.Blockchain.Processing
             }
 
             public Keccak Root { get; }
-            public List<Block> Blocks { get; }
+            public List<BlockRef> Blocks { get; }
             public List<Block> BlocksToProcess { get; }
         }
 
