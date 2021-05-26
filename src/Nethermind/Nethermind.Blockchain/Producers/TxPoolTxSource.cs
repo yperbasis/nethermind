@@ -144,6 +144,7 @@ namespace Nethermind.Blockchain.Producers
                 bool success = _txFilterPipeline.Execute(tx, parent);
                 if (!success)
                 {
+                    if (_logger.IsDebug) _logger.Debug($"Rejecting by TxFilterPipeline {tx.ToShortString()}");
                     _transactionPool.RemoveTransaction(tx.Hash!);
                     continue;
                 }
