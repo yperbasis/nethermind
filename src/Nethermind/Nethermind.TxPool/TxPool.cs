@@ -431,6 +431,7 @@ namespace Nethermind.TxPool
                     Transaction? txWithSmallestNonce = bucket.FirstOrDefault();
                     while (txWithSmallestNonce != null && txWithSmallestNonce.Nonce <= transaction.Nonce)
                     {
+                        if (_logger.IsTrace) _logger.Trace($"Deleting a transaction with the smallest nonces: {txWithSmallestNonce.ToShortString()}");
                         RemoveTransaction(txWithSmallestNonce.Hash!);
                         txWithSmallestNonce = bucket.FirstOrDefault();
                     }
