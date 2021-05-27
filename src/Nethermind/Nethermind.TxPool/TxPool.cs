@@ -299,8 +299,7 @@ namespace Nethermind.TxPool
             bool isTxPoolFull = _transactions.IsFull();
             bool isTxNonceNextInOrder = tx.Nonce <= (long)currentNonce + numberOfSenderTxsInPending;
             bool isTxNonceTooFarInFuture = tx.Nonce > currentNonce + FutureNonceRetention;
-            if (isTxPoolFull && !isTxNonceNextInOrder
-                || isTxNonceTooFarInFuture)
+            if (isTxPoolFull && !isTxNonceNextInOrder)
             {
                 if (_logger.IsTrace)
                     _logger.Trace($"Skipped adding transaction {tx.ToString("  ")}, nonce in future.");
