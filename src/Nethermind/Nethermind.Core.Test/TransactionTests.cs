@@ -72,21 +72,6 @@ namespace Nethermind.Core.Test
             Assert.AreEqual(test.ExpectedEffectiveGasPriceResult * (UInt256)test.GasLimit + test.Value, test.ExpectedPotentialCostResult);
         }
 
-        [Test]
-        public void CalculatePayableGasPrice_returns_expected_results([ValueSource(nameof(TransactionPayableGasPriceCases))]
-            TransactionPayableGasPrice test)
-        {
-            Transaction tx = new Transaction();
-            tx.Type = test.Type;
-            tx.GasPrice = test.GasPrice;
-            tx.GasLimit = test.GasLimit;
-            tx.Value = test.Value;
-            tx.DecodedMaxFeePerGas = test.FeeCap;
-
-            UInt256 payableGasPrice = tx.CalculatePayableGasPrice(test.IsEip1559Enabled, test.BaseFee, test.AccountBalance);
-            payableGasPrice.Should().Be(test.ExpectedPayableGasPriceResult);
-        }
-        
         public class TransactionPotentialCostsAndEffectiveGasPrice
         {
             public int Lp { get; set; }

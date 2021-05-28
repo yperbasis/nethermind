@@ -446,7 +446,7 @@ namespace Nethermind.TxPool
             }
         }
 
-        public void UpdateBuckets()
+        private void UpdateBuckets()
         {
             _transactions.UpdatePool(UpdateBucket);
         }
