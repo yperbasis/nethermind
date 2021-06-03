@@ -206,13 +206,12 @@ namespace Nethermind.Mev.Test
                Build.A.Transaction.SignedAndResolved(TestItem.PrivateKeyA).TestObject
             };
             MevConfig mevConfig = new MevConfig{BundlePoolSize = 5};
-            TestContext tc = new(null, mevConfig); 
-            tc.BlockTree.Head.Returns(Build.A.Block.WithNumber(8).TestObject); //not causing bundles to be simulated
+            TestContext tc = new(null, mevConfig, 8); 
             ITimestamper timestamper = new ManualTimestamper(DateTime.UnixEpoch.AddSeconds(1));
             ISimulatedBundleSource simulatedBundleSource = tc.BundlePool; //should we be sorting in descending order by Bundle Number
             
             IEnumerable<SimulatedMevBundle> taskBundles = await simulatedBundleSource!.GetBundles(Build.A.BlockHeader.WithNumber(5).TestObject, timestamper.UnixTime.Seconds, 0,
-                    CancellationToken.None); //should get block 5
+                    CancellationToken.None); //should get block 5 bundles:w
             SimulatedMevBundle searchFor = new SimulatedMevBundle(
                 new MevBundle(9, new[] {Build.A.Transaction.SignedAndResolved(TestItem.PrivateKeyB).TestObject}), 0,
                 true,
@@ -284,7 +283,7 @@ namespace Nethermind.Mev.Test
         
         private class TestContext
         {
-            public TestContext(ITimestamper? timestamper = null, IMevConfig? config = null, int? BlockTreeHead = null)
+            public TestContext(ITimestamper? timestamper = null, IMevConfig? config = null, long? BlockTreeHead = null)
             {
                 Transaction CreateTransaction(PrivateKey privateKey) => Build.A.Transaction.SignedAndResolved(privateKey).TestObject;
                 
@@ -295,9 +294,9 @@ namespace Nethermind.Mev.Test
                     config ?? new MevConfig(),
                     LimboLogs.Instance);
 
-                if (BlockTreeHead == null)
+                if (BlockTreeHead != null)
                 {
-                    
+                    BlockTree.Head.Returns(Build.A.Block.WithNumber((long) BlockTreeHead).TestObject);
                 }
                 Transaction tx1 = CreateTransaction(TestItem.PrivateKeyA);
                 Transaction tx2 = CreateTransaction(TestItem.PrivateKeyB);
