@@ -15,22 +15,17 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
+using System;
 using System.Collections.Generic;
-using Nethermind.Mev.Data;
+using Nethermind.Core;
+using Nethermind.Core.Specs;
+using Nethermind.Evm.Tracing;
+using Nethermind.State;
 
-namespace Nethermind.Mev.Source
+namespace Nethermind.Blockchain.Processing
 {
-    public class CompareMevBundleByHash : IComparer<MevBundle>
+    public interface ITransactionProcessingStrategy
     {
-        public static readonly CompareMevBundleByHash Default = new();
-        
-        public int Compare(MevBundle? x, MevBundle? y)
-        {
-            if (ReferenceEquals(x, y)) return 0;
-            if (ReferenceEquals(null, y)) return 1;
-            if (ReferenceEquals(null, x)) return -1;
-
-            return x.Hash.CompareTo(y.Hash);
-        }
+        public TxReceipt[] ProcessTransactions(Block block, ProcessingOptions processingOptions, IBlockTracer blockTracer, BlockReceiptsTracer receiptsTracer, IReleaseSpec spec, EventHandler<TxProcessedEventArgs> TransactionProcessed);
     }
 }

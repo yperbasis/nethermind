@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Antlr4.Runtime.Misc;
 using Avro.File;
 using FluentAssertions;
 using FluentAssertions.Common;
@@ -193,30 +192,21 @@ namespace Nethermind.Mev.Test
         }
         
         [Test]
-        public static async Task should_simulate_bundle_when_head_moves()
+        public static void should_simulate_bundle_when_head_moves()
         {
-            SemaphoreSlim ss = new SemaphoreSlim(0);
+            // See if simulate gets any returns upon addition of new block to head
             TestContext testContext = new TestContext();
-            async Task CheckSimulationsForBlock(int head, int numberOfSimulationsToReceive)
-            {
-                testContext.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(Build.A.Block.WithNumber(head).TestObject)); //4
-                for (int i = 0; i < numberOfSimulationsToReceive; i++)
-                {
-                    await ss.WaitAsync(TimeSpan.FromMilliseconds(10));
-                }
-                await testContext.Simulator.Received(numberOfSimulationsToReceive).Simulate(Arg.Any<MevBundle>(), Arg.Any<BlockHeader>(),
-                    Arg.Any<CancellationToken>());
-                testContext.Simulator.ClearReceivedCalls();
-            }
-            testContext.Simulator.Simulate(Arg.Any<MevBundle>(), Arg.Any<BlockHeader>()).
-                Returns(SimulatedMevBundle.Cancelled(new MevBundle(1, new Transaction[]{}))).AndDoes(c => ss.Release());
             int head = 4;
-
-            await CheckSimulationsForBlock(head++, 1); //4 -> 5
-            await CheckSimulationsForBlock(head++, 1); //5 -> 6
-            await CheckSimulationsForBlock(head++, 0); //6 -> 7
-            await CheckSimulationsForBlock(head++, 0); //7 -> 8
-            await CheckSimulationsForBlock(head++, 3); //8 -> 9
+            testContext.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(Build.A.Block.WithNumber(head++).TestObject)); //4
+            testContext.Simulator.Received(1).Simulate(Arg.Any<MevBundle>(), Arg.Any<BlockHeader>(), Arg.Any<CancellationToken>());
+            testContext.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(Build.A.Block.WithNumber(head++).TestObject)); //5
+            testContext.Simulator.Received(2).Simulate(Arg.Any<MevBundle>(), Arg.Any<BlockHeader>(), Arg.Any<CancellationToken>());
+            testContext.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(Build.A.Block.WithNumber(head++).TestObject)); //6
+            testContext.Simulator.Received(2).Simulate(Arg.Any<MevBundle>(), Arg.Any<BlockHeader>(), Arg.Any<CancellationToken>());
+            testContext.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(Build.A.Block.WithNumber(head++).TestObject)); //7
+            testContext.Simulator.Received(2).Simulate(Arg.Any<MevBundle>(), Arg.Any<BlockHeader>(), Arg.Any<CancellationToken>());
+            testContext.BlockTree.NewHeadBlock += Raise.EventWith(new BlockEventArgs(Build.A.Block.WithNumber(head).TestObject)); //8
+            testContext.Simulator.Received(5).Simulate(Arg.Any<MevBundle>(), Arg.Any<BlockHeader>(), Arg.Any<CancellationToken>());
         }
         
         [Test]
@@ -262,7 +252,7 @@ namespace Nethermind.Mev.Test
         }
         
         [Test]
-        public async Task should_remove_bundle_when_simulation_fails() //not working
+        public async Task should_remove_bundle_when_simulation_fails()
         {
             
             var chain = await MevRpcModuleTests.CreateChain(1);

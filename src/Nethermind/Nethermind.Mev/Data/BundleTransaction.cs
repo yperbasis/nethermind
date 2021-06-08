@@ -15,22 +15,15 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-using System.Collections.Generic;
-using Nethermind.Mev.Data;
+using System;
+using Nethermind.Core;
+using Nethermind.Core.Crypto;
 
-namespace Nethermind.Mev.Source
+namespace Nethermind.Mev.Data
 {
-    public class CompareMevBundleByHash : IComparer<MevBundle>
+    public class BundleTransaction : Transaction
     {
-        public static readonly CompareMevBundleByHash Default = new();
-        
-        public int Compare(MevBundle? x, MevBundle? y)
-        {
-            if (ReferenceEquals(x, y)) return 0;
-            if (ReferenceEquals(null, y)) return 1;
-            if (ReferenceEquals(null, x)) return -1;
-
-            return x.Hash.CompareTo(y.Hash);
-        }
+        public Keccak BundleHash { get; set; } = Keccak.Zero;
+        public bool CanRevert { get; set; } = true;
     }
 }

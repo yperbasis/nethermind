@@ -42,6 +42,12 @@ namespace Nethermind.Mev.Data
             MinTimestamp = minTimestamp ?? UInt256.Zero;
             MaxTimestamp = maxTimestamp ?? UInt256.Zero;
             SequenceNumber = Interlocked.Increment(ref _sequenceNumber);
+
+            foreach (Transaction transaction in transactions)
+            {
+                transaction.BundleHash = Hash;
+                transaction.CanRevert = revertingTxHashes != null && RevertingTxHashes.Contains(transaction.Hash);
+            }
             
             Keccak[] missingRevertingTxHashes = RevertingTxHashes.Except(transactions.Select(t => t.Hash!)).ToArray();
             if (missingRevertingTxHashes.Length > 0)
@@ -61,7 +67,7 @@ namespace Nethermind.Mev.Data
         
         public UInt256 MinTimestamp { get; }
         
-        public Keccak Hash { get; }
+        public Keccak? Hash { get; }
 
         public int SequenceNumber { get; }
 
