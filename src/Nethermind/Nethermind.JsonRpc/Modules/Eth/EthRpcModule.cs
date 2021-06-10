@@ -346,6 +346,9 @@ namespace Nethermind.JsonRpc.Modules.Eth
             {
                 Keccak txHash =
                     await _txSender.SendTransaction(tx, txHandlingOptions | TxHandlingOptions.PersistentBroadcast);
+                if (txHash == Keccak.EmptyTreeHash)
+                    return ResultWrapper<Keccak>.Fail("AddTxResult did not indicate success.",
+                        ErrorCodes.TransactionRejected);
                 return ResultWrapper<Keccak>.Success(txHash);
             }
             catch (SecurityException e)

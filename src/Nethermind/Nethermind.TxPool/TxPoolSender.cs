@@ -44,9 +44,15 @@ namespace Nethermind.TxPool
                 sealer.Seal(tx, txHandlingOptions);
                 
                 AddTxResult result = _txPool.AddTransaction(tx, txHandlingOptions);
+                
+                //create some way to use AddTxResult?
 
                 if (result != AddTxResult.OwnNonceAlreadyUsed || (txHandlingOptions & TxHandlingOptions.ManagedNonce) != TxHandlingOptions.ManagedNonce)
                 {
+                    if (result != AddTxResult.Added)
+                    {
+                        return new ValueTask<Keccak>(Keccak.EmptyTreeHash);
+                    }
                     break;
                 }
             }
