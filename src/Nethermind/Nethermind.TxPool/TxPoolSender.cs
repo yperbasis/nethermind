@@ -39,6 +39,12 @@ namespace Nethermind.TxPool
             // TODO: this is very not intuitive - can we fix it...?
             // maybe move nonce reservation to sender itself before sealing
             // sealers should behave like composite and not like chain of commands
+            if (tx.GasPrice > tx.FeeCap)
+            {
+                throw new Exception(String.Format(
+                    "The gas price of the transaction ({0}) was greater than the FeeCap ({1})."
+                    , tx.GasPrice, tx.FeeCap));
+            }
             foreach (var sealer in _sealers)
             {
                 sealer.Seal(tx, txHandlingOptions);
@@ -51,7 +57,7 @@ namespace Nethermind.TxPool
                 {
                     if (result != AddTxResult.Added)
                     {
-                        return new ValueTask<Keccak>(Keccak.EmptyTreeHash);
+                        throw new Exception(String.Format("The result is set to {0}", result.ToString()));
                     }
                     break;
                 }
