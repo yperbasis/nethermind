@@ -221,6 +221,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Dsl.Test", "Neth
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethermind.Consensus.Test", "Nethermind.Consensus.Test\Nethermind.Consensus.Test.csproj", "{1343D865-029A-490F-A904-0015D10365F9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoCompareStreams", "CryptoCompareStreams\CryptoCompareStreams.csproj", "{E686A971-3F91-4965-8377-A64384D2C988}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -583,6 +585,10 @@ Global
 		{1343D865-029A-490F-A904-0015D10365F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1343D865-029A-490F-A904-0015D10365F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1343D865-029A-490F-A904-0015D10365F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E686A971-3F91-4965-8377-A64384D2C988}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E686A971-3F91-4965-8377-A64384D2C988}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E686A971-3F91-4965-8377-A64384D2C988}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E686A971-3F91-4965-8377-A64384D2C988}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
