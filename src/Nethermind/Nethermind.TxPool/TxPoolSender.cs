@@ -41,7 +41,7 @@ namespace Nethermind.TxPool
             // sealers should behave like composite and not like chain of commands
             if (tx.GasPrice > tx.FeeCap)
             {
-                throw new Exception(String.Format(
+                throw new ArgumentException(String.Format(
                     "The gas price of the transaction ({0}) was greater than the FeeCap ({1})."
                     , tx.GasPrice, tx.FeeCap));
             }
@@ -57,7 +57,7 @@ namespace Nethermind.TxPool
                 {
                     if (result != AddTxResult.Added)
                     {
-                        throw new Exception(String.Format("The result is set to {0}", result.ToString()));
+                        throw new ArgumentException(String.Format("The result of the given tx is set to {0}", result.ToString()));
                     }
                     break;
                 }

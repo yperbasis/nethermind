@@ -37,12 +37,15 @@ using Nethermind.Evm.Tracing;
 using Nethermind.Facade;
 using Nethermind.Int256;
 using Nethermind.JsonRpc.Data;
+using Nethermind.JsonRpc.Modules.Eth;
 using Nethermind.Logging;
 using Nethermind.Serialization.Json;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Specs;
 using Nethermind.Specs.Forks;
+using Nethermind.State;
 using Nethermind.TxPool;
+using Nethermind.Wallet;
 using Newtonsoft.Json.Linq;
 using NSubstitute;
 using NUnit.Framework;
@@ -63,7 +66,28 @@ namespace Nethermind.JsonRpc.Test.Modules
             string serialized = ctx._test.TestEthRpc("eth_getBalance", TestItem.AddressA.Bytes.ToHexString(true), blockParameter);
             serialized.Should().Be($"{{\"jsonrpc\":\"2.0\",\"result\":\"{expectedResult}\",\"id\":67}}");
         }
-
+        
+        [Test]
+        public void correct_transaction_error_codes()
+        {
+            TransactionForRpc transactionForRpc = Substitute.For<TransactionForRpc>();
+            Transaction transaction = Build.A.Transaction.WithGasPrice(3).WithFeeCap(2).TestObject;
+            //transactionForRpc.ToTransactionWithDefaults.Returns(transaction);
+            //blockchainBridge.GetChainId().Returns(transaction);
+            EthRpcModule ethRpcModule = new EthRpcModule(
+                Substitute.For<IJsonRpcConfig>(),
+                Substitute.For<IBlockchainBridge>(),
+                Substitute.For<IBlockFinder>(),
+                Substitute.For<IStateReader>(),
+                Substitute.For<ITxPool>(),
+                Substitute.For<ITxSender>(),
+                Substitute.For<IWallet>(),
+                LimboLogs.Instance, 
+                Substitute.For<ISpecProvider>());
+            //tx with gasprice > feecap
+            
+            //tx with AddTxResult
+        }
         [Test]
         public async Task Eth_get_balance_default_block()
         {
