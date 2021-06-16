@@ -17,6 +17,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Threading.Tasks;
 using CryptoCompareStreams.Contracts;
@@ -24,13 +26,11 @@ using CryptoCompareStreams.Models;
 using Nethermind.Abi;
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
-using Nethermind.Blockchain.Find;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
-using Nethermind.Facade;
 using Nethermind.Int256;
-using Nethermind.Serialization.Rlp;
+using Nethermind.Logging;
 using Nethermind.WebSockets;
 
 namespace CryptoCompareStreams
@@ -66,6 +66,7 @@ namespace CryptoCompareStreams
         {
             _webSocketsModule = new WebSocketsStreamer();
             _api.WebSocketsManager.AddModule(_webSocketsModule);
+            GetPairs();
 
             _api.MainBlockProcessor.TransactionProcessed += OnTransactionProcessed;
             
@@ -74,13 +75,14 @@ namespace CryptoCompareStreams
 
         private void GetPairs()
         {
-             var contract = new UniswapV2Factory(new Address("0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"), _api.CreateBlockchainBridge(), _api.BlockTree); 
-           
+            var contractAbi = LoadContractABI("UniswapV2Factory");
+            var contract = new UniswapV2Factory(new Address("0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"), _api.CreateBlockchainBridge(), _api.BlockTree);
+
             var uniswapPairsLength = contract.allPairsLength();
 
             for (UInt256 i = 0; i < uniswapPairsLength; i++)
             {
-               _pairsAddresses.Add(contract.allPairs(i));
+                _pairsAddresses.Add(contract.allPairs(i));
             }
         }
 
@@ -129,6 +131,22 @@ namespace CryptoCompareStreams
                 Token1Out = token1Out.ToUInt256(),
                 Token1In = token1In.ToUInt256()
             };
+        }
+
+        private string LoadContractABI(string contractName)
+        {
+            var FileSystem = new FileSystem();
+
+            var dirPath = FileSystem.Path.Combine(PathUtils.ExecutingDirectory, "Contracts");
+
+            if (FileSystem.Directory.Exists(dirPath))
+            {
+                var files = FileSystem.Directory.GetFiles("Contracts", $"{contractName}.json");
+
+                return files.Any() ? files.First() : null;
+            }
+
+            throw new FileLoadException($"Could not find any contract ABI files at Contracts/{contractName}.json");
         }
     }
 }

@@ -16,6 +16,7 @@
 // 
 
 using System;
+using Nethermind.Abi;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Find;
 using Nethermind.Core;
@@ -30,7 +31,7 @@ namespace CryptoCompareStreams.Contracts
         private readonly IBlockTree _blockTree;
         private readonly IConstantContract _contract;
         
-        public UniswapV2Factory(Address contractAddress, IBlockchainBridge blockchainBridge, IBlockTree blockTree) : base(contractAddress)
+        public UniswapV2Factory(Address contractAddress, AbiDefinition abi, IBlockchainBridge blockchainBridge, IBlockTree blockTree) : base(contractAddress, abi) 
         {
             _contract = GetConstant(blockchainBridge);
             ContractAddress = contractAddress;
