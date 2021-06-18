@@ -26,6 +26,7 @@ using CryptoCompareStreams.Models;
 using Nethermind.Abi;
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
+using Nethermind.Blockchain.Contracts.Json;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
@@ -40,19 +41,21 @@ namespace CryptoCompareStreams
         private INethermindApi _api;
         private IWebSocketsModule _webSocketsModule;
         private HashSet<Address> _pairsAddresses = new();
+        private ILogger _logger;
         
         public ValueTask DisposeAsync()
         {
             return ValueTask.CompletedTask;
         }
 
-        public string Name { get; } = "CryptoCompare Uniswap watcher";
-        public string Description { get; } = "";
-        public string Author { get; } = "Nethermind";
-        
+        public string Name => "CryptoCompare Uniswap watcher";
+        public string Description => "";
+        public string Author => "Nethermind";
+
         public Task Init(INethermindApi nethermindApi)
         {
             _api = nethermindApi;
+            _logger = _api.LogManager.GetClassLogger();
 
             return Task.CompletedTask;
         }
@@ -64,8 +67,10 @@ namespace CryptoCompareStreams
 
         public Task InitRpcModules()
         {
+            if(_logger.IsInfo) _logger.Info($"Adding new web sockets module for CC."); 
             _webSocketsModule = new WebSocketsStreamer();
             _api.WebSocketsManager.AddModule(_webSocketsModule);
+            if(_logger.IsInfo) _logger.Info($"Added new web sockets module with path /{_webSocketsModule.Name}"); 
             GetPairs();
 
             _api.MainBlockProcessor.TransactionProcessed += OnTransactionProcessed;
@@ -76,9 +81,14 @@ namespace CryptoCompareStreams
         private void GetPairs()
         {
             var contractAbi = LoadContractABI("UniswapV2Factory");
-            var contract = new UniswapV2Factory(new Address("0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"), _api.CreateBlockchainBridge(), _api.BlockTree);
+
+            var parser = new AbiDefinitionParser();
+            var definition = parser.Parse(contractAbi, "UniswapV2Factory");
+            
+            var contract = new UniswapV2Factory(new Address("0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"),definition, _api.CreateBlockchainBridge(), _api.BlockTree);
 
             var uniswapPairsLength = contract.allPairsLength();
+            if(_logger.IsInfo) _logger.Info($"UniswapV2Factory found {uniswapPairsLength} pairs.");
 
             for (UInt256 i = 0; i < uniswapPairsLength; i++)
             {
@@ -93,16 +103,22 @@ namespace CryptoCompareStreams
             if (logs == null || logs?.Length == 0) return;
 
             var signature = new AbiSignature("Swap", AbiType.Address, AbiType.UInt256, AbiType.UInt256, AbiType.UInt256, AbiType.UInt256, AbiType.Address);
+            
+            if(_logger.IsInfo) _logger.Info($"Swap event signature hash: {signature.Hash}");
 
             var uniswapLogs = logs.Where(l => l.Topics[0].Equals(signature.Hash));
 
-            foreach (var log in uniswapLogs)   
+            if (!uniswapLogs.Any())
             {
-                if (_pairsAddresses.Contains(log.LoggersAddress))
-                {
-                    var data = GetUniswapData(log);
-                    await _webSocketsModule.SendAsync(new WebSocketsMessage("UniswapData", "", data));
-                }
+                if(_logger.IsInfo) _logger.Info($"Found no logs with {signature.Hash} as a first topic in transaction {args.Transaction.Hash}"); 
+            }
+
+            foreach (var log in uniswapLogs)
+            {
+                if (!_pairsAddresses.Contains(log.LoggersAddress)) continue;
+                var data = GetUniswapData(log);
+                if(_logger.IsInfo) _logger.Info($"Sending WS message...");
+                await _webSocketsModule.SendAsync(new WebSocketsMessage("UniswapData", "", data));
             }
         }
 
@@ -141,9 +157,9 @@ namespace CryptoCompareStreams
 
             if (FileSystem.Directory.Exists(dirPath))
             {
-                var files = FileSystem.Directory.GetFiles("Contracts", $"{contractName}.json");
+                var file = FileSystem.Directory.GetFiles("Contracts", $"{contractName}.json").First();
 
-                return files.Any() ? files.First() : null;
+                return FileSystem.File.ReadAllText(file);
             }
 
             throw new FileLoadException($"Could not find any contract ABI files at Contracts/{contractName}.json");
