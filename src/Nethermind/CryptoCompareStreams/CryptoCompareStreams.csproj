@@ -12,6 +12,9 @@
       <None Update="Contracts\UniswapV2Factory.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="Contracts\UniswapPair.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

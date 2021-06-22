@@ -56,6 +56,9 @@ namespace CryptoCompareStreams
         {
             _api = nethermindApi;
             _logger = _api.LogManager.GetClassLogger();
+            
+            if(_logger.IsInfo) _logger.Info("Initialized Crypto compare streams plugin.");
+            
 
             return Task.CompletedTask;
         }
@@ -67,6 +70,12 @@ namespace CryptoCompareStreams
 
         public Task InitRpcModules()
         {
+            Prepare();
+            return Task.CompletedTask;
+        }
+
+        private void Prepare()
+        {
             if(_logger.IsInfo) _logger.Info($"Adding new web sockets module for CC."); 
             _webSocketsModule = new WebSocketsStreamer();
             _api.WebSocketsManager.AddModule(_webSocketsModule);
@@ -74,9 +83,9 @@ namespace CryptoCompareStreams
             GetPairs();
 
             _api.MainBlockProcessor.TransactionProcessed += OnTransactionProcessed;
-            
-            return Task.CompletedTask;
         }
+
+
 
         private void GetPairs()
         {
@@ -106,7 +115,7 @@ namespace CryptoCompareStreams
             
             if(_logger.IsInfo) _logger.Info($"Swap event signature hash: {signature.Hash}");
 
-            var uniswapLogs = logs.Where(l => l.Topics[0].Equals(signature.Hash));
+            var uniswapLogs = logs.Where(l => l.Topics[0].Equals(signature.Hash)).ToList();
 
             if (!uniswapLogs.Any())
             {
