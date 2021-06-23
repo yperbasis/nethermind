@@ -102,7 +102,7 @@ namespace Nethermind.Runner.Ethereum.Steps
             }
             catch (Exception e)
             {
-                if (logger.IsError) logger.Error(e);
+                if (logger.IsError) logger.Error("Json rpc failed", e);
                 throw;
             }
         }
