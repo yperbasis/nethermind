@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Api;
@@ -38,62 +39,71 @@ namespace Nethermind.Runner.Ethereum.Steps
 
         public async Task Execute(CancellationToken cancellationToken)
         {
-            IJsonRpcConfig jsonRpcConfig = _api.Config<IJsonRpcConfig>();
             ILogger logger = _api.LogManager.GetClassLogger();
-
-            if (jsonRpcConfig.Enabled)
+            try
             {
-                IInitConfig initConfig = _api.Config<IInitConfig>();
-                JsonRpcLocalStats jsonRpcLocalStats = new(
-                    _api.Timestamper,
-                    jsonRpcConfig,
-                    _api.LogManager);
+                IJsonRpcConfig jsonRpcConfig = _api.Config<IJsonRpcConfig>();
 
-                JsonRpcService jsonRpcService = new(_api.RpcModuleProvider, _api.LogManager);
-
-                JsonRpcProcessor jsonRpcProcessor = new(
-                    jsonRpcService,
-                    _api.EthereumJsonSerializer,
-                    jsonRpcConfig,
-                    _api.FileSystem,
-                    _api.LogManager);
-
-                if (initConfig.WebSocketsEnabled)
+                if (jsonRpcConfig.Enabled)
                 {
-                    // TODO: I do not like passing both service and processor to any of the types
-                    JsonRpcWebSocketsModule webSocketsModule = new JsonRpcWebSocketsModule(
-                        jsonRpcProcessor,
+                    IInitConfig initConfig = _api.Config<IInitConfig>();
+                    JsonRpcLocalStats jsonRpcLocalStats = new(
+                        _api.Timestamper,
+                        jsonRpcConfig,
+                        _api.LogManager);
+
+                    JsonRpcService jsonRpcService = new(_api.RpcModuleProvider, _api.LogManager);
+
+                    JsonRpcProcessor jsonRpcProcessor = new(
                         jsonRpcService,
                         _api.EthereumJsonSerializer,
-                        jsonRpcLocalStats);
+                        jsonRpcConfig,
+                        _api.FileSystem,
+                        _api.LogManager);
 
-                    _api.WebSocketsManager!.AddModule(webSocketsModule, true);
-                }
+                    if (initConfig.WebSocketsEnabled)
+                    {
+                        // TODO: I do not like passing both service and processor to any of the types
+                        JsonRpcWebSocketsModule webSocketsModule = new JsonRpcWebSocketsModule(
+                            jsonRpcProcessor,
+                            jsonRpcService,
+                            _api.EthereumJsonSerializer,
+                            jsonRpcLocalStats);
 
-                Bootstrap.Instance.JsonRpcService = jsonRpcService;
-                Bootstrap.Instance.LogManager = _api.LogManager;
-                Bootstrap.Instance.JsonSerializer = _api.EthereumJsonSerializer;
-                Bootstrap.Instance.JsonRpcLocalStats = jsonRpcLocalStats;
-                JsonRpcRunner? jsonRpcRunner = new(
-                    jsonRpcProcessor,
-                    _api.WebSocketsManager!,
-                    _api.ConfigProvider,
-                    _api.LogManager,
-                    _api);
+                        _api.WebSocketsManager!.AddModule(webSocketsModule, true);
+                    }
 
-                await jsonRpcRunner.Start(cancellationToken).ContinueWith(x =>
-                {
-                    if (x.IsFaulted && logger.IsError)
-                        logger.Error("Error during jsonRpc runner start", x.Exception);
-                }, cancellationToken);
+                    Bootstrap.Instance.JsonRpcService = jsonRpcService;
+                    Bootstrap.Instance.LogManager = _api.LogManager;
+                    Bootstrap.Instance.JsonSerializer = _api.EthereumJsonSerializer;
+                    Bootstrap.Instance.JsonRpcLocalStats = jsonRpcLocalStats;
+                    JsonRpcRunner? jsonRpcRunner = new(
+                        jsonRpcProcessor,
+                        _api.WebSocketsManager!,
+                        _api.ConfigProvider,
+                        _api.LogManager,
+                        _api);
+
+                    await jsonRpcRunner.Start(cancellationToken).ContinueWith(x =>
+                    {
+                        if (x.IsFaulted && logger.IsError)
+                            logger.Error("Error during jsonRpc runner start", x.Exception);
+                    }, cancellationToken);
 
 #pragma warning disable 4014
-                _api.DisposeStack.Push(new Reactive.AnonymousDisposable(() => jsonRpcRunner.StopAsync())); // do not await
+                    _api.DisposeStack.Push(
+                        new Reactive.AnonymousDisposable(() => jsonRpcRunner.StopAsync())); // do not await
 #pragma warning restore 4014
+                }
+                else
+                {
+                    if (logger.IsInfo) logger.Info("Json RPC is disabled");
+                }
             }
-            else
+            catch (Exception e)
             {
-                if (logger.IsInfo) logger.Info("Json RPC is disabled");
+                if (logger.IsError) logger.Error(e);
+                throw;
             }
         }
     }
