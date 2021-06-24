@@ -98,11 +98,11 @@ namespace Nethermind.Consensus.Clique
                 return false;
             }
             
-            if (!snapshot.Signers.ContainsKey(_signer.Address))
-            {
-                if (_logger.IsTrace) _logger.Trace("Not on the signers list");
-                return false;
-            }
+            // if (!snapshot.Signers.ContainsKey(_signer.Address))
+            // {
+            //     if (_logger.IsTrace) _logger.Trace("Not on the signers list");
+            //     return false;
+            // }
 
             if (_snapshotManager.HasSignedRecently(snapshot, blockNumber, _signer.Address))
             {

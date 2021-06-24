@@ -191,7 +191,7 @@ namespace Nethermind.Consensus.Clique
 
         public bool HasSignedRecently(Snapshot snapshot, long number, Address signer)
         {
-            long signedAt = snapshot.Signers[signer];
+            snapshot.Signers.TryGetValue(signer, out long signedAt);
             if (signedAt == 0L) return false;
 
             return number - signedAt < snapshot.SignerLimit;

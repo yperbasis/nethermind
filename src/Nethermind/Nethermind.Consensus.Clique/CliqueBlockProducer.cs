@@ -169,7 +169,7 @@ namespace Nethermind.Consensus.Clique
                             if (_logger.IsInfo)
                                 _logger.Info(
                                     $"Suggesting own {turnDescription} {_scheduledBlock.TimestampDate:HH:mm:ss} {scheduledBlock.ToString(Block.Format.HashNumberDiffAndTx)} based on {parentDetails} after the delay of {wiggle}");
-                            _blockTree.SuggestBlock(scheduledBlock);
+                            // _blockTree.SuggestBlock(scheduledBlock);
                         }
                     }
                     else
