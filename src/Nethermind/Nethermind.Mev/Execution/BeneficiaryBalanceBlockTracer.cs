@@ -16,188 +16,68 @@
 // 
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Nethermind.Blockchain;
-using Nethermind.Consensus;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Evm;
 using Nethermind.Evm.Tracing;
 using Nethermind.Int256;
-using Nethermind.Mev.Data;
-using Nethermind.TxPool;
+using Nethermind.State;
 
 namespace Nethermind.Mev.Execution
 {
-    public class TxBundleSimulator : TxBundleExecutor<SimulatedMevBundle, TxBundleSimulator.BundleBlockTracer>, IBundleSimulator
+    public class BeneficiaryBalanceBlockTracer : IBlockTracer, IBeneficiaryBalanceSource
     {
-        private readonly IGasLimitCalculator _gasLimitCalculator;
-        private readonly ITimestamper _timestamper;
-        private readonly ITxPool _txPool;
-        private long _gasLimit;
+        private readonly IStateProvider _stateProvider;
+        private Block? _block;
 
-        public TxBundleSimulator(ITracerFactory tracerFactory, IGasLimitCalculator gasLimitCalculator, ITimestamper timestamper, ITxPool txPool, ISigner? signer) : base(tracerFactory, signer)
+        public BeneficiaryBalanceBlockTracer(IStateProvider stateProvider)
         {
-            _gasLimitCalculator = gasLimitCalculator;
-            _timestamper = timestamper;
-            _txPool = txPool;
+            _stateProvider = stateProvider;
         }
 
-        public Task<SimulatedMevBundle> Simulate(MevBundle bundle, BlockHeader parent, CancellationToken cancellationToken = default)
+        public bool IsTracingRewards { get; } = true;
+        
+        public UInt256 Reward { get; private set; }
+
+        public void ReportReward(Address author, string rewardType, UInt256 rewardValue)
         {
-            _gasLimit = _gasLimitCalculator.GetGasLimit(parent);
-            try
+            if (author == _block!.Header.GasBeneficiary)
             {
-                return Task.FromResult(ExecuteBundle(bundle, parent, cancellationToken, _timestamper.UnixTime.Seconds));
-            }
-            catch (OperationCanceledException)
-            {
-                return Task.FromResult(SimulatedMevBundle.Cancelled(bundle));
+                Reward = rewardValue;
             }
         }
 
-        protected override SimulatedMevBundle BuildResult(MevBundle bundle, Block block, BundleBlockTracer tracer, Keccak resultStateRoot)
+        public void StartNewBlockTrace(Block block)
         {
-            UInt256 eligibleGasFeePayment = UInt256.Zero;
-            UInt256 totalGasFeePayment = UInt256.Zero;
-            bool success = true;
-            for (int i = 0; i < bundle.Transactions.Count; i++)
-            {
-                BundleTransaction tx = bundle.Transactions[i];
-
-                tx.SimulatedBundleGasUsed = (UInt256)tracer.GasUsed;
-
-                if (!tx.CanRevert)
-                {
-                    success &= tracer.TransactionResults[i];
-                }
-                
-                totalGasFeePayment += tracer.TxFees[i];
-                if (!_txPool.IsKnown(tx.Hash))
-                {
-                    eligibleGasFeePayment += tracer.TxFees[i];
-                }
-            }
-            
-            for (int i = 0; i < bundle.Transactions.Count; i++)
-            {
-                bundle.Transactions[i].SimulatedBundleFee = totalGasFeePayment + tracer.CoinbasePayments;
-            }
-
-            Metrics.TotalCoinbasePayments += tracer.CoinbasePayments;
-            
-            return new(bundle, tracer.GasUsed, success, tracer.BundleFee, tracer.CoinbasePayments, eligibleGasFeePayment);
+            _block = block;
         }
 
-        protected override BundleBlockTracer CreateBlockTracer(MevBundle mevBundle) => new(_gasLimit, Beneficiary, mevBundle.Transactions.Count);
-
-        public class BundleBlockTracer : IBlockTracer, IBeneficiaryBalanceSource
+        public ITxTracer StartNewTxTrace(Transaction? tx)
         {
-            private readonly long _gasLimit;
-            private Address? _beneficiary;
-
-            private BundleTxTracer? _tracer;
-            private Block? _block;
-            
-            private UInt256? _beneficiaryBalanceBefore;
-            private UInt256? _beneficiaryBalanceAfter;
-            private int _index = 0;
-            
-            public long GasUsed { get; private set; }
-
-            public BundleBlockTracer(long? gasLimit, Address? beneficiary, int? txCount)
-            {
-                _gasLimit = gasLimit ?? long.MaxValue;
-                TxFees = new UInt256[txCount ?? 2000];
-                TransactionResults = new BitArray(txCount ?? 2000);
-            }
-
-            public bool IsTracingRewards => true;
-            public UInt256 BundleFee { get; private set; }
-
-            public UInt256[] TxFees { get; }
-
-            public UInt256 CoinbasePayments
-            {
-                get
-                {
-                    UInt256 beneficiaryBalanceAfter = _beneficiaryBalanceAfter ?? UInt256.Zero;
-                    UInt256 beneficiaryBalanceBefore = _beneficiaryBalanceBefore ?? UInt256.Zero;
-                    return beneficiaryBalanceAfter > (beneficiaryBalanceBefore + BundleFee)
-                        ? beneficiaryBalanceAfter - beneficiaryBalanceBefore - BundleFee 
-                        : UInt256.Zero;
-                }
-            }
-
-            public UInt256 Reward { get; private set; }
-            
-            public BitArray TransactionResults { get; }
-
-            public void ReportReward(Address author, string rewardType, UInt256 rewardValue)
-            {
-                if (author == _beneficiary)
-                {
-                    Reward = rewardValue;
-                }
-            }
-
-            public void StartNewBlockTrace(Block block)
-            {
-                _block = block;
-                _beneficiary = block.Header.GasBeneficiary!;
-            }
-            public ITxTracer StartNewTxTrace(Transaction? tx)
-            {
-                return tx is null 
-                    ? new BundleTxTracer(_beneficiary!, null, -1) 
-                    : _tracer = new BundleTxTracer(_beneficiary!, tx, _index++);
-            }
-
-            public void EndTxTrace()
-            {
-                GasUsed += _tracer!.GasSpent;
-                
-                _beneficiaryBalanceBefore ??= (_tracer.BeneficiaryBalanceBefore ?? 0);
-                _beneficiaryBalanceAfter = _tracer.BeneficiaryBalanceAfter;
-
-                Transaction? tx = _tracer.Transaction;
-                if (tx is not null)
-                {
-                    if (tx.TryCalculatePremiumPerGas(_block!.BaseFeePerGas, out UInt256 premiumPerGas))
-                    {
-                        UInt256 txFee = (UInt256)_tracer.GasSpent * premiumPerGas;
-                        BundleFee += txFee;
-                        TxFees[_tracer.Index] = txFee;
-                    }
-                    
-                    TransactionResults[_tracer.Index] = _tracer.Success;
-                }
-
-                if (GasUsed > _gasLimit)
-                {
-                    throw new OperationCanceledException("Block gas limit exceeded.");
-                }
-            }
-            
-            public void EndBlockTrace()
-            {
-                BeneficiaryBalance = _beneficiaryBalanceBefore!.Value;
-            }
-
-            public UInt256 BeneficiaryBalance { get; private set; }
+            throw new NotImplementedException();
         }
 
-        public class BundleTxTracer : ITxTracer
+        public void EndTxTrace()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void EndBlockTrace()
+        {
+            BeneficiaryBalance = _stateProvider.GetBalance(_block!.Header.GasBeneficiary!);
+        }
+
+        public UInt256 BeneficiaryBalance { get; private set; }
+    }
+    
+    public class BeneficiaryBalanceTxTracer : ITxTracer
         {
             public Transaction? Transaction { get; }
             public int Index { get; }
             private readonly Address _beneficiary;
 
-            public BundleTxTracer(Address beneficiary, Transaction? transaction, int index)
+            public BeneficiaryBalanceTxTracer(Address beneficiary, Transaction? transaction, int index)
             {
                 Transaction = transaction;
                 Index = index;
@@ -371,5 +251,4 @@ namespace Nethermind.Mev.Execution
                 throw new NotImplementedException();
             }
         }
-    }
 }

@@ -20,20 +20,23 @@ using System.Linq;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Blockchain.Producers;
+using Nethermind.Blockchain.Tracing;
 using Nethermind.Consensus;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
+using Nethermind.Evm.Tracing;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Mev.Execution;
 using Nethermind.State;
 
 namespace Nethermind.Mev
 {
     public class MevBlockProducer : MultipleManualBlockProducer
     {
-        private readonly IDictionary<IManualBlockProducer, IBeneficiaryBalanceSource> _blockProducers;
+        private readonly IDictionary<IManualBlockProducer, (ITracerFactory, TxBundleSimulator.BundleBlockTracer)> _blockProducers;
 
-        public MevBlockProducer(IDictionary<IManualBlockProducer, IBeneficiaryBalanceSource> blockProducers) : base(blockProducers.Keys.ToArray())
+        public MevBlockProducer(IDictionary<IManualBlockProducer, (ITracerFactory, TxBundleSimulator.BundleBlockTracer)> blockProducers) : base(blockProducers.Keys.ToArray())
         {
             _blockProducers = blockProducers;
         }
@@ -46,7 +49,12 @@ namespace Nethermind.Mev
             {
                 if (context.Block is not null)
                 {
-                    UInt256 balance = _blockProducers[context.BlockProducer].BeneficiaryBalance;
+                    (ITracerFactory, TxBundleSimulator.BundleBlockTracer) tracingTuple = _blockProducers[context.BlockProducer];
+                    ITracer tracer = tracingTuple.Item1.Create();
+                    TxBundleSimulator.BundleBlockTracer blockTracer = tracingTuple.Item2;
+                    tracer.Trace(context.Block, blockTracer);
+                    UInt256 balance = blockTracer.BeneficiaryBalance;
+
                     if (balance > maxBalance)
                     {
                         best = context.Block;

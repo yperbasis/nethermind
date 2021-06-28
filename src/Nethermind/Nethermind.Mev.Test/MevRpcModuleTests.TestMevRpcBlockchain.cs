@@ -115,13 +115,14 @@ namespace Nethermind.Mev.Test
                         miningConfig,
                         LogManager);
 
-                Dictionary<IManualBlockProducer, IBeneficiaryBalanceSource> blockProducerDictionary =
-                    new Dictionary<IManualBlockProducer, IBeneficiaryBalanceSource>();
+                Dictionary<IManualBlockProducer, (ITracerFactory, TxBundleSimulator.BundleBlockTracer)> blockProducerDictionary =
+                    new Dictionary<IManualBlockProducer, (ITracerFactory, TxBundleSimulator.BundleBlockTracer)>();
                     
                 // Add non-mev block
                 IManualBlockProducer standardProducer = CreateEth2BlockProducer();
-                IBeneficiaryBalanceSource standardProducerBeneficiaryBalanceSource = blockProducerEnvFactory.LastMevBlockProcessor;
-                blockProducerDictionary.Add(standardProducer, standardProducerBeneficiaryBalanceSource);
+                ITracerFactory standardTracerFactory = _tracerFactory;
+                TxBundleSimulator.BundleBlockTracer standardBlockTracer = new TxBundleSimulator.BundleBlockTracer(null, null, null);
+                blockProducerDictionary.Add(standardProducer, (standardTracerFactory, standardBlockTracer));
 
                 // Try blocks with all bundle numbers <= maxMergedBundles
                 for (int bundleLimit = 1; bundleLimit <= _maxMergedBundles; bundleLimit++)
@@ -129,8 +130,9 @@ namespace Nethermind.Mev.Test
                     BundleSelector bundleSelector = new(BundlePool, bundleLimit);
                     BundleTxSource bundleTxSource = new(bundleSelector, Timestamper);
                     IManualBlockProducer bundleProducer = CreateEth2BlockProducer(bundleTxSource);
-                    IBeneficiaryBalanceSource bundleProducerBeneficiaryBalanceSource = blockProducerEnvFactory.LastMevBlockProcessor;
-                    blockProducerDictionary.Add(bundleProducer, bundleProducerBeneficiaryBalanceSource);
+                    ITracerFactory bundleTracerFactory = _tracerFactory;
+                    TxBundleSimulator.BundleBlockTracer bundleBlockTracer = new TxBundleSimulator.BundleBlockTracer(null, null, null);
+                    blockProducerDictionary.Add(bundleProducer, (bundleTracerFactory, bundleBlockTracer));
                 }
 
                 return new MevTestBlockProducer(BlockTree, blockProducerDictionary);
@@ -198,7 +200,7 @@ namespace Nethermind.Mev.Test
                 private readonly IBlockTree _blockTree;
                 private Block? _lastProducedBlock;
                 
-                public MevTestBlockProducer(IBlockTree blockTree, IDictionary<IManualBlockProducer, IBeneficiaryBalanceSource> blockProducers) : base(blockProducers)
+                public MevTestBlockProducer(IBlockTree blockTree, IDictionary<IManualBlockProducer, (ITracerFactory, TxBundleSimulator.BundleBlockTracer)> blockProducers) : base(blockProducers)
                 {
                     _blockTree = blockTree;
                 }

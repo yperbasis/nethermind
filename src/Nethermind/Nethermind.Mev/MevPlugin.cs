@@ -30,6 +30,7 @@ using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
 using Nethermind.Db;
 using Nethermind.Evm.Tracing;
+using Nethermind.Evm.Tracing.Proofs;
 using Nethermind.Facade;
 using Nethermind.Int256;
 using Nethermind.JsonRpc;
@@ -161,21 +162,23 @@ namespace Nethermind.Mev
 
             _nethermindApi.BlockProducerEnvFactory = producerEnvFactory;
 
-            Dictionary<IManualBlockProducer, IBeneficiaryBalanceSource> blockProducerDictionary = 
-                new Dictionary<IManualBlockProducer, IBeneficiaryBalanceSource>();
-                
-            // Add non-mev block
+            IDictionary<IManualBlockProducer, (ITracerFactory, TxBundleSimulator.BundleBlockTracer)> blockProducerDictionary =
+                new Dictionary<IManualBlockProducer, (ITracerFactory, TxBundleSimulator.BundleBlockTracer)>();
+
+                // Add non-mev block
             IManualBlockProducer standardProducer = (IManualBlockProducer)await consensusPlugin.InitBlockProducer(); 
-            IBeneficiaryBalanceSource standardProducerBeneficiaryBalanceSource = producerEnvFactory.LastMevBlockProcessor;
-            blockProducerDictionary.Add(standardProducer, standardProducerBeneficiaryBalanceSource);
+            ITracerFactory standardTracerFactory = TracerFactory;
+            TxBundleSimulator.BundleBlockTracer standardBlockTracer = new TxBundleSimulator.BundleBlockTracer(null, null, null);
+            blockProducerDictionary.Add(standardProducer, (standardTracerFactory, standardBlockTracer));
             
             // Try blocks with all bundle numbers <= MaxMergedBundles
             for (int bundleLimit = 1; bundleLimit <= _mevConfig.MaxMergedBundles; bundleLimit++)
             {
                 BundleSelector bundleSelector = new(BundlePool, bundleLimit);
                 IManualBlockProducer bundleProducer = (IManualBlockProducer)await consensusPlugin.InitBlockProducer(new BundleTxSource(bundleSelector, standardProducer.Timestamper));
-                IBeneficiaryBalanceSource bundleProducerBeneficiaryBalanceSource = producerEnvFactory.LastMevBlockProcessor;
-                blockProducerDictionary.Add(bundleProducer, bundleProducerBeneficiaryBalanceSource);
+                ITracerFactory bundleTracerFactory = TracerFactory;
+                TxBundleSimulator.BundleBlockTracer bundleBlockTracer = new TxBundleSimulator.BundleBlockTracer(null, null, null);
+                blockProducerDictionary.Add(bundleProducer, (bundleTracerFactory, bundleBlockTracer));
             }
                 
             return _nethermindApi.BlockProducer = new MevBlockProducer(blockProducerDictionary);
