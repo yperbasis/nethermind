@@ -162,6 +162,7 @@ namespace Nethermind.Db.Rocks
         {
             _maxThisDbSize = 0;
             BlockBasedTableOptions tableOptions = new();
+            RocksDbSharp.Native.Instance.rocksdb_block_based_options_set_pin_top_level_index_and_filter(tableOptions.Handle, true);            
             tableOptions.SetBlockSize(16 * 1024);
             tableOptions.SetPinL0FilterAndIndexBlocksInCache(true);
             tableOptions.SetCacheIndexAndFilterBlocks(GetCacheIndexAndFilterBlocks(dbConfig));
@@ -177,6 +178,8 @@ namespace Nethermind.Db.Rocks
             // tableOptions.SetBlockCache(cache);
 
             DbOptions options = new();
+            options.SetTableCacheNumShardbits(2);
+            options.SetLevel0FileNumCompactionTrigger(10);
             options.SetCreateIfMissing(true);
             options.SetAdviseRandomOnOpen(true);
             options.OptimizeForPointLookup(
