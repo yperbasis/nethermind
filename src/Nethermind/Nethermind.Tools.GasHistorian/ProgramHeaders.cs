@@ -35,7 +35,7 @@ namespace Nethermind.Tools.GasHistorian
 
             using FileStream fs = File.OpenWrite("output.csv");
             using StreamWriter sw = new(fs);
-            sw.WriteLine($"Block Nr,Difficulty,Timestamp");
+            sw.WriteLine($"Block Nr,Difficulty,Timestamp,GasLimit,GasUsed,BaseFee");
             for (int i = 0; i < 10489461; i++)
             {
                 if (i % 10000 == 0)
@@ -52,7 +52,7 @@ namespace Nethermind.Tools.GasHistorian
 
                     if (header is not null)
                     {
-                        sw.WriteLine($"{header.Number},{header.Difficulty},{header.Timestamp}");
+                        sw.WriteLine($"{header.Number},{header.Difficulty},{header.Timestamp},{header.GasLimit},{header.GasUsed},{header.BaseFeePerGas}");
                     }
                 }
             }
