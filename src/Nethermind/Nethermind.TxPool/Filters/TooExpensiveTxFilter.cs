@@ -49,6 +49,7 @@ namespace Nethermind.TxPool.Filters
             Account account = _accounts.GetAccount(tx.SenderAddress!);
             UInt256 balance = account.Balance;
             UInt256 cumulativeCost = UInt256.Zero;
+            UInt256 currentNonce = account.Nonce;
             bool overflow = false;
 
             Transaction[] transactions = _txs.GetBucketSnapshot(tx.SenderAddress);
@@ -77,6 +78,7 @@ namespace Nethermind.TxPool.Filters
             overflow |= UInt256.MultiplyOverflow(affordableGasPrice, (UInt256) tx.GasLimit, out UInt256 cost);
             overflow |= UInt256.AddOverflow(cost, tx.Value, out cost);
             overflow |= UInt256.AddOverflow(cost, cumulativeCost, out cumulativeCost);
+            overflow |= UInt256.MultiplyOverflow((UInt256)tx.GasLimit, tx.MaxFeePerGas, out UInt256 costFor1559Check);
             if (overflow)
             {
                 if (_logger.IsTrace)
@@ -84,7 +86,7 @@ namespace Nethermind.TxPool.Filters
                 return (false, AddTxResult.Int256Overflow);
             }
             
-            if (balance < cumulativeCost)
+            if (balance < cumulativeCost || (tx.Nonce == currentNonce && balance < costFor1559Check))
             {
                 if (_logger.IsTrace)
                     _logger.Trace($"Skipped adding transaction {tx.ToString("  ")}, insufficient funds.");
