@@ -39,6 +39,7 @@ using Nethermind.Blockchain.Find;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Trie.Pruning;
 using System.Threading.Tasks;
+using Nethermind.Evm.TransactionProcessing;
 
 namespace Nethermind.Facade.Test
 {
@@ -96,14 +97,14 @@ namespace Nethermind.Facade.Test
         [Test]
         public void get_transaction_returns_null_when_transaction_not_found()
         {
-            _blockchainBridge.GetTransaction(TestItem.KeccakA).Should().Be((null, null));
+            _blockchainBridge.GetTransaction(TestItem.KeccakA).Should().Be((null, null, null));
         }
 
         [Test]
         public void get_transaction_returns_null_when_block_not_found()
         {
             _receiptStorage.FindBlockHash(TestItem.KeccakA).Returns(TestItem.KeccakB);
-            _blockchainBridge.GetTransaction(TestItem.KeccakA).Should().Be((null, null));
+            _blockchainBridge.GetTransaction(TestItem.KeccakA).Should().Be((null, null, null));
         }
 
         [Test]
