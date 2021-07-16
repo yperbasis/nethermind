@@ -330,7 +330,7 @@ namespace Nethermind.Specs.ChainSpecStyle
             chainSpec.ForkBaseFee = chainSpecJson.Genesis.BaseFeePerGas ?? Eip1559Constants.DefaultForkBaseFee;
             Eip1559Constants.ForkBaseFee = chainSpec.ForkBaseFee;
             if (chainSpecJson.Params.Eip1559Transition != null)
-                baseFee = chainSpecJson.Params.Eip1559Transition == 0 ? chainSpec.ForkBaseFee : UInt256.Zero;
+                baseFee = chainSpecJson.Genesis.BaseFeePerGas ?? UInt256.Zero;
 
             
             BlockHeader genesisHeader = new(
