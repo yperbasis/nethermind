@@ -18,6 +18,7 @@
 using System.Threading.Tasks;
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
+using Nethermind.Blockchain;
 using Nethermind.Blockchain.Rewards;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
@@ -26,7 +27,9 @@ namespace Nethermind.Consensus.Ethash
 {
     public class EthashPlugin : IConsensusPlugin
     {
-        private INethermindApi _nethermindApi;
+        private INethermindApi _api;
+        private IMiningConfig _miningConfig;
+        private IDifficultyCalculator _difficultyCalculator;
 
         public ValueTask DisposeAsync() { return ValueTask.CompletedTask; }
 
@@ -38,30 +41,45 @@ namespace Nethermind.Consensus.Ethash
         
         public Task Init(INethermindApi nethermindApi)
         {
-            _nethermindApi = nethermindApi;
-            if (_nethermindApi!.SealEngineType != Nethermind.Core.SealEngineType.Ethash)
+            _api = nethermindApi;
+            if (_api!.SealEngineType != Nethermind.Core.SealEngineType.Ethash)
             {
                 return Task.CompletedTask;
             }
             
-            var (getFromApi, setInApi) = _nethermindApi.ForInit;
+            var (getFromApi, setInApi) = _api.ForInit;
             setInApi.RewardCalculatorSource = new RewardCalculator(getFromApi.SpecProvider);
             
-            DifficultyCalculator difficultyCalculator = new(getFromApi.SpecProvider);
+            _difficultyCalculator = new DifficultyCalculator(getFromApi.SpecProvider, getFromApi.ChainSpec.Ethash.MinimumDifficulty);
             Ethash ethash = new(getFromApi.LogManager);
-            
-            setInApi.Sealer = getFromApi.Config<IMiningConfig>().Enabled
-                ? (ISealer) new EthashSealer(ethash, getFromApi.EngineSigner, getFromApi.LogManager)
+
+            _miningConfig = getFromApi.Config<IMiningConfig>();
+            setInApi.Sealer = _miningConfig.Enabled
+                ? new EthashSealer(ethash, getFromApi.EngineSigner, getFromApi.LogManager)
                 : NullSealEngine.Instance;
             setInApi.SealValidator = new EthashSealValidator(
-                getFromApi.LogManager, difficultyCalculator, getFromApi.CryptoRandom, ethash);
+                getFromApi.LogManager, _difficultyCalculator, getFromApi.CryptoRandom, ethash);
 
             return Task.CompletedTask;
         }
         
         public Task<IBlockProducer> InitBlockProducer(ITxSource? txSource = null)
         {
-            return Task.FromResult((IBlockProducer)null);
+            BlockProducerEnv producerEnv = _api.BlockProducerEnvFactory.Create(txSource);
+            IBlockProducer minedBlockProducer = new MinedBlockProducer(
+                producerEnv.TxSource, 
+                producerEnv.ChainProcessor, 
+                _api.Sealer, 
+                _api.BlockTree,
+                _api.BlockProcessingQueue, 
+                producerEnv.ReadOnlyStateProvider,
+                new TargetAdjustedGasLimitCalculator(_api.SpecProvider, _miningConfig),
+                _api.Timestamper,
+                _api.SpecProvider,
+                _api.LogManager,
+                _difficultyCalculator);
+            _api.BlockProducer = minedBlockProducer;
+            return Task.FromResult(minedBlockProducer);
         }
 
         public Task InitNetworkProtocol()

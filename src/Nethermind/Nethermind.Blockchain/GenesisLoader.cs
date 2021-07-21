@@ -76,41 +76,39 @@ namespace Nethermind.Blockchain
 
         private void Preallocate(Block genesis)
         {
-            foreach ((Address address, ChainSpecAllocation allocation) in _chainSpec.Allocations.OrderBy(a => a.Key))
+            if (_chainSpec.Allocations is not null)
             {
-                _stateProvider.CreateAccount(address, allocation.Balance, allocation.Nonce);
-
-                if (allocation.Code != null)
+                foreach ((Address address, ChainSpecAllocation allocation) in _chainSpec.Allocations.OrderBy(a => a.Key))
                 {
-                    Keccak codeHash = _stateProvider.UpdateCode(allocation.Code);
-                    _stateProvider.UpdateCodeHash(address, codeHash, _specProvider.GenesisSpec, true);
-                }
+                    _stateProvider.CreateAccount(address, allocation.Balance, allocation.Nonce);
 
-                if (allocation.Storage != null)
-                {
-                    foreach (KeyValuePair<UInt256, byte[]> storage in allocation.Storage)
+                    if (allocation.Code != null)
                     {
-                        _storageProvider.Set(new StorageCell(address, storage.Key),
-                            storage.Value.WithoutLeadingZeros().ToArray());
+                        Keccak codeHash = _stateProvider.UpdateCode(allocation.Code);
+                        _stateProvider.UpdateCodeHash(address, codeHash, _specProvider.GenesisSpec, true);
                     }
-                }
 
-                if (allocation.Constructor != null)
-                {
-                    Transaction constructorTransaction = new SystemTransaction()
+                    if (allocation.Storage != null)
                     {
-                        SenderAddress = address,
-                        Data = allocation.Constructor,
-                        GasLimit = genesis.GasLimit
-                    };
+                        foreach (KeyValuePair<UInt256, byte[]> storage in allocation.Storage)
+                        {
+                            _storageProvider.Set(new StorageCell(address, storage.Key),
+                                storage.Value.WithoutLeadingZeros().ToArray());
+                        }
+                    }
 
-                    CallOutputTracer outputTracer = new();
-                    _transactionProcessor.Execute(constructorTransaction, genesis.Header, outputTracer);
-
-                    if (outputTracer.StatusCode != StatusCode.Success)
+                    if (allocation.Constructor != null)
                     {
-                        throw new InvalidOperationException(
-                            $"Failed to initialize constructor for address {address}. Error: {outputTracer.Error}");
+                        Transaction constructorTransaction = new SystemTransaction() {SenderAddress = address, Data = allocation.Constructor, GasLimit = genesis.GasLimit};
+
+                        CallOutputTracer outputTracer = new();
+                        _transactionProcessor.Execute(constructorTransaction, genesis.Header, outputTracer);
+
+                        if (outputTracer.StatusCode != StatusCode.Success)
+                        {
+                            throw new InvalidOperationException(
+                                $"Failed to initialize constructor for address {address}. Error: {outputTracer.Error}");
+                        }
                     }
                 }
             }

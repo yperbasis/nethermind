@@ -23,14 +23,15 @@ namespace Nethermind.Consensus.Ethash
     public class DifficultyCalculator : IDifficultyCalculator
     {
         private readonly ISpecProvider _specProvider;
+        private readonly UInt256 _minimumDifficulty;
+        private const long OfGenesisBlock = 131_072;
 
-        public DifficultyCalculator(ISpecProvider specProvider)
+        public DifficultyCalculator(ISpecProvider specProvider, UInt256? minimumDifficulty = null)
         {
             _specProvider = specProvider;
+            _minimumDifficulty = minimumDifficulty ?? OfGenesisBlock;
         }
 
-        private const long OfGenesisBlock = 131_072;
-        
         public UInt256 Calculate(
             UInt256 parentDifficulty,
             UInt256 parentTimestamp,
@@ -48,7 +49,7 @@ namespace Nethermind.Consensus.Ethash
             BigInteger timeAdjustment = TimeAdjustment(spec, (BigInteger)parentTimestamp, (BigInteger)currentTimestamp, parentHasUncles);
             BigInteger timeBomb = TimeBomb(spec, blockNumber);
             return (UInt256)BigInteger.Max(
-                OfGenesisBlock,
+                (BigInteger)_minimumDifficulty,
                 (BigInteger)parentDifficulty +
                 timeAdjustment * baseIncrease +
                 timeBomb);

@@ -73,6 +73,11 @@ namespace Nethermind.Consensus.Ethash
 
         private void OnBlockProcessorQueueEmpty(object sender, EventArgs e)
         {
+            TryProduceNewBlock();
+        }
+
+        private void TryProduceNewBlock()
+        {
             CancellationToken token;
             lock (_syncToken)
             {
@@ -90,6 +95,11 @@ namespace Nethermind.Consensus.Ethash
             BlockTree.NewBestSuggestedBlock += BlockTreeOnNewBestSuggestedBlock;
             _lastProducedBlockDateTime = DateTime.UtcNow;
             _isRunning = true;
+
+            if (BlockProcessingQueue.IsEmpty)
+            {
+                TryProduceNewBlock();
+            }
         }
 
         public override async Task StopAsync()
