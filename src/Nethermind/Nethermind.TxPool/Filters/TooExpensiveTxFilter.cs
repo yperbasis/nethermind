@@ -79,6 +79,7 @@ namespace Nethermind.TxPool.Filters
             overflow |= UInt256.AddOverflow(cost, tx.Value, out cost);
             overflow |= UInt256.AddOverflow(cost, cumulativeCost, out cumulativeCost);
             overflow |= UInt256.MultiplyOverflow((UInt256)tx.GasLimit, tx.MaxFeePerGas, out UInt256 costFor1559Check);
+            overflow |= UInt256.AddOverflow(tx.Value, costFor1559Check, out costFor1559Check);
             if (overflow)
             {
                 if (_logger.IsTrace)

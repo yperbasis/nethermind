@@ -192,7 +192,7 @@ namespace Nethermind.TxPool.Test
         }
         
         [Test]
-        public void should_ignore_insufficient_funds_for_eip1559_transactions()
+        public void should_not_ignore_insufficient_funds_for_eip1559_transactions()
         {
             ISpecProvider specProvider = Substitute.For<ISpecProvider>();
             specProvider.GetSpec(Arg.Any<long>()).Returns(London.Instance);
@@ -208,8 +208,8 @@ namespace Nethermind.TxPool.Test
             EnsureSenderBalance(tx.SenderAddress, tx.Value);
             _blockTree.BlockAddedToMain += Raise.EventWith(_blockTree, new BlockReplacementEventArgs(Build.A.Block.WithGasLimit(10000000).TestObject));
             result = txPool.SubmitTx(tx, TxHandlingOptions.PersistentBroadcast);
-            result.Should().Be(AddTxResult.Added);
-            txPool.GetPendingTransactions().Length.Should().Be(1);
+            result.Should().Be(AddTxResult.InsufficientFunds);
+            txPool.GetPendingTransactions().Length.Should().Be(0);
         }
         
         [Test]
@@ -368,16 +368,16 @@ namespace Nethermind.TxPool.Test
             result.Should().Be(expected);
         }
         
-        [TestCase(10,0, AddTxResult.FeeTooLow)]
-        [TestCase(11,0, AddTxResult.Added)]
-        [TestCase(11,4, AddTxResult.Added)]
-        [TestCase(11,5, AddTxResult.FeeTooLow)]
-        [TestCase(11,15, AddTxResult.FeeTooLow)]
-        [TestCase(11,16, AddTxResult.InsufficientFunds)]
-        [TestCase(50,0, AddTxResult.Invalid)]
-        [TestCase(50,15, AddTxResult.Invalid)]
-        [TestCase(50,16, AddTxResult.Invalid)]
-        public void should_handle_adding_1559_tx_to_full_txPool_properly(int gasPremium, int value, AddTxResult expected)
+        [TestCase(10, 10,0, AddTxResult.FeeTooLow)]
+        [TestCase(11, 11,0, AddTxResult.Added)]
+        [TestCase(11, 11,4, AddTxResult.Added)]
+        [TestCase(6, 6,5, AddTxResult.FeeTooLow)]
+        [TestCase(300, 11,15, AddTxResult.InsufficientFunds)]
+        [TestCase(20, 11,16, AddTxResult.InsufficientFunds)]
+        [TestCase(20, 50,0, AddTxResult.Invalid)]
+        [TestCase(20, 50,15, AddTxResult.Invalid)]
+        [TestCase(20, 50,16, AddTxResult.Invalid)]
+        public void should_handle_adding_1559_tx_to_full_txPool_properly(int maxFeePerGas, int gasPremium, int value, AddTxResult expected)
         {
             ISpecProvider specProvider = Substitute.For<ISpecProvider>();
             specProvider.GetSpec(Arg.Any<long>()).Returns(London.Instance);
@@ -397,7 +397,7 @@ namespace Nethermind.TxPool.Test
             
             Transaction tx = Build.A.Transaction
                 .WithType(TxType.EIP1559)
-                .WithMaxFeePerGas(20)
+                .WithMaxFeePerGas((UInt256)maxFeePerGas)
                 .WithMaxPriorityFeePerGas((UInt256)gasPremium)
                 .WithChainId(ChainId.Mainnet)
                 .SignedAndResolved(_ethereumEcdsa, TestItem.PrivateKeyA).TestObject;
