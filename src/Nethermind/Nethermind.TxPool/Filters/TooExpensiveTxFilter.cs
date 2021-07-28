@@ -48,6 +48,7 @@ namespace Nethermind.TxPool.Filters
             IReleaseSpec spec = _specProvider.GetSpec();
             Account account = _accounts.GetAccount(tx.SenderAddress!);
             UInt256 balance = account.Balance;
+            UInt256 currentNonce = account.Nonce;
             UInt256 cumulativeCost = UInt256.Zero;
             bool overflow = false;
 
