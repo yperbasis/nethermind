@@ -1035,14 +1035,14 @@ namespace Nethermind.TxPool.Test
 
         private Transaction[] AddTransactionsToPool(bool sameTransactionSenderPerPeer = true, bool sameNoncePerPeer= false, int transactionsPerPeer = 10)
         {
-            Transaction[] transactions = GetTransactions(GetPeers(transactionsPerPeer), sameTransactionSenderPerPeer, sameNoncePerPeer);
+            var transactions = GetTransactions(GetPeers(transactionsPerPeer), sameTransactionSenderPerPeer, sameNoncePerPeer);
             
             foreach (Address address in transactions.Select(t => t.SenderAddress).Distinct())
             {
                 EnsureSenderBalance(address, UInt256.MaxValue);
             }
             
-            foreach (Transaction transaction in transactions)
+            foreach (var transaction in transactions)
             {
                 _txPool.SubmitTx(transaction, TxHandlingOptions.PersistentBroadcast);
             }

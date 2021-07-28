@@ -49,7 +49,6 @@ namespace Nethermind.TxPool.Filters
             Account account = _accounts.GetAccount(tx.SenderAddress!);
             UInt256 balance = account.Balance;
             UInt256 cumulativeCost = UInt256.Zero;
-            UInt256 currentNonce = account.Nonce;
             bool overflow = false;
 
             Transaction[] transactions = _txs.GetBucketSnapshot(tx.SenderAddress);
