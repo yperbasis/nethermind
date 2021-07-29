@@ -18,6 +18,8 @@
 using System.Threading.Tasks;
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
+using Nethermind.Blockchain;
+using Nethermind.Blockchain.Producers;
 using Nethermind.Blockchain.Rewards;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
@@ -64,35 +66,34 @@ namespace Nethermind.Consensus.Ethash
         
         public Task<IBlockProducer> InitBlockProducer(IBlockProductionTrigger? blockProductionTrigger = null, ITxSource? additionalTxSource = null)
         {
-            BlockProducerEnv producerEnv = _api.BlockProducerEnvFactory.Create(txSource);
+            IManualBlockProductionTrigger startTrigger = new BuildBlocksWhenProcessingFinished(_api.BlockProcessingQueue, _api.BlockTree);
+            DefaultBlockProductionTrigger = startTrigger
+                .Or(_api.ManualBlockProductionTrigger);
+            
+            BlockProducerEnv producerEnv = _api.BlockProducerEnvFactory.Create(additionalTxSource);
             IBlockProducer minedBlockProducer = new MinedBlockProducer(
-                producerEnv.TxSource, 
+                producerEnv.TxSource,
                 producerEnv.ChainProcessor, 
-                _api.Sealer, 
+                _api.Sealer,
                 _api.BlockTree,
-                _api.BlockProcessingQueue, 
+                blockProductionTrigger ?? DefaultBlockProductionTrigger,
                 producerEnv.ReadOnlyStateProvider,
                 new TargetAdjustedGasLimitCalculator(_api.SpecProvider, _miningConfig),
                 _api.Timestamper,
                 _api.SpecProvider,
                 _api.LogManager,
-                _difficultyCalculator);
+                _difficultyCalculator,
+                startTrigger);
             _api.BlockProducer = minedBlockProducer;
             return Task.FromResult(minedBlockProducer);
         }
 
-        public Task InitNetworkProtocol()
-        {
-            return Task.CompletedTask;
-        }
+        public Task InitNetworkProtocol() => Task.CompletedTask;
 
-        public Task InitRpcModules()
-        {
-            return Task.CompletedTask;
-        }
-        
+        public Task InitRpcModules() => Task.CompletedTask;
+
         public string SealEngineType => Nethermind.Core.SealEngineType.Ethash;
 
-        public IBlockProductionTrigger DefaultBlockProductionTrigger => _nethermindApi.ManualBlockProductionTrigger;
+        public IBlockProductionTrigger DefaultBlockProductionTrigger { get; private set; }
     }
 }

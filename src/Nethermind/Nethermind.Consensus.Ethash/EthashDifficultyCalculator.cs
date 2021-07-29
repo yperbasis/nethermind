@@ -33,6 +33,13 @@ namespace Nethermind.Consensus.Ethash
             _specProvider = specProvider;
             _minimumDifficulty = minimumDifficulty ?? OfGenesisBlock;
         }
+        
+        public UInt256 Calculate(BlockHeader header, BlockHeader parent) =>
+            Calculate(parent.Difficulty, 
+                parent.Timestamp, 
+                header.Timestamp,
+                header.Number,
+                parent.OmmersHash != Keccak.OfAnEmptySequenceRlp);
 
         public UInt256 Calculate(
             UInt256 parentDifficulty,
