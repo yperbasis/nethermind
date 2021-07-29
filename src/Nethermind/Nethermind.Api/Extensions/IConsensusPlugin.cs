@@ -16,6 +16,7 @@
 // 
 
 using System.Threading.Tasks;
+using Nethermind.Blockchain.Producers;
 using Nethermind.Consensus;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
@@ -24,8 +25,10 @@ namespace Nethermind.Api.Extensions
 {
     public interface IConsensusPlugin : INethermindPlugin
     {
-        Task<IBlockProducer> InitBlockProducer(ITxSource? txSource = null);
+        Task<IBlockProducer> InitBlockProducer(IBlockProductionTrigger? blockProductionTrigger = null, ITxSource? additionalTxSource = null);
         
         string SealEngineType { get; }
+        
+        IBlockProductionTrigger DefaultBlockProductionTrigger { get; }
     }
 }
