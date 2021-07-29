@@ -31,6 +31,7 @@ namespace Nethermind.Consensus.Ethash
         private INethermindApi _api;
         private IMiningConfig _miningConfig;
         private IDifficultyCalculator _difficultyCalculator;
+        private BuildBlocksWhenProcessingFinished? _startTrigger;
 
         public ValueTask DisposeAsync() { return ValueTask.CompletedTask; }
 
@@ -66,10 +67,8 @@ namespace Nethermind.Consensus.Ethash
         
         public Task<IBlockProducer> InitBlockProducer(IBlockProductionTrigger? blockProductionTrigger = null, ITxSource? additionalTxSource = null)
         {
-            IManualBlockProductionTrigger startTrigger = new BuildBlocksWhenProcessingFinished(_api.BlockProcessingQueue, _api.BlockTree);
-            DefaultBlockProductionTrigger = startTrigger
-                .Or(_api.ManualBlockProductionTrigger);
-            
+            IManualBlockProductionTrigger startTrigger = InitBlockProductionTriggers();
+
             BlockProducerEnv producerEnv = _api.BlockProducerEnvFactory.Create(additionalTxSource);
             IBlockProducer minedBlockProducer = new MinedBlockProducer(
                 producerEnv.TxSource,
@@ -86,6 +85,17 @@ namespace Nethermind.Consensus.Ethash
                 startTrigger);
             _api.BlockProducer = minedBlockProducer;
             return Task.FromResult(minedBlockProducer);
+        }
+
+        private IManualBlockProductionTrigger InitBlockProductionTriggers()
+        {
+            if (_startTrigger is null)
+            {
+                _startTrigger ??= new BuildBlocksWhenProcessingFinished(_api.BlockProcessingQueue, _api.BlockTree);
+                DefaultBlockProductionTrigger = _startTrigger.Or(_api.ManualBlockProductionTrigger);
+            }
+
+            return _startTrigger;
         }
 
         public Task InitNetworkProtocol() => Task.CompletedTask;
