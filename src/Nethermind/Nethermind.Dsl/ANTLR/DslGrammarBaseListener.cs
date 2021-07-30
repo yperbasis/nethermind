@@ -60,18 +60,6 @@ public partial class DslGrammarBaseListener : IDslGrammarListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitExpression([NotNull] DslGrammarParser.ExpressionContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="DslGrammarParser.sourceExpression"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterSourceExpression([NotNull] DslGrammarParser.SourceExpressionContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="DslGrammarParser.sourceExpression"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitSourceExpression([NotNull] DslGrammarParser.SourceExpressionContext context) { }
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="DslGrammarParser.watchExpression"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>

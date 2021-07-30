@@ -51,16 +51,6 @@ public interface IDslGrammarListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitExpression([NotNull] DslGrammarParser.ExpressionContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="DslGrammarParser.sourceExpression"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterSourceExpression([NotNull] DslGrammarParser.SourceExpressionContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="DslGrammarParser.sourceExpression"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitSourceExpression([NotNull] DslGrammarParser.SourceExpressionContext context);
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="DslGrammarParser.watchExpression"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

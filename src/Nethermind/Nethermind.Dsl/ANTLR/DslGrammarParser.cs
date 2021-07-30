@@ -36,26 +36,27 @@ public partial class DslGrammarParser : Parser {
 	protected static DFA[] decisionToDFA;
 	protected static PredictionContextCache sharedContextCache = new PredictionContextCache();
 	public const int
-		BOOLEAN_OPERATOR=1, ARITHMETIC_SYMBOL=2, SOURCE=3, WATCH=4, WHERE=5, PUBLISH=6, 
-		AND=7, OR=8, CONTAINS=9, IS=10, NOT=11, PUBLISH_VALUE=12, WEBSOCKETS=13, 
-		TELEGRAM=14, DISCORD=15, WORD=16, DIGIT=17, BYTECODE=18, ADDRESS=19, WS=20;
+		BOOLEAN_OPERATOR=1, ARITHMETIC_SYMBOL=2, WATCH=3, WHERE=4, PUBLISH=5, 
+		AND=6, OR=7, CONTAINS=8, IS=9, NOT=10, PUBLISH_VALUE=11, WEBSOCKETS=12, 
+		TELEGRAM=13, DISCORD=14, SLACK=15, WORD=16, DIGIT=17, BYTECODE=18, ADDRESS=19, 
+		URL=20, WS=21;
 	public const int
-		RULE_tree = 0, RULE_expression = 1, RULE_sourceExpression = 2, RULE_watchExpression = 3, 
-		RULE_whereExpression = 4, RULE_publishExpression = 5, RULE_condition = 6, 
-		RULE_andCondition = 7, RULE_orCondition = 8;
+		RULE_tree = 0, RULE_expression = 1, RULE_watchExpression = 2, RULE_whereExpression = 3, 
+		RULE_publishExpression = 4, RULE_condition = 5, RULE_andCondition = 6, 
+		RULE_orCondition = 7;
 	public static readonly string[] ruleNames = {
-		"tree", "expression", "sourceExpression", "watchExpression", "whereExpression", 
-		"publishExpression", "condition", "andCondition", "orCondition"
+		"tree", "expression", "watchExpression", "whereExpression", "publishExpression", 
+		"condition", "andCondition", "orCondition"
 	};
 
 	private static readonly string[] _LiteralNames = {
-		null, null, null, "'SOURCE'", "'WATCH'", "'WHERE'", "'PUBLISH'", "'AND'", 
-		"'OR'", "'CONTAINS'", "'IS'", "'NOT'"
+		null, null, null, "'WATCH'", "'WHERE'", "'PUBLISH'", "'AND'", "'OR'", 
+		"'CONTAINS'", "'IS'", "'NOT'"
 	};
 	private static readonly string[] _SymbolicNames = {
-		null, "BOOLEAN_OPERATOR", "ARITHMETIC_SYMBOL", "SOURCE", "WATCH", "WHERE", 
-		"PUBLISH", "AND", "OR", "CONTAINS", "IS", "NOT", "PUBLISH_VALUE", "WEBSOCKETS", 
-		"TELEGRAM", "DISCORD", "WORD", "DIGIT", "BYTECODE", "ADDRESS", "WS"
+		null, "BOOLEAN_OPERATOR", "ARITHMETIC_SYMBOL", "WATCH", "WHERE", "PUBLISH", 
+		"AND", "OR", "CONTAINS", "IS", "NOT", "PUBLISH_VALUE", "WEBSOCKETS", "TELEGRAM", 
+		"DISCORD", "SLACK", "WORD", "DIGIT", "BYTECODE", "ADDRESS", "URL", "WS"
 	};
 	public static readonly IVocabulary DefaultVocabulary = new Vocabulary(_LiteralNames, _SymbolicNames);
 
@@ -121,17 +122,17 @@ public partial class DslGrammarParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 21;
+			State = 19;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << SOURCE) | (1L << WATCH) | (1L << WHERE) | (1L << PUBLISH) | (1L << AND) | (1L << OR))) != 0)) {
+			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << WATCH) | (1L << WHERE) | (1L << PUBLISH) | (1L << AND) | (1L << OR))) != 0)) {
 				{
 				{
-				State = 18;
+				State = 16;
 				expression();
 				}
 				}
-				State = 23;
+				State = 21;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
@@ -149,9 +150,6 @@ public partial class DslGrammarParser : Parser {
 	}
 
 	public partial class ExpressionContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public SourceExpressionContext sourceExpression() {
-			return GetRuleContext<SourceExpressionContext>(0);
-		}
 		[System.Diagnostics.DebuggerNonUserCode] public WatchExpressionContext watchExpression() {
 			return GetRuleContext<WatchExpressionContext>(0);
 		}
@@ -189,97 +187,46 @@ public partial class DslGrammarParser : Parser {
 		ExpressionContext _localctx = new ExpressionContext(Context, State);
 		EnterRule(_localctx, 2, RULE_expression);
 		try {
-			State = 30;
+			State = 27;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
-			case SOURCE:
+			case WATCH:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 24;
-				sourceExpression();
-				}
-				break;
-			case WATCH:
-				EnterOuterAlt(_localctx, 2);
-				{
-				State = 25;
+				State = 22;
 				watchExpression();
 				}
 				break;
 			case WHERE:
-				EnterOuterAlt(_localctx, 3);
+				EnterOuterAlt(_localctx, 2);
 				{
-				State = 26;
+				State = 23;
 				whereExpression();
 				}
 				break;
 			case PUBLISH:
-				EnterOuterAlt(_localctx, 4);
+				EnterOuterAlt(_localctx, 3);
 				{
-				State = 27;
+				State = 24;
 				publishExpression();
 				}
 				break;
 			case AND:
-				EnterOuterAlt(_localctx, 5);
+				EnterOuterAlt(_localctx, 4);
 				{
-				State = 28;
+				State = 25;
 				andCondition();
 				}
 				break;
 			case OR:
-				EnterOuterAlt(_localctx, 6);
+				EnterOuterAlt(_localctx, 5);
 				{
-				State = 29;
+				State = 26;
 				orCondition();
 				}
 				break;
 			default:
 				throw new NoViableAltException(this);
-			}
-		}
-		catch (RecognitionException re) {
-			_localctx.exception = re;
-			ErrorHandler.ReportError(this, re);
-			ErrorHandler.Recover(this, re);
-		}
-		finally {
-			ExitRule();
-		}
-		return _localctx;
-	}
-
-	public partial class SourceExpressionContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SOURCE() { return GetToken(DslGrammarParser.SOURCE, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode WORD() { return GetToken(DslGrammarParser.WORD, 0); }
-		public SourceExpressionContext(ParserRuleContext parent, int invokingState)
-			: base(parent, invokingState)
-		{
-		}
-		public override int RuleIndex { get { return RULE_sourceExpression; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IDslGrammarListener typedListener = listener as IDslGrammarListener;
-			if (typedListener != null) typedListener.EnterSourceExpression(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IDslGrammarListener typedListener = listener as IDslGrammarListener;
-			if (typedListener != null) typedListener.ExitSourceExpression(this);
-		}
-	}
-
-	[RuleVersion(0)]
-	public SourceExpressionContext sourceExpression() {
-		SourceExpressionContext _localctx = new SourceExpressionContext(Context, State);
-		EnterRule(_localctx, 4, RULE_sourceExpression);
-		try {
-			EnterOuterAlt(_localctx, 1);
-			{
-			State = 32;
-			Match(SOURCE);
-			State = 33;
-			Match(WORD);
 			}
 		}
 		catch (RecognitionException re) {
@@ -316,13 +263,13 @@ public partial class DslGrammarParser : Parser {
 	[RuleVersion(0)]
 	public WatchExpressionContext watchExpression() {
 		WatchExpressionContext _localctx = new WatchExpressionContext(Context, State);
-		EnterRule(_localctx, 6, RULE_watchExpression);
+		EnterRule(_localctx, 4, RULE_watchExpression);
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 35;
+			State = 29;
 			Match(WATCH);
-			State = 36;
+			State = 30;
 			Match(WORD);
 			}
 		}
@@ -362,13 +309,13 @@ public partial class DslGrammarParser : Parser {
 	[RuleVersion(0)]
 	public WhereExpressionContext whereExpression() {
 		WhereExpressionContext _localctx = new WhereExpressionContext(Context, State);
-		EnterRule(_localctx, 8, RULE_whereExpression);
+		EnterRule(_localctx, 6, RULE_whereExpression);
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 38;
+			State = 32;
 			Match(WHERE);
-			State = 39;
+			State = 33;
 			condition();
 			}
 		}
@@ -386,6 +333,7 @@ public partial class DslGrammarParser : Parser {
 	public partial class PublishExpressionContext : ParserRuleContext {
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PUBLISH() { return GetToken(DslGrammarParser.PUBLISH, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PUBLISH_VALUE() { return GetToken(DslGrammarParser.PUBLISH_VALUE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode URL() { return GetToken(DslGrammarParser.URL, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode WORD() { return GetToken(DslGrammarParser.WORD, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode DIGIT() { return GetToken(DslGrammarParser.DIGIT, 0); }
 		public PublishExpressionContext(ParserRuleContext parent, int invokingState)
@@ -408,18 +356,18 @@ public partial class DslGrammarParser : Parser {
 	[RuleVersion(0)]
 	public PublishExpressionContext publishExpression() {
 		PublishExpressionContext _localctx = new PublishExpressionContext(Context, State);
-		EnterRule(_localctx, 10, RULE_publishExpression);
+		EnterRule(_localctx, 8, RULE_publishExpression);
 		int _la;
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 41;
+			State = 35;
 			Match(PUBLISH);
-			State = 42;
+			State = 36;
 			Match(PUBLISH_VALUE);
-			State = 43;
+			State = 37;
 			_la = TokenStream.LA(1);
-			if ( !(_la==WORD || _la==DIGIT) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << WORD) | (1L << DIGIT) | (1L << URL))) != 0)) ) {
 			ErrorHandler.RecoverInline(this);
 			}
 			else {
@@ -468,16 +416,16 @@ public partial class DslGrammarParser : Parser {
 	[RuleVersion(0)]
 	public ConditionContext condition() {
 		ConditionContext _localctx = new ConditionContext(Context, State);
-		EnterRule(_localctx, 12, RULE_condition);
+		EnterRule(_localctx, 10, RULE_condition);
 		int _la;
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 45;
+			State = 39;
 			Match(WORD);
-			State = 46;
+			State = 40;
 			Match(BOOLEAN_OPERATOR);
-			State = 47;
+			State = 41;
 			_la = TokenStream.LA(1);
 			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << WORD) | (1L << DIGIT) | (1L << BYTECODE) | (1L << ADDRESS))) != 0)) ) {
 			ErrorHandler.RecoverInline(this);
@@ -524,13 +472,13 @@ public partial class DslGrammarParser : Parser {
 	[RuleVersion(0)]
 	public AndConditionContext andCondition() {
 		AndConditionContext _localctx = new AndConditionContext(Context, State);
-		EnterRule(_localctx, 14, RULE_andCondition);
+		EnterRule(_localctx, 12, RULE_andCondition);
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 49;
+			State = 43;
 			Match(AND);
-			State = 50;
+			State = 44;
 			condition();
 			}
 		}
@@ -570,13 +518,13 @@ public partial class DslGrammarParser : Parser {
 	[RuleVersion(0)]
 	public OrConditionContext orCondition() {
 		OrConditionContext _localctx = new OrConditionContext(Context, State);
-		EnterRule(_localctx, 16, RULE_orCondition);
+		EnterRule(_localctx, 14, RULE_orCondition);
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 52;
+			State = 46;
 			Match(OR);
-			State = 53;
+			State = 47;
 			condition();
 			}
 		}
@@ -593,49 +541,45 @@ public partial class DslGrammarParser : Parser {
 
 	private static char[] _serializedATN = {
 		'\x3', '\x608B', '\xA72A', '\x8133', '\xB9ED', '\x417C', '\x3BE7', '\x7786', 
-		'\x5964', '\x3', '\x16', ':', '\x4', '\x2', '\t', '\x2', '\x4', '\x3', 
+		'\x5964', '\x3', '\x17', '\x34', '\x4', '\x2', '\t', '\x2', '\x4', '\x3', 
 		'\t', '\x3', '\x4', '\x4', '\t', '\x4', '\x4', '\x5', '\t', '\x5', '\x4', 
 		'\x6', '\t', '\x6', '\x4', '\a', '\t', '\a', '\x4', '\b', '\t', '\b', 
-		'\x4', '\t', '\t', '\t', '\x4', '\n', '\t', '\n', '\x3', '\x2', '\a', 
-		'\x2', '\x16', '\n', '\x2', '\f', '\x2', '\xE', '\x2', '\x19', '\v', '\x2', 
-		'\x3', '\x3', '\x3', '\x3', '\x3', '\x3', '\x3', '\x3', '\x3', '\x3', 
-		'\x3', '\x3', '\x5', '\x3', '!', '\n', '\x3', '\x3', '\x4', '\x3', '\x4', 
-		'\x3', '\x4', '\x3', '\x5', '\x3', '\x5', '\x3', '\x5', '\x3', '\x6', 
-		'\x3', '\x6', '\x3', '\x6', '\x3', '\a', '\x3', '\a', '\x3', '\a', '\x3', 
-		'\a', '\x3', '\b', '\x3', '\b', '\x3', '\b', '\x3', '\b', '\x3', '\t', 
-		'\x3', '\t', '\x3', '\t', '\x3', '\n', '\x3', '\n', '\x3', '\n', '\x3', 
-		'\n', '\x2', '\x2', '\v', '\x2', '\x4', '\x6', '\b', '\n', '\f', '\xE', 
-		'\x10', '\x12', '\x2', '\x4', '\x3', '\x2', '\x12', '\x13', '\x3', '\x2', 
-		'\x12', '\x15', '\x2', '\x36', '\x2', '\x17', '\x3', '\x2', '\x2', '\x2', 
-		'\x4', ' ', '\x3', '\x2', '\x2', '\x2', '\x6', '\"', '\x3', '\x2', '\x2', 
-		'\x2', '\b', '%', '\x3', '\x2', '\x2', '\x2', '\n', '(', '\x3', '\x2', 
-		'\x2', '\x2', '\f', '+', '\x3', '\x2', '\x2', '\x2', '\xE', '/', '\x3', 
-		'\x2', '\x2', '\x2', '\x10', '\x33', '\x3', '\x2', '\x2', '\x2', '\x12', 
-		'\x36', '\x3', '\x2', '\x2', '\x2', '\x14', '\x16', '\x5', '\x4', '\x3', 
-		'\x2', '\x15', '\x14', '\x3', '\x2', '\x2', '\x2', '\x16', '\x19', '\x3', 
-		'\x2', '\x2', '\x2', '\x17', '\x15', '\x3', '\x2', '\x2', '\x2', '\x17', 
-		'\x18', '\x3', '\x2', '\x2', '\x2', '\x18', '\x3', '\x3', '\x2', '\x2', 
-		'\x2', '\x19', '\x17', '\x3', '\x2', '\x2', '\x2', '\x1A', '!', '\x5', 
-		'\x6', '\x4', '\x2', '\x1B', '!', '\x5', '\b', '\x5', '\x2', '\x1C', '!', 
-		'\x5', '\n', '\x6', '\x2', '\x1D', '!', '\x5', '\f', '\a', '\x2', '\x1E', 
-		'!', '\x5', '\x10', '\t', '\x2', '\x1F', '!', '\x5', '\x12', '\n', '\x2', 
-		' ', '\x1A', '\x3', '\x2', '\x2', '\x2', ' ', '\x1B', '\x3', '\x2', '\x2', 
-		'\x2', ' ', '\x1C', '\x3', '\x2', '\x2', '\x2', ' ', '\x1D', '\x3', '\x2', 
-		'\x2', '\x2', ' ', '\x1E', '\x3', '\x2', '\x2', '\x2', ' ', '\x1F', '\x3', 
-		'\x2', '\x2', '\x2', '!', '\x5', '\x3', '\x2', '\x2', '\x2', '\"', '#', 
-		'\a', '\x5', '\x2', '\x2', '#', '$', '\a', '\x12', '\x2', '\x2', '$', 
-		'\a', '\x3', '\x2', '\x2', '\x2', '%', '&', '\a', '\x6', '\x2', '\x2', 
-		'&', '\'', '\a', '\x12', '\x2', '\x2', '\'', '\t', '\x3', '\x2', '\x2', 
-		'\x2', '(', ')', '\a', '\a', '\x2', '\x2', ')', '*', '\x5', '\xE', '\b', 
-		'\x2', '*', '\v', '\x3', '\x2', '\x2', '\x2', '+', ',', '\a', '\b', '\x2', 
-		'\x2', ',', '-', '\a', '\xE', '\x2', '\x2', '-', '.', '\t', '\x2', '\x2', 
-		'\x2', '.', '\r', '\x3', '\x2', '\x2', '\x2', '/', '\x30', '\a', '\x12', 
-		'\x2', '\x2', '\x30', '\x31', '\a', '\x3', '\x2', '\x2', '\x31', '\x32', 
-		'\t', '\x3', '\x2', '\x2', '\x32', '\xF', '\x3', '\x2', '\x2', '\x2', 
-		'\x33', '\x34', '\a', '\t', '\x2', '\x2', '\x34', '\x35', '\x5', '\xE', 
-		'\b', '\x2', '\x35', '\x11', '\x3', '\x2', '\x2', '\x2', '\x36', '\x37', 
-		'\a', '\n', '\x2', '\x2', '\x37', '\x38', '\x5', '\xE', '\b', '\x2', '\x38', 
-		'\x13', '\x3', '\x2', '\x2', '\x2', '\x4', '\x17', ' ',
+		'\x4', '\t', '\t', '\t', '\x3', '\x2', '\a', '\x2', '\x14', '\n', '\x2', 
+		'\f', '\x2', '\xE', '\x2', '\x17', '\v', '\x2', '\x3', '\x3', '\x3', '\x3', 
+		'\x3', '\x3', '\x3', '\x3', '\x3', '\x3', '\x5', '\x3', '\x1E', '\n', 
+		'\x3', '\x3', '\x4', '\x3', '\x4', '\x3', '\x4', '\x3', '\x5', '\x3', 
+		'\x5', '\x3', '\x5', '\x3', '\x6', '\x3', '\x6', '\x3', '\x6', '\x3', 
+		'\x6', '\x3', '\a', '\x3', '\a', '\x3', '\a', '\x3', '\a', '\x3', '\b', 
+		'\x3', '\b', '\x3', '\b', '\x3', '\t', '\x3', '\t', '\x3', '\t', '\x3', 
+		'\t', '\x2', '\x2', '\n', '\x2', '\x4', '\x6', '\b', '\n', '\f', '\xE', 
+		'\x10', '\x2', '\x4', '\x4', '\x2', '\x12', '\x13', '\x16', '\x16', '\x3', 
+		'\x2', '\x12', '\x15', '\x2', '\x30', '\x2', '\x15', '\x3', '\x2', '\x2', 
+		'\x2', '\x4', '\x1D', '\x3', '\x2', '\x2', '\x2', '\x6', '\x1F', '\x3', 
+		'\x2', '\x2', '\x2', '\b', '\"', '\x3', '\x2', '\x2', '\x2', '\n', '%', 
+		'\x3', '\x2', '\x2', '\x2', '\f', ')', '\x3', '\x2', '\x2', '\x2', '\xE', 
+		'-', '\x3', '\x2', '\x2', '\x2', '\x10', '\x30', '\x3', '\x2', '\x2', 
+		'\x2', '\x12', '\x14', '\x5', '\x4', '\x3', '\x2', '\x13', '\x12', '\x3', 
+		'\x2', '\x2', '\x2', '\x14', '\x17', '\x3', '\x2', '\x2', '\x2', '\x15', 
+		'\x13', '\x3', '\x2', '\x2', '\x2', '\x15', '\x16', '\x3', '\x2', '\x2', 
+		'\x2', '\x16', '\x3', '\x3', '\x2', '\x2', '\x2', '\x17', '\x15', '\x3', 
+		'\x2', '\x2', '\x2', '\x18', '\x1E', '\x5', '\x6', '\x4', '\x2', '\x19', 
+		'\x1E', '\x5', '\b', '\x5', '\x2', '\x1A', '\x1E', '\x5', '\n', '\x6', 
+		'\x2', '\x1B', '\x1E', '\x5', '\xE', '\b', '\x2', '\x1C', '\x1E', '\x5', 
+		'\x10', '\t', '\x2', '\x1D', '\x18', '\x3', '\x2', '\x2', '\x2', '\x1D', 
+		'\x19', '\x3', '\x2', '\x2', '\x2', '\x1D', '\x1A', '\x3', '\x2', '\x2', 
+		'\x2', '\x1D', '\x1B', '\x3', '\x2', '\x2', '\x2', '\x1D', '\x1C', '\x3', 
+		'\x2', '\x2', '\x2', '\x1E', '\x5', '\x3', '\x2', '\x2', '\x2', '\x1F', 
+		' ', '\a', '\x5', '\x2', '\x2', ' ', '!', '\a', '\x12', '\x2', '\x2', 
+		'!', '\a', '\x3', '\x2', '\x2', '\x2', '\"', '#', '\a', '\x6', '\x2', 
+		'\x2', '#', '$', '\x5', '\f', '\a', '\x2', '$', '\t', '\x3', '\x2', '\x2', 
+		'\x2', '%', '&', '\a', '\a', '\x2', '\x2', '&', '\'', '\a', '\r', '\x2', 
+		'\x2', '\'', '(', '\t', '\x2', '\x2', '\x2', '(', '\v', '\x3', '\x2', 
+		'\x2', '\x2', ')', '*', '\a', '\x12', '\x2', '\x2', '*', '+', '\a', '\x3', 
+		'\x2', '\x2', '+', ',', '\t', '\x3', '\x2', '\x2', ',', '\r', '\x3', '\x2', 
+		'\x2', '\x2', '-', '.', '\a', '\b', '\x2', '\x2', '.', '/', '\x5', '\f', 
+		'\a', '\x2', '/', '\xF', '\x3', '\x2', '\x2', '\x2', '\x30', '\x31', '\a', 
+		'\t', '\x2', '\x2', '\x31', '\x32', '\x5', '\f', '\a', '\x2', '\x32', 
+		'\x11', '\x3', '\x2', '\x2', '\x2', '\x4', '\x15', '\x1D',
 	};
 
 	public static readonly ATN _ATN =
