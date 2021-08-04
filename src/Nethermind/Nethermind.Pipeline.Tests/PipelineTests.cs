@@ -12,6 +12,7 @@ using Nethermind.TxPool;
 using NSubstitute;
 using NUnit.Framework;
 using ILogger = Nethermind.Logging.ILogger;
+using TxEventArgs = Nethermind.TxPool.TxEventArgs;
 
 namespace Nethermind.Pipeline.Tests
 {
