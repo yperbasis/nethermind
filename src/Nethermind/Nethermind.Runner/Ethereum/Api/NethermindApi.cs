@@ -40,6 +40,7 @@ using Nethermind.Crypto;
 using Nethermind.Db;
 using Nethermind.Db.Blooms;
 using Nethermind.Evm;
+using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Facade;
 using Nethermind.Grpc;
 using Nethermind.JsonRpc.Modules;
@@ -61,7 +62,7 @@ using Nethermind.Synchronization.Peers;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using Nethermind.Wallet;
-using Nethermind.WebSockets;
+using Nethermind.Sockets;
 
 namespace Nethermind.Runner.Ethereum.Api
 {
@@ -158,6 +159,7 @@ namespace Nethermind.Runner.Ethereum.Api
         public IProtocolValidator? ProtocolValidator { get; set; }
         public IReceiptStorage? ReceiptStorage { get; set; }
         public IWitnessCollector? WitnessCollector { get; set; }
+        public IWitnessRepository? WitnessRepository { get; set; }
         public IReceiptFinder? ReceiptFinder { get; set; }
         public IRewardCalculatorSource? RewardCalculatorSource { get; set; } = NoBlockRewards.Instance;
         public IRlpxPeer? RlpxPeer { get; set; }
