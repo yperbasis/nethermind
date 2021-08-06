@@ -39,7 +39,6 @@ namespace Nethermind.MevSearcher
     {
         private readonly IStateProvider _stateProvider;
         private readonly ISigner _signer;
-        private readonly ITracer _tracer;
         private readonly IBlockTree _blockTree;
         private readonly ISpecProvider _specProvider;
         private readonly IEthereumEcdsa _ecdsa;
@@ -47,14 +46,12 @@ namespace Nethermind.MevSearcher
         public BundleStrategy(
             IStateProvider stateProvider, 
             ISigner signer, 
-            ITracer tracer, 
             IBlockTree blockTree, 
             ISpecProvider specProvider,
             IEthereumEcdsa ecdsa)
         {
             _stateProvider = stateProvider;
             _signer = signer;
-            _tracer = tracer;
             _blockTree = blockTree;
             _specProvider = specProvider;
             _ecdsa = ecdsa;

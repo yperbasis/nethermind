@@ -55,13 +55,10 @@ namespace Nethermind.MevSearcher
             if (Enabled)
             {
                 _client = new HttpClient();
-
-                ITracer tracer = new Tracer(_nethermindApi.StateProvider!, _nethermindApi.BlockchainProcessor!);
-            
+                
                 _bundleStrategy = new BundleStrategy(
                     _nethermindApi.StateProvider, 
                     _nethermindApi.EngineSigner, 
-                    tracer, 
                     _nethermindApi.BlockTree, 
                     _nethermindApi.SpecProvider,
                     _nethermindApi.EthereumEcdsa);
