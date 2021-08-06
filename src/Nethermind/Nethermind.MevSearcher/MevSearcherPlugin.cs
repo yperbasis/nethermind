@@ -51,27 +51,7 @@ namespace Nethermind.MevSearcher
             _nethermindApi = nethermindApi ?? throw new ArgumentNullException(nameof(nethermindApi));
             _mevSearcherConfig = _nethermindApi.Config<IMevSearcherConfig>();
             _logger = _nethermindApi.LogManager.GetClassLogger();
-
-            return Task.CompletedTask;
-        }
-
-        private void ProcessIncomingTransaction(object sender, TxPool.TxEventArgs e)
-        {
-            Transaction transaction = e.Transaction;
-
-            if (_bundleStrategy.ProcessTransaction(transaction, out MevBundle bundle))
-            {
-                _bundleSender.SendBundle(bundle, _mevSearcherConfig.Endpoint);
-            }
-        }
-
-        public Task InitNetworkProtocol()
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task InitRpcModules()
-        {
+            
             if (Enabled)
             {
                 _client = new HttpClient();
@@ -95,6 +75,26 @@ namespace Nethermind.MevSearcher
                 if (_logger!.IsWarn) _logger.Info("Skipping Flashbots searcher plugin");
             }
 
+            return Task.CompletedTask;
+        }
+
+        private void ProcessIncomingTransaction(object sender, TxPool.TxEventArgs e)
+        {
+            Transaction transaction = e.Transaction;
+
+            if (_bundleStrategy.ProcessTransaction(transaction, out MevBundle bundle))
+            {
+                _bundleSender.SendBundle(bundle, _mevSearcherConfig.Endpoint);
+            }
+        }
+
+        public Task InitNetworkProtocol()
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task InitRpcModules()
+        {
             return Task.CompletedTask;
         }
 

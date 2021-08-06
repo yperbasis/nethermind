@@ -38,6 +38,12 @@ namespace Nethermind.MevSearcher.Data
             MinTimestamp = minTimestamp;
             MaxTimestamp = maxTimestamp;
         }
+
+        public MevBundle(long blockNumber, string[] transactions)
+        {
+            BlockNumber = $"0x{blockNumber:X}";
+            Transactions = transactions;
+        }
         
         [JsonProperty("txs")]
         public IEnumerable<string> Transactions { get; }

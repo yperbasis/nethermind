@@ -16,6 +16,8 @@
 // 
 
 using System;
+using System.Collections.Generic;
+using Nethermind.Abi;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Tracing;
 using Nethermind.Consensus;
@@ -23,6 +25,7 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
+using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
 using Nethermind.Evm.Tracing;
 using Nethermind.Evm.Tracing.GethStyle;
@@ -65,9 +68,46 @@ namespace Nethermind.MevSearcher
             // return false if you do not wish to send a bundle after processing the new transaction
             // it might be useful to create or use a block tracer that conforms to IBlockTracer, and _tracer.Trace on
             // the tracer using the BuildSimulationBlock method to get information about how the transaction would perform
+
+            PrivateKey privateKey =
+                new PrivateKey("ENTER_PRIV_KEY");
             
-            bundle = null;
-            return false;
+            if (!transaction.IsSigned || transaction.Data is null || transaction.SenderAddress == privateKey.Address)
+            {
+                bundle = null;
+                return false;
+            }
+            
+            IReadOnlyDictionary<string, AbiType> rlp = new Dictionary<string, AbiType>
+            {
+                {"_calldata", AbiType.DynamicBytes},
+                {"_address", AbiType.Address},
+                {"_value", AbiType.UInt256},
+            };
+            
+            AbiSignature abiSignature = new AbiSignature("execute", AbiType.DynamicBytes, AbiType.Address, AbiType.UInt256);
+
+            IAbiEncoder abiEncoder = new AbiEncoder();
+            byte[] computedCallData = abiEncoder.Encode(
+                AbiEncodingStyle.None,
+                abiSignature,
+                transaction.Data, transaction.To!, transaction.Value);
+            
+            Address contractAddress = new Address("0x5381337337367d54a999B36Eb2dA0ECcE1B6bfC8");
+
+            Transaction mevTx = Build.A.Transaction
+                .To(contractAddress)
+                .WithNonce(_stateProvider.GetNonce(privateKey.Address))
+                .WithValue(0)
+                .WithChainId(100)
+                .WithGasLimit(transaction.GasLimit + 40000)
+                .WithGasPrice(transaction.GasPrice)
+                .WithData(computedCallData)
+                .SignedAndResolved(privateKey)
+                .TestObject;
+
+            bundle = new MevBundle(_blockTree.Head!.Number + 1, new []{mevTx});
+            return true;
         }
         
         private Block BuildSimulationBlock(Transaction[] transactions)
