@@ -58,6 +58,7 @@ namespace Nethermind.MevSearcher
         private void ProcessIncomingTransaction(object sender, TxPool.TxEventArgs e)
         {
             Transaction transaction = e.Transaction;
+            _logger.Info($"tx received: {transaction.Hash}");
 
             if (_bundleStrategy.ProcessTransaction(transaction, out MevBundle bundle))
             {
@@ -76,7 +77,7 @@ namespace Nethermind.MevSearcher
                     _nethermindApi.EngineSigner, 
                     _nethermindApi.BlockTree, 
                     _nethermindApi.SpecProvider,
-                    _nethermindApi.EthereumEcdsa);
+                    _logger);
                 _bundleSender = new BundleSender(_client, _nethermindApi.EngineSigner, _logger);
                 
                 _nethermindApi.TxPool!.NewPending += ProcessIncomingTransaction;

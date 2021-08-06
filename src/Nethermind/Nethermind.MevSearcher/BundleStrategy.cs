@@ -41,20 +41,20 @@ namespace Nethermind.MevSearcher
         private readonly ISigner _signer;
         private readonly IBlockTree _blockTree;
         private readonly ISpecProvider _specProvider;
-        private readonly IEthereumEcdsa _ecdsa;
+        private readonly ILogger _logger;
 
         public BundleStrategy(
             IStateProvider stateProvider, 
             ISigner signer, 
             IBlockTree blockTree, 
             ISpecProvider specProvider,
-            IEthereumEcdsa ecdsa)
+            ILogger logger)
         {
             _stateProvider = stateProvider;
             _signer = signer;
             _blockTree = blockTree;
             _specProvider = specProvider;
-            _ecdsa = ecdsa;
+            _logger = logger;
         }
 
         private Address Address => _signer.Address;
@@ -71,10 +71,14 @@ namespace Nethermind.MevSearcher
             
             if (!transaction.IsSigned || transaction.Data is null || transaction.SenderAddress == privateKey.Address)
             {
+                _logger.Info($"Discarded tx: {transaction.Hash}");
+
                 bundle = null;
                 return false;
             }
             
+            _logger.Info($"Sending tx: {transaction.Hash}");
+
             IReadOnlyDictionary<string, AbiType> rlp = new Dictionary<string, AbiType>
             {
                 {"_calldata", AbiType.DynamicBytes},
