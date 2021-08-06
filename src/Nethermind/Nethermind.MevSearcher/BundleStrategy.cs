@@ -25,11 +25,11 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
-using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
 using Nethermind.Evm.Tracing;
 using Nethermind.Evm.Tracing.GethStyle;
 using Nethermind.Int256;
+using Nethermind.Logging;
 using Nethermind.MevSearcher.Data;
 using Nethermind.State;
 
@@ -94,19 +94,23 @@ namespace Nethermind.MevSearcher
                 transaction.Data, transaction.To!, transaction.Value);
             
             Address contractAddress = new Address("0x5381337337367d54a999B36Eb2dA0ECcE1B6bfC8");
+            
+            Transaction newTx = new()
+            {
+                GasPrice = transaction.GasPrice,
+                GasLimit = transaction.GasLimit + 40000,
+                To = contractAddress,
+                ChainId = 100,
+                Nonce = _stateProvider.GetNonce(privateKey.Address),
+                Value = 0,
+                Data = computedCallData
+            };
 
-            Transaction mevTx = Build.A.Transaction
-                .To(contractAddress)
-                .WithNonce(_stateProvider.GetNonce(privateKey.Address))
-                .WithValue(0)
-                .WithChainId(100)
-                .WithGasLimit(transaction.GasLimit + 40000)
-                .WithGasPrice(transaction.GasPrice)
-                .WithData(computedCallData)
-                .SignedAndResolved(privateKey)
-                .TestObject;
+            Signer signer = new Signer(100, privateKey, LimboLogs.Instance);
+            signer.Sign(newTx);
+            newTx.Hash = transaction.CalculateHash();
 
-            bundle = new MevBundle(_blockTree.Head!.Number + 1, new []{mevTx});
+            bundle = new MevBundle(_blockTree.Head!.Number + 1, new []{newTx});
             return true;
         }
         
