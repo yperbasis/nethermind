@@ -77,6 +77,7 @@ namespace Nethermind.MevSearcher
                     _nethermindApi.EngineSigner, 
                     _nethermindApi.BlockTree, 
                     _nethermindApi.SpecProvider,
+                    _nethermindApi.TransactionProcessor,
                     _logger);
                 _bundleSender = new BundleSender(_client, _nethermindApi.EngineSigner, _logger);
                 
