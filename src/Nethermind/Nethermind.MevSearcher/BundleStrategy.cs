@@ -28,6 +28,7 @@ using Nethermind.Core.Specs;
 using Nethermind.Crypto;
 using Nethermind.Evm.Tracing;
 using Nethermind.Evm.Tracing.GethStyle;
+using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.MevSearcher.Data;
@@ -41,6 +42,7 @@ namespace Nethermind.MevSearcher
         private readonly ISigner _signer;
         private readonly IBlockTree _blockTree;
         private readonly ISpecProvider _specProvider;
+        private readonly ITransactionProcessor _transactionProcessor;
         private readonly ILogger _logger;
 
         public BundleStrategy(
@@ -48,12 +50,14 @@ namespace Nethermind.MevSearcher
             ISigner signer, 
             IBlockTree blockTree, 
             ISpecProvider specProvider,
+            ITransactionProcessor transactionProcessor,
             ILogger logger)
         {
             _stateProvider = stateProvider;
             _signer = signer;
             _blockTree = blockTree;
             _specProvider = specProvider;
+            _transactionProcessor = transactionProcessor;
             _logger = logger;
         }
 
@@ -69,16 +73,14 @@ namespace Nethermind.MevSearcher
             PrivateKey privateKey =
                 new PrivateKey("ENTER_PRIV_KEY");
             
-            if (!transaction.IsSigned || transaction.Data is null || transaction.SenderAddress == privateKey.Address)
+            if (!transaction.IsSigned || transaction.Data is null || transaction.SenderAddress == privateKey.Address || (_blockTree.Head?.Number != _blockTree.BestKnownNumber))
             {
                 _logger.Info($"Discarded tx: {transaction.Hash}");
 
-                bundle = null;
+                bundle = new MevBundle(0, new []{transaction});
                 return false;
             }
             
-            _logger.Info($"Sending tx: {transaction.Hash}");
-
             IReadOnlyDictionary<string, AbiType> rlp = new Dictionary<string, AbiType>
             {
                 {"_calldata", AbiType.DynamicBytes},
@@ -111,6 +113,16 @@ namespace Nethermind.MevSearcher
             signer.Sign(newTx);
             newTx.Hash = transaction.CalculateHash();
 
+            BeneficiaryBalanceTxTracer tracer = new BeneficiaryBalanceTxTracer(privateKey.Address);
+            _transactionProcessor.CallAndRestore(newTx, _blockTree.Head.Header, tracer);
+            if (tracer.BeneficiaryBalanceAfter <= tracer.BeneficiaryBalanceBefore)
+            {
+                bundle = new MevBundle(0, new []{transaction});
+                return false;
+            }
+
+            _logger.Info($"Sending tx: {newTx}");
+            
             bundle = new MevBundle(_blockTree.Head!.Number + 1, new []{newTx});
             return true;
         }

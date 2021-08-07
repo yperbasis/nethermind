@@ -80,7 +80,7 @@ namespace Nethermind.MevSearcher
                     _logger);
                 _bundleSender = new BundleSender(_client, _nethermindApi.EngineSigner, _logger);
                 
-                _nethermindApi.TxPool!.NewPending += ProcessIncomingTransaction;
+                _nethermindApi.TxPool!.NewDiscovered += ProcessIncomingTransaction;
 
                 if (_logger!.IsInfo) _logger.Info("Flashbots searcher plugin enabled");
             }
