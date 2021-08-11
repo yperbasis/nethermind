@@ -11,7 +11,7 @@ namespace Nethermind.Sockets
     {
         public const int MAX_POOLED_SIZE = 1024 * 1024;
 
-        protected readonly ISocketHandler _handler;
+        public readonly ISocketHandler _handler;
         protected readonly IJsonSerializer _jsonSerializer;
 
         public string Id { get; } = Guid.NewGuid().ToString("N");

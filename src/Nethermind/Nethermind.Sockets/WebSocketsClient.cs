@@ -23,37 +23,37 @@ using Nethermind.Serialization.Json;
 
 namespace Nethermind.Sockets
 {
-    public class WebSocketsClient : IWebSocketsClient
+    public class WebSocketsClient : ISocketsClient
     {
         private readonly WebSocket _webSocket;
         private readonly IJsonSerializer _jsonSerializer;
 
         public string Id { get; } = Guid.NewGuid().ToString("N");
-        public string Client { get; }
+        public string ClientName { get; }
 
-        public WebSocketsClient(WebSocket webSocket, string client, IJsonSerializer jsonSerializer)
+        public WebSocketsClient(WebSocket webSocket, string clientName, IJsonSerializer jsonSerializer)
         {
             _webSocket = webSocket;
-            Client = client;
+            ClientName = clientName;
             _jsonSerializer = jsonSerializer;
         }
 
-        public Task ReceiveAsync(Memory<byte> data) => Task.CompletedTask;
+        public Task ReceiveAsync() => Task.CompletedTask;
 
-        public Task SendAsync(WebSocketsMessage message)
+        public Task SendAsync(SocketsMessage message)
         {
             if (message is null)
             {
                 return Task.CompletedTask;
             }
 
-            if (message.Client == Client || string.IsNullOrWhiteSpace(Client) ||
+            if (message.Client == ClientName || string.IsNullOrWhiteSpace(ClientName) ||
                 string.IsNullOrWhiteSpace(message.Client))
             {
                 return SendRawAsync(_jsonSerializer.Serialize(new
                 {
                     type = message.Type,
-                    client = Client,
+                    client = ClientName,
                     data = message.Data
                 }));
             }
@@ -71,6 +71,10 @@ namespace Nethermind.Sockets
             var bytes = Encoding.UTF8.GetBytes(data);
             return _webSocket.SendAsync(new ArraySegment<byte>(bytes, 0, bytes.Length), WebSocketMessageType.Text,
                 true, CancellationToken.None);
+        }
+
+        public void Dispose()
+        {
         }
     }
 }

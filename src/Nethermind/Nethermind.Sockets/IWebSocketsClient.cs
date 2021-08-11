@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace Nethermind.Sockets
@@ -24,7 +25,7 @@ namespace Nethermind.Sockets
         string Id { get; }
         string Client { get; }
         Task SendRawAsync(string data);
-        Task SendAsync(WebSocketsMessage message);
+        Task SendAsync(SocketsMessage message);
         Task ReceiveAsync(Memory<byte> data);
     }
 }

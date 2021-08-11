@@ -20,6 +20,12 @@ namespace Nethermind.Sockets
             _webSocket = webSocket;
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
         }
+        
+        public WebSocketHandler(WebSocket webSocket, ILogger logger)
+        {
+            _webSocket = webSocket;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
 
         public Task SendRawAsync(string data)
         {
