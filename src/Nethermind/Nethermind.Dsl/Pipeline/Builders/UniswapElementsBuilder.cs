@@ -42,6 +42,28 @@ namespace Nethermind.Dsl.Pipeline.Builders
 
         public PipelineElement<UniswapData, UniswapData> GetConditionElement(string key, string operation, string value)
         {
+            if (key.Equals("token", StringComparison.InvariantCultureIgnoreCase))
+            {
+                var tokenAddress = new Address(value);
+
+                return operation switch
+                {
+                    "IS" => new PipelineElement<UniswapData, UniswapData>(
+                        condition: data => data.Token0 == tokenAddress || data.Token1 == tokenAddress,
+                        transformData: t => t),
+                    "==" => new PipelineElement<UniswapData, UniswapData>(
+                        condition: data => data.Token0 == tokenAddress || data.Token1 == tokenAddress,
+                        transformData: t => t),
+                    "NOT" => new PipelineElement<UniswapData, UniswapData>(
+                        condition: data => data.Token0 != tokenAddress && data.Token1 != tokenAddress,
+                        transformData: t => t),
+                    "!=" => new PipelineElement<UniswapData, UniswapData>(
+                        condition: data => data.Token0 != tokenAddress && data.Token1 != tokenAddress,
+                        transformData: t => t)
+                };
+            }
+            
+
             return operation switch
             {
                 "IS" => new PipelineElement<UniswapData, UniswapData>(
