@@ -195,10 +195,20 @@ namespace Nethermind.Dsl.Pipeline.Sources
             if (poolAddres == null) return null;
 
             var pool = new UniswapV3Pool(poolAddres, _api.CreateBlockchainBridge());
-
+            var token0Address = pool.token0(_api.BlockTree.Head.Header);
+            var token1Address = pool.token1(_api.BlockTree.Head.Header);
+            var token0 = new ERC20(token0Address, _api);
+            var token1 = new ERC20(token1Address, _api);
+            
             var sqrtPriceX96 = pool.slot0(_api.BlockTree.Head.Header).Item1;
 
-            return (double) (sqrtPriceX96 * (sqrtPriceX96 * (UInt256) Math.Pow(10, 18) >> (96 * 2)));
+            var priceX96 = (double)(sqrtPriceX96 * sqrtPriceX96);
+            var denom = Math.Pow(2, 192);
+
+            var price1 = ((priceX96 / denom) * (double) token0.decimals()) * (double) token1.decimals();
+            var price0 = 1 / price1;
+
+            return _usdcAddress == token0Address ? price1 : price0; // we want to get price of token in pool with USDC
         }
     }
 

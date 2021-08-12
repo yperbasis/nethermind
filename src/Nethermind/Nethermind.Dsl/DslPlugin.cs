@@ -32,16 +32,16 @@ namespace Nethermind.Dsl
             _logger = _api.LogManager.GetClassLogger();
             if (_logger.IsInfo) _logger.Info("Initializing DSL plugin ...");
 
-            IEnumerable<string> dslScripts = LoadDSLScript();
+            // IEnumerable<string> dslScripts = LoadDSLScript();
             _interpreters = new Dictionary<int, Interpreter>();
 
-            if (dslScripts != null && dslScripts.Count() != 0)
-            {
-                foreach (var script in dslScripts)
-                {
-                    AddInterpreter(new Interpreter(_api, script));
-                }
-            }
+            // if (dslScripts != null && dslScripts.Count() != 0)
+            // {
+            //     foreach (var script in dslScripts)
+            //     {
+            //         AddInterpreter(new Interpreter(_api, script));
+            //     }
+            // }
 
             if (_logger.IsInfo) _logger.Info($"DSL plugin initialized with {_interpreters.Count} scripts loaded at the start of the node.");
         }
