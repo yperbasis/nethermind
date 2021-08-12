@@ -60,14 +60,11 @@ namespace Nethermind.Pipeline.Publishers
 
         private async Task SendMessageAsync(object data)
         {
-            var serializedData = _serializer.Serialize(data,true);
-            serializedData = serializedData.Replace("\"", "'");
-
             var uri = new Uri($"https://api.telegram.org/bot{_botToken}/sendMessage");
             var content = new FormUrlEncodedContent(new[]
             {
                 new KeyValuePair<string, string>("chat_id", _chatId),
-                new KeyValuePair<string, string>("text", serializedData)
+                new KeyValuePair<string, string>("text", data.ToString())
             });
 
             try
@@ -83,11 +80,5 @@ namespace Nethermind.Pipeline.Publishers
         {
             return "1894135076:AAHmdMwkLia8FzUiDBsZ-h3kqsBIzeGa4y8"; //this is just a test bot, will do a proper secret token after tests are done and we will create another bot  
         }
-    }
-
-    class TelegramMessage
-    {
-        public string chat_id { get; set; }
-        public string text { get; set; }
     }
 }

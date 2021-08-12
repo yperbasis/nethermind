@@ -227,5 +227,19 @@ namespace Nethermind.Dsl.Pipeline.Sources
         public string? Token0Out { get; set; }
         public string? Token1In { get; set; }
         public string? Token1Out { get; set; }
+
+        public override string ToString()
+        {
+            return $"Found a swap on pool {Pool} \n" +
+                   $"Token0 is {Token0} \n" +
+                   $"Token1 is {Token1} \n" +
+                   $"Token0Out {Token0Out} \n" +
+                   $"Token0In {Token0In} \n " +
+                   $"Token1Out {Token1Out} \n" +
+                   $"Token1In {Token1In} \n" +
+                   $"Token0 price on uniswap V2 is {Token0V2Price}$ \n" +
+                   $"Token1 price on uniswap V2 is {Token1V2Price}$ \n" +
+                   $"Swapper address is {Swapper}";
+        }
     }
 }

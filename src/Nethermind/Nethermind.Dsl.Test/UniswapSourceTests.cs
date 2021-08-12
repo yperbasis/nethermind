@@ -20,6 +20,7 @@ using System.Numerics;
 using Nethermind.Api;
 using Nethermind.Core.Extensions;
 using Nethermind.Dsl.ANTLR;
+using Nethermind.Dsl.Pipeline.Sources;
 using Nethermind.Int256;
 using Nethermind.Serialization.Json;
 using NSubstitute;
@@ -50,19 +51,15 @@ namespace Nethermind.Dsl.Test
         [Test]
         public void test()
         {
-            // Int256.Int256 integer = Int256.Int256.Max;
-            // var serializer = new EthereumJsonSerializer();
-            // serializer.Serialize(integer);
-
-            UInt256.TryParse("1420126735814661362314364650126280", out UInt256 sqrtPriceX96);
-
-            var priceX96 = sqrtPriceX96 * sqrtPriceX96;
-            var denom = Math.Pow(2, 192);
-
-            var divided = (double)priceX96 / denom;
-            var multiplied = divided * Math.Pow(10,6);
-            var price1 = multiplied / Math.Pow(10,18);
-            var price0 = 1 / price1; 
+            // UInt256.TryParse("1420126735814661362314364650126280", out UInt256 sqrtPriceX96);
+            //
+            // var priceX96 = sqrtPriceX96 * sqrtPriceX96;
+            // var denom = Math.Pow(2, 192);
+            //
+            // var divided = (double)priceX96 / denom;
+            // var multiplied = divided * Math.Pow(10,6);
+            // var price1 = multiplied / Math.Pow(10,18);
+            // var price0 = 1 / price1;
         }
     }
 }

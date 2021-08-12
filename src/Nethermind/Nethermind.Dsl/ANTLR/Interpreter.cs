@@ -1,9 +1,7 @@
 using System;
 using System.Linq;
 using Antlr4.Runtime;
-using Antlr4.Runtime.Atn;
 using Antlr4.Runtime.Tree;
-using Microsoft.Extensions.Logging.Abstractions;
 using Nethermind.Api;
 using Nethermind.Core;
 using Nethermind.Dsl.Pipeline;
