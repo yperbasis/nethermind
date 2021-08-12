@@ -184,6 +184,22 @@ namespace Nethermind.Dsl.Pipeline.Sources
 
             return ((double)usdcReserves / (double)tokenReserves) * Math.Pow(10, 12);
         }
+
+        //https://ethereum.stackexchange.com/questions/98685/computing-the-uniswap-v3-pair-price-from-q64-96-number
+        private double? GetV3PriceOfTokenInUSDC(Address tokenAddress)
+        {
+            var poolAddres = _v3Factory.getPool(_api.BlockTree.Head.Header, tokenAddress, _usdcAddress, 300)
+                       ?? _v3Factory.getPool(_api.BlockTree.Head.Header, tokenAddress, _usdcAddress, 500)
+                       ?? _v3Factory.getPool(_api.BlockTree.Head.Header, tokenAddress, _usdcAddress, 1000);
+
+            if (poolAddres == null) return null;
+
+            var pool = new UniswapV3Pool(poolAddres, _api.CreateBlockchainBridge());
+
+            var sqrtPriceX96 = pool.slot0(_api.BlockTree.Head.Header).Item1;
+
+            return (double) (sqrtPriceX96 * (sqrtPriceX96 * (UInt256) Math.Pow(10, 18) >> (96 * 2)));
+        }
     }
 
     public class UniswapData

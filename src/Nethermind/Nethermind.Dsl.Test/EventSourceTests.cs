@@ -27,7 +27,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Dsl.ANTLR;
 using Nethermind.Dsl.Pipeline.Builders;
 using Nethermind.Serialization.Json;
-using Nethermind.WebSockets;
+using Nethermind.Sockets;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -62,7 +62,7 @@ namespace Nethermind.Dsl.Test
             _api.WebSocketsManager.AddModule(Arg.Do<IWebSocketsModule>(module => module.CreateClient(mockWebSocket, "test")));
             _interpreter = new Interpreter(_api, script);
 
-            _api.MainBlockProcessor.TransactionProcessed += Raise.Event<EventHandler<TxProcessedEventArgs>>(this, new TxProcessedEventArgs(receipt));
+            _api.MainBlockProcessor.TransactionProcessed += Raise.Event<EventHandler<TxProcessedEventArgs>>(this, new TxProcessedEventArgs(0, null, receipt));
 
             //this needs to be fixed and properly checked if the sent buffer is correct, had a problem with this and decided that for now it's enough to be sure that it works
             mockWebSocket.ReceivedWithAnyArgs().SendAsync(default, default, default, default);
@@ -82,7 +82,7 @@ namespace Nethermind.Dsl.Test
 
             _interpreter = new Interpreter(_api, script);
 
-            _api.MainBlockProcessor.TransactionProcessed += Raise.Event<EventHandler<TxProcessedEventArgs>>(this, new TxProcessedEventArgs(receipt));
+            _api.MainBlockProcessor.TransactionProcessed += Raise.Event<EventHandler<TxProcessedEventArgs>>(this, new TxProcessedEventArgs(0, null, receipt));
         }
 
 
@@ -109,7 +109,7 @@ namespace Nethermind.Dsl.Test
 
             _interpreter = new Interpreter(_api, script);
 
-            _api.MainBlockProcessor.TransactionProcessed += Raise.Event<EventHandler<TxProcessedEventArgs>>(this, new TxProcessedEventArgs(receipt));
+            _api.MainBlockProcessor.TransactionProcessed += Raise.Event<EventHandler<TxProcessedEventArgs>>(this, new TxProcessedEventArgs(0, null, receipt));
         }
 
         [Test]
@@ -125,7 +125,7 @@ namespace Nethermind.Dsl.Test
 
             _interpreter = new Interpreter(_api, script);
 
-            _api.MainBlockProcessor.TransactionProcessed += Raise.Event<EventHandler<TxProcessedEventArgs>>(this, new TxProcessedEventArgs(receipt));
+            _api.MainBlockProcessor.TransactionProcessed += Raise.Event<EventHandler<TxProcessedEventArgs>>(this, new TxProcessedEventArgs(0, null, receipt));
         }
     }
 }

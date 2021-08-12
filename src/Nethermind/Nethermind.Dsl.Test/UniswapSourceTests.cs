@@ -54,9 +54,10 @@ namespace Nethermind.Dsl.Test
             // var serializer = new EthereumJsonSerializer();
             // serializer.Serialize(integer);
 
-            UInt256 x = 100;
-            UInt256 y = 150;
-
+            UInt256.TryParse("1420126735814661362314364650126280", out UInt256 sqrtPriceX96);
+            var price = sqrtPriceX96 * sqrtPriceX96;
+            var calculation = price >> (96*2);
+            var x = (double)calculation / 1e18;
         }
     }
 }

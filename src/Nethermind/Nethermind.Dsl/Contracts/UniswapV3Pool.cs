@@ -15,9 +15,11 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
+using System;
 using Nethermind.Abi;
 using Nethermind.Core;
 using Nethermind.Facade;
+using Nethermind.Int256;
 
 namespace Nethermind.Dsl.Contracts
 {
@@ -39,6 +41,11 @@ namespace Nethermind.Dsl.Contracts
         public Address token1(BlockHeader header)
         {
             return ConstantContract.Call<Address>(header, nameof(token1), Address.Zero);
-        }  
+        }
+
+        public (UInt256, int, ushort, ushort, ushort, ushort, bool) slot0(BlockHeader header)
+        {
+            return ConstantContract.Call<UInt256, int, ushort, ushort, ushort, ushort, bool>(header, nameof(slot0), Address.Zero);
+        }
     }
 }

@@ -21,6 +21,7 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Evm;
 using Nethermind.Evm.TransactionProcessing;
+using Org.BouncyCastle.Crypto.Modes.Gcm;
 
 namespace Nethermind.Blockchain.Contracts
 {
@@ -54,6 +55,12 @@ namespace Nethermind.Blockchain.Contracts
                 return ((T1) objects[0], (T2) objects[1], (T3) objects[2]);
             }
             
+            public (T1, T2, T3, T4, T5, T6, T7) Call<T1, T2, T3, T4, T5, T6, T7>(CallInfo callInfo)
+            {
+                var objects = Call(callInfo);
+                return ((T1) objects[0], (T2) objects[1], (T3) objects[2], (T4) objects[3], (T5) objects[4], (T6) objects[5], (T7) objects[6]);
+            }
+            
             public T Call<T>(BlockHeader parentHeader, string functionName, Address sender, params object[] arguments) => 
                 Call<T>(new CallInfo(parentHeader, functionName, sender, arguments));
 
@@ -63,6 +70,9 @@ namespace Nethermind.Blockchain.Contracts
             public (T1, T2, T3) Call<T1, T2, T3>(BlockHeader parentHeader, string functionName, Address sender, params object[] arguments) => 
                 Call<T1,T2, T3>(new CallInfo(parentHeader, functionName, sender, arguments));
             
+            public (T1, T2, T3, T4, T5, T6, T7) Call<T1, T2, T3, T4, T5, T6, T7>(BlockHeader parentHeader, string functionName, Address sender, params object[] arguments) => 
+                Call<T1,T2,T3,T4,T5,T6,T7>(new CallInfo(parentHeader, functionName, sender, arguments));
+
             public T Call<T>(BlockHeader parentHeader, Address contractAddress, string functionName, Address sender, params object[] arguments) => 
                 Call<T>(new CallInfo(parentHeader, functionName, sender, arguments) {ContractAddress = contractAddress});
 
