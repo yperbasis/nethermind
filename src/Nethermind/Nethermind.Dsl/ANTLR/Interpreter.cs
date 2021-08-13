@@ -6,6 +6,7 @@ using Nethermind.Api;
 using Nethermind.Core;
 using Nethermind.Dsl.Pipeline;
 using Nethermind.Dsl.Pipeline.Builders;
+using Nethermind.Dsl.Pipeline.Data;
 using Nethermind.Dsl.Pipeline.Sources;
 using Nethermind.Logging;
 using Nethermind.Pipeline;
@@ -23,10 +24,10 @@ namespace Nethermind.Dsl.ANTLR
         private readonly ILogger _logger;
 
         // pipelines builders for each flow
-        private IPipelineBuilder<Block, Block> _blocksPipelineBuilder;
-        private IPipelineBuilder<Transaction, Transaction> _transactionsPipelineBuilder;
-        private IPipelineBuilder<LogEntry, LogEntry> _eventsPipelineBuilder;
-        private IPipelineBuilder<Transaction, Transaction> _pendingTransactionsPipelineBuilder;
+        private IPipelineBuilder<BlockData, BlockData> _blocksPipelineBuilder;
+        private IPipelineBuilder<TxData, TxData> _transactionsPipelineBuilder;
+        private IPipelineBuilder<EventData, EventData> _eventsPipelineBuilder;
+        private IPipelineBuilder<PendingTxData, PendingTxData> _pendingTransactionsPipelineBuilder;
         private IPipelineBuilder<UniswapData, UniswapData> _uniswapPipelineBuilder;
 
         //builders of elements in pipelines
@@ -93,25 +94,25 @@ namespace Nethermind.Dsl.ANTLR
             {
                 case "blocks":
                     var blocksSource = _blockElementsBuilder.GetSourceElement();
-                    _blocksPipelineBuilder = new PipelineBuilder<Block, Block>(blocksSource);
+                    _blocksPipelineBuilder = new PipelineBuilder<BlockData, BlockData>(blocksSource);
                     _pipelineSource = PipelineSource.Blocks;
 
                     break;
                 case "events":
                     var eventSource = _eventElementsBuilder.GetSourceElement();
-                    _eventsPipelineBuilder = new PipelineBuilder<LogEntry, LogEntry>(eventSource);
+                    _eventsPipelineBuilder = new PipelineBuilder<EventData, EventData>(eventSource);
                     _pipelineSource = PipelineSource.Events;
 
                     break;
                 case "transactions":
                     var processedTransactionsSource = _transactionElementsBuilder.GetSourceElement();
-                    _transactionsPipelineBuilder = new PipelineBuilder<Transaction, Transaction>(processedTransactionsSource);
+                    _transactionsPipelineBuilder = new PipelineBuilder<TxData, TxData>(processedTransactionsSource);
                     _pipelineSource = PipelineSource.Transactions;
 
                     break;
                 case "newpending":
                     var pendingTransactionsSource = _pendingTransactionElementsBuilder.GetSourceElement();
-                    _pendingTransactionsPipelineBuilder = new PipelineBuilder<Transaction, Transaction>(pendingTransactionsSource);
+                    _pendingTransactionsPipelineBuilder = new PipelineBuilder<PendingTxData, PendingTxData>(pendingTransactionsSource);
                     _pipelineSource = PipelineSource.PendingTransactions;
 
                     break;
@@ -128,19 +129,19 @@ namespace Nethermind.Dsl.ANTLR
             switch (_pipelineSource)
             {
                 case PipelineSource.Blocks:
-                    PipelineElement<Block, Block> blockElement = _blockElementsBuilder.GetConditionElement(key, symbol, value);
+                    PipelineElement<BlockData, BlockData> blockElement = _blockElementsBuilder.GetConditionElement(key, symbol, value);
                     _blocksPipelineBuilder = _blocksPipelineBuilder.AddElement(blockElement);
                     break;
                 case PipelineSource.Transactions:
-                    PipelineElement<Transaction, Transaction> txElement = _transactionElementsBuilder.GetConditionElement(key, symbol, value);
+                    PipelineElement<TxData, TxData> txElement = _transactionElementsBuilder.GetConditionElement(key, symbol, value);
                     _transactionsPipelineBuilder = _transactionsPipelineBuilder.AddElement(txElement);
                     break;
                 case PipelineSource.PendingTransactions:
-                    PipelineElement<Transaction, Transaction> pendingTxElement = _pendingTransactionElementsBuilder.GetConditionElement(key, symbol, value);
+                    PipelineElement<PendingTxData, PendingTxData> pendingTxElement = _pendingTransactionElementsBuilder.GetConditionElement(key, symbol, value);
                     _pendingTransactionsPipelineBuilder = _pendingTransactionsPipelineBuilder.AddElement(pendingTxElement);
                     break;
                 case PipelineSource.Events:
-                    PipelineElement<LogEntry, LogEntry> eventElement = _eventElementsBuilder.GetConditionElement(key, symbol, value);
+                    PipelineElement<EventData, EventData> eventElement = _eventElementsBuilder.GetConditionElement(key, symbol, value);
                     _eventsPipelineBuilder = _eventsPipelineBuilder.AddElement(eventElement);
                     break;
                 case PipelineSource.Uniswap:
@@ -163,25 +164,25 @@ namespace Nethermind.Dsl.ANTLR
                 case PipelineSource.Blocks:
                     var blockElement = _blockElementsBuilder.GetConditionElement(key, symbol, value);
                     var blockCondition = blockElement.Conditions.Last();
-                    var lastBlockElement = (PipelineElement<Block, Block>) _blocksPipelineBuilder.LastElement;
+                    var lastBlockElement = (PipelineElement<BlockData, BlockData>) _blocksPipelineBuilder.LastElement;
                     lastBlockElement.AddCondition(blockCondition);
                     break;
                 case PipelineSource.Transactions:
                     var txElement = _transactionElementsBuilder.GetConditionElement(key, symbol, value);
                     var txCondition = txElement.Conditions.Last();
-                    var lastTxElement = (PipelineElement<Transaction, Transaction>) _transactionsPipelineBuilder.LastElement;
+                    var lastTxElement = (PipelineElement<TxData, TxData>) _transactionsPipelineBuilder.LastElement;
                     lastTxElement.AddCondition(txCondition);
                     break;
                 case PipelineSource.PendingTransactions:
                     var pendingTxElement = _pendingTransactionElementsBuilder.GetConditionElement(key, symbol, value);
                     var pendingTxCondition = pendingTxElement.Conditions.Last();
-                    var lastPendingTxElement = (PipelineElement<Transaction, Transaction>) _pendingTransactionsPipelineBuilder.LastElement;
+                    var lastPendingTxElement = (PipelineElement<PendingTxData, PendingTxData>) _pendingTransactionsPipelineBuilder.LastElement;
                     lastPendingTxElement.AddCondition(pendingTxCondition);
                     break;
                 case PipelineSource.Events:
                     var eventElement = _eventElementsBuilder.GetConditionElement(key, symbol, value);
                     var eventElementCondition = eventElement.Conditions.Last();
-                    var lastEventElement = (PipelineElement<LogEntry, LogEntry>) _eventsPipelineBuilder.LastElement;
+                    var lastEventElement = (PipelineElement<EventData, EventData>) _eventsPipelineBuilder.LastElement;
                     lastEventElement.AddCondition(eventElementCondition);
                     break;
                 case PipelineSource.Uniswap:

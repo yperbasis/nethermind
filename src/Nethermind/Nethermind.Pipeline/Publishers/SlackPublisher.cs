@@ -76,7 +76,7 @@ namespace Nethermind.Pipeline.Publishers
 
             var messageContents = new FormUrlEncodedContent(new[]
             {
-                new KeyValuePair<string, string>("text", serializedData)
+                new KeyValuePair<string, string>("text", data.ToString())
             });
 
             var message = await messageContents.ReadAsStringAsync();

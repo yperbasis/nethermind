@@ -21,6 +21,7 @@ using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
+using Nethermind.Dsl.Pipeline.Data;
 using Nethermind.Dsl.Pipeline.Sources;
 
 namespace Nethermind.Dsl.Pipeline.Builders
@@ -34,36 +35,36 @@ namespace Nethermind.Dsl.Pipeline.Builders
             _blockProcessor = blockProcessor ?? throw new ArgumentNullException(nameof(blockProcessor));
         }
 
-        public EventsSource<LogEntry> GetSourceElement()
+        public EventsSource<EventData> GetSourceElement()
         {
             return new(_blockProcessor);
         }
         
-        public PipelineElement<LogEntry, LogEntry> GetConditionElement(string key, string operation, string value)
+        public PipelineElement<EventData, EventData> GetConditionElement(string key, string operation, string value)
         {
 
             if (key.Equals("EventSignature", StringComparison.InvariantCultureIgnoreCase) && operation.Equals("IS"))
             {
-                return new PipelineElement<LogEntry, LogEntry>(
+                return new PipelineElement<EventData, EventData>(
                     condition: t => CheckEventSignature(t, value), 
                     transformData: t => t);
             }
 
             return operation switch
             {
-                "IS" => new PipelineElement<LogEntry, LogEntry>(
+                "IS" => new PipelineElement<EventData, EventData>(
                     condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() == value.ToLowerInvariant()),
                     transformData: (t => t)),
-                "==" => new PipelineElement<LogEntry, LogEntry>(
+                "==" => new PipelineElement<EventData, EventData>(
                     condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() == value.ToLowerInvariant()),
                     transformData: (t => t)),
-                "NOT" => new PipelineElement<LogEntry, LogEntry>(
+                "NOT" => new PipelineElement<EventData, EventData>(
                     condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() != value.ToLowerInvariant()),
                     transformData: (t => t)),
-                "!=" => new PipelineElement<LogEntry, LogEntry>(
+                "!=" => new PipelineElement<EventData, EventData>(
                     condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() != value.ToLowerInvariant()),
                     transformData: (t => t)),
-                "CONTAINS" => new PipelineElement<LogEntry, LogEntry>(
+                "CONTAINS" => new PipelineElement<EventData, EventData>(
                     condition: (l => CheckIfContains(l, key, value)),
                     transformData: (l => l)),
                 _ => null

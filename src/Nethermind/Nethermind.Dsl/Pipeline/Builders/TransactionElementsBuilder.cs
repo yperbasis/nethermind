@@ -18,6 +18,7 @@
 using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
+using Nethermind.Dsl.Pipeline.Data;
 using Nethermind.Dsl.Pipeline.Sources;
 using Nethermind.Int256;
 
@@ -32,40 +33,40 @@ namespace Nethermind.Dsl.Pipeline.Builders
             _blockProcessor = blockProcessor;
         }
 
-        public ProcessedTransactionsSource<Transaction> GetSourceElement()
+        public ProcessedTransactionsSource<TxData> GetSourceElement()
         {
             return new(_blockProcessor);
         }
         
-        public PipelineElement<Transaction, Transaction> GetConditionElement(string key, string operation, string value)
+        public PipelineElement<TxData, TxData> GetConditionElement(string key, string operation, string value)
         {
             return operation switch
             {
-                "IS" => new PipelineElement<Transaction, Transaction>(
+                "IS" => new PipelineElement<TxData, TxData>(
                     condition: (t => t.GetType().GetProperty(key).GetValue(t).ToString()?.ToLowerInvariant() == value.ToLowerInvariant()),
                     transformData: (t => t)),
-                "==" => new PipelineElement<Transaction, Transaction>(
+                "==" => new PipelineElement<TxData, TxData>(
                     condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() == value.ToLowerInvariant()),
                     transformData: (t => t)),
-                "NOT" => new PipelineElement<Transaction, Transaction>(
+                "NOT" => new PipelineElement<TxData, TxData>(
                     condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() != value.ToLowerInvariant()),
                     transformData: (t => t)),
-                "!=" => new PipelineElement<Transaction, Transaction>(
+                "!=" => new PipelineElement<TxData, TxData>(
                     condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() != value.ToLowerInvariant()),
                     transformData: (t => t)),
-                ">" => new PipelineElement<Transaction, Transaction>(
+                ">" => new PipelineElement<TxData, TxData>(
                     condition: (t => (UInt256) t.GetType().GetProperty(key)?.GetValue(t) > UInt256.Parse(value)),
                     transformData: (t => t)),
-                "<" => new PipelineElement<Transaction, Transaction>(
+                "<" => new PipelineElement<TxData, TxData>(
                     condition: (t => (UInt256) t.GetType().GetProperty(key)?.GetValue(t) < UInt256.Parse(value)),
                     transformData: (t => t)),
-                ">=" => new PipelineElement<Transaction, Transaction>(
+                ">=" => new PipelineElement<TxData, TxData>(
                     condition: (t => (UInt256) t.GetType().GetProperty(key)?.GetValue(t) >= UInt256.Parse(value)),
                     transformData: (t => t)),
-                "<=" => new PipelineElement<Transaction, Transaction>(
+                "<=" => new PipelineElement<TxData, TxData>(
                     condition: (t => (UInt256) t.GetType().GetProperty(key)?.GetValue(t) <= UInt256.Parse(value)),
                     transformData: (t => t)),
-                "CONTAINS" => new PipelineElement<Transaction, Transaction>(
+                "CONTAINS" => new PipelineElement<TxData, TxData>(
                     condition: (t => CheckIfDataContains(t, value)),
                     transformData: (t => t)),
                 _ => null

@@ -68,9 +68,6 @@ namespace Nethermind.Pipeline.Publishers
 
         private async Task SendMessageAsync(object data)
         {
-
-            var serializedData = _serializer.Serialize(data);
-
             var headers = _httpClient.DefaultRequestHeaders;
 
             var uri = new Uri($"https://discordapp.com/api/channels/{_chatId}/messages");
@@ -78,7 +75,7 @@ namespace Nethermind.Pipeline.Publishers
             var messageContents = new FormUrlEncodedContent(new[]
             {
                 new KeyValuePair<string, string>("chat_id", _chatId),
-                new KeyValuePair<string, string>("text", serializedData)
+                new KeyValuePair<string, string>("text", data.ToString())
             });
 
             var message = await messageContents.ReadAsStringAsync();

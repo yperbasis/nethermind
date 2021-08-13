@@ -51,15 +51,15 @@ namespace Nethermind.Dsl.Test
         [Test]
         public void test()
         {
-            // UInt256.TryParse("1420126735814661362314364650126280", out UInt256 sqrtPriceX96);
-            //
-            // var priceX96 = sqrtPriceX96 * sqrtPriceX96;
-            // var denom = Math.Pow(2, 192);
-            //
-            // var divided = (double)priceX96 / denom;
-            // var multiplied = divided * Math.Pow(10,6);
-            // var price1 = multiplied / Math.Pow(10,18);
-            // var price0 = 1 / price1;
+            UInt256.TryParse("1420126735814661362314364650126280", out UInt256 sqrtPriceX96);
+            
+            var priceX96 = sqrtPriceX96 * sqrtPriceX96;
+            var denom = Math.Pow(2, 192);
+            
+            var divided = (double)priceX96 / denom;
+            var multiplied = divided * Math.Pow(10,6);
+            var price1 = multiplied / Math.Pow(10,18);
+            var price0 = 1 / price1;
         }
     }
 }

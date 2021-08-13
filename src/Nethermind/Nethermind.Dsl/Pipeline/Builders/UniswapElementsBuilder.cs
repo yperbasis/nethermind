@@ -22,6 +22,7 @@ using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
+using Nethermind.Dsl.Pipeline.Data;
 using Nethermind.Dsl.Pipeline.Sources;
 
 namespace Nethermind.Dsl.Pipeline.Builders

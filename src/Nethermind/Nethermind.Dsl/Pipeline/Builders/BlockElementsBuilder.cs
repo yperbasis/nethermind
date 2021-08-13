@@ -16,11 +16,9 @@
 // 
 
 using Nethermind.Blockchain.Processing;
-using Nethermind.Core;
+using Nethermind.Dsl.Pipeline.Data;
 using Nethermind.Dsl.Pipeline.Sources;
 using Nethermind.Int256;
-using Nethermind.Pipeline;
-using Nethermind.Pipeline.Publishers;
 
 namespace Nethermind.Dsl.Pipeline.Builders
 {
@@ -33,37 +31,37 @@ namespace Nethermind.Dsl.Pipeline.Builders
             _blockProcessor = blockProcessor;
         }
 
-        public BlocksSource<Block> GetSourceElement()
+        public BlocksSource<BlockData> GetSourceElement()
         {
             return new(_blockProcessor);
         }
         
-        public PipelineElement<Block, Block> GetConditionElement(string key, string operation, string value)
+        public PipelineElement<BlockData, BlockData> GetConditionElement(string key, string operation, string value)
         {
             return operation switch
             {
-                "IS" => new PipelineElement<Block, Block>(
+                "IS" => new PipelineElement<BlockData, BlockData>(
                     condition: (b => b.GetType().GetProperty(key)?.GetValue(b)?.ToString()?.ToLowerInvariant() == value.ToLowerInvariant()),
                     transformData: (b => b)),
-                "==" => new PipelineElement<Block, Block>(
+                "==" => new PipelineElement<BlockData, BlockData>(
                     condition: (b => b.GetType().GetProperty(key)?.GetValue(b)?.ToString()?.ToLowerInvariant() == value.ToLowerInvariant()),
                     transformData: (b => b)),
-                "!=" => new PipelineElement<Block, Block>(
+                "!=" => new PipelineElement<BlockData, BlockData>(
                     condition: (b => b.GetType().GetProperty(key)?.GetValue(b)?.ToString()?.ToLowerInvariant() != value.ToLowerInvariant()),
                     transformData: (b => b)),
-                "NOT" => new PipelineElement<Block, Block>(
+                "NOT" => new PipelineElement<BlockData, BlockData>(
                     condition: (b => b.GetType().GetProperty(key)?.GetValue(b)?.ToString()?.ToLowerInvariant() != value.ToLowerInvariant()),
                     transformData: (b => b)),
-                ">" => new PipelineElement<Block, Block>(
+                ">" => new PipelineElement<BlockData, BlockData>(
                     condition: (b => (UInt256) b.GetType().GetProperty(key)?.GetValue(b) > UInt256.Parse(value)),
                     transformData: (b => b)),
-                "<" => new PipelineElement<Block, Block>(
+                "<" => new PipelineElement<BlockData, BlockData>(
                     condition: (b => (UInt256) b.GetType().GetProperty(key)?.GetValue(b) < UInt256.Parse(value)),
                     transformData: (b => b)),
-                ">=" => new PipelineElement<Block, Block>(
+                ">=" => new PipelineElement<BlockData, BlockData>(
                     condition: (b => (UInt256) b.GetType().GetProperty(key)?.GetValue(b) >= UInt256.Parse(value)),
                     transformData: (b => b)),
-                "<=" => new PipelineElement<Block, Block>(
+                "<=" => new PipelineElement<BlockData, BlockData>(
                     condition: (b => (UInt256) b.GetType().GetProperty(key)?.GetValue(b) <= UInt256.Parse(value)),
                     transformData: (b => b)),
                 _ => null

@@ -1,13 +1,14 @@
 using System;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
+using Nethermind.Dsl.Pipeline.Data;
 using Nethermind.Logging;
 using Nethermind.Pipeline;
 
 #nullable enable
 namespace Nethermind.Dsl.Pipeline.Sources
 {
-    public class BlocksSource<TOut> : IPipelineElement<TOut> where TOut : Block
+    public class BlocksSource<TOut> : IPipelineElement<TOut> where TOut : BlockData
     {
         private readonly IBlockProcessor _blockProcessor;
 

@@ -16,38 +16,41 @@
 // 
 
 using System;
-using Nethermind.Blockchain.Processing;
+using System.Linq;
+using Microsoft.Extensions.Logging;
 using Nethermind.Core;
-using Nethermind.Dsl.Pipeline.Data;
-using Nethermind.Pipeline;
+using Nethermind.Core.Crypto;
 
-#nullable enable
-namespace Nethermind.Dsl.Pipeline.Sources
+namespace Nethermind.Dsl.Pipeline.Data
 {
-    public class EventsSource<TOut> : IPipelineElement<TOut> where TOut : EventData
+    public class EventData : LogEntry
     {
-        public Action<TOut>? Emit { private get; set; }
-        private IBlockProcessor _blockProcessor;
-
-        public EventsSource(IBlockProcessor blockProcessor)
+        public EventData(Address address, byte[] data, Keccak[] topics) : base(address, data, topics)
         {
-            _blockProcessor = blockProcessor;
-            try
-            {
-                _blockProcessor.TransactionProcessed += OnTransactionProcessed;
-            }
-            catch (Exception e)
-            {
-                // ignored for now, will add logger later
-            }
         }
 
-        private void OnTransactionProcessed(object? sender, TxProcessedEventArgs args)
+        public override string ToString()
         {
-            foreach (TOut log in args.TxReceipt.Logs)
+            var result = $"Found new event at {LoggersAddress}. \n";
+
+            if (Topics.Any())
             {
-                Emit?.Invoke(log); 
-            }    
-        } 
+                result += "Topics: \n";
+
+                var i = 0;
+                foreach (var topic in Topics)
+                {
+                    result += $"[{i}] {topic}\n";
+                    i++;
+                }
+            }
+
+            if (Data.Length != 0)
+            {
+                result += $"Data: {Data} \n";
+            }
+
+            return result;
+        }
     }
 }

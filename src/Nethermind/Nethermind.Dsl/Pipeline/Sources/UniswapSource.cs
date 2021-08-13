@@ -26,6 +26,7 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Dsl.Contracts;
+using Nethermind.Dsl.Pipeline.Data;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Pipeline;
@@ -209,37 +210,6 @@ namespace Nethermind.Dsl.Pipeline.Sources
             var price0 = 1 / price1;
 
             return _usdcAddress == token0Address ? price1 : price0; // we want to get price of token in pool with USDC
-        }
-    }
-
-    public class UniswapData
-    {
-        public Keccak? Transaction { get; set; }
-        public Address? Swapper { get; set; }
-        public Address? Pool { get; set; }
-        public Address? Token0 { get; set; }
-        public Address? Token1 { get; set; }
-        public string Token0V2Reserves { get; set; }
-        public string Token1V2Reserves { get; set; }
-        public string? Token0V2Price { get; set; }
-        public string? Token1V2Price { get; set; }
-        public string? Token0In { get; set; }
-        public string? Token0Out { get; set; }
-        public string? Token1In { get; set; }
-        public string? Token1Out { get; set; }
-
-        public override string ToString()
-        {
-            return $"Found a swap on pool {Pool} \n" +
-                   $"Token0 is {Token0} \n" +
-                   $"Token1 is {Token1} \n" +
-                   $"Token0Out {Token0Out} \n" +
-                   $"Token0In {Token0In} \n " +
-                   $"Token1Out {Token1Out} \n" +
-                   $"Token1In {Token1In} \n" +
-                   $"Token0 price on uniswap V2 is {Token0V2Price}$ \n" +
-                   $"Token1 price on uniswap V2 is {Token1V2Price}$ \n" +
-                   $"Swapper address is {Swapper}";
         }
     }
 }
