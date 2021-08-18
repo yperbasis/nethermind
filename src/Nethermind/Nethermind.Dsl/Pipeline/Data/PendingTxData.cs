@@ -21,7 +21,7 @@ using Nethermind.Core.Extensions;
 
 namespace Nethermind.Dsl.Pipeline.Data
 {
-    public class PendingTxData : Transaction
+    public class PendingTxData : TxData
     {
         public override string ToString()
         {

@@ -26,7 +26,8 @@ namespace Nethermind.Dsl.Pipeline.Sources
 
         private void OnProcesedTransaction(object? sender, TxProcessedEventArgs args)
         {
-            Emit?.Invoke((TOut) args.Transaction);
+            var data = TxData.FromTransaction(args.Transaction);
+            Emit?.Invoke((TOut) data);
         }
     }
 }

@@ -44,9 +44,10 @@ namespace Nethermind.Dsl.Pipeline.Sources
 
         private void OnTransactionProcessed(object? sender, TxProcessedEventArgs args)
         {
-            foreach (TOut log in args.TxReceipt.Logs)
+            foreach (LogEntry log in args.TxReceipt.Logs)
             {
-                Emit?.Invoke(log); 
+                var data = EventData.FromLogEntry(log);
+                Emit?.Invoke((TOut)data); 
             }    
         } 
     }

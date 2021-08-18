@@ -36,6 +36,11 @@ namespace Nethermind.Dsl.Pipeline.Data
         {
         }
 
+        public static BlockData FromBlock(Block block)
+        {
+            return new(block.Header, block.Body);
+        }
+
         public override string ToString()
         {
             StringBuilder builder = new();

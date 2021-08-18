@@ -1,12 +1,13 @@
 using System;
 using Nethermind.Core;
+using Nethermind.Dsl.Pipeline.Data;
 using Nethermind.Pipeline;
 using Nethermind.TxPool;
 
 #nullable enable
 namespace Nethermind.Dsl.Pipeline.Sources
 {
-    public class PendingTransactionsSource<TOut> : IPipelineElement<TOut> where TOut : Transaction
+    public class PendingTransactionsSource<TOut> : IPipelineElement<TOut> where TOut : PendingTxData
     {
         private readonly ITxPool _txPool;
 
@@ -26,7 +27,8 @@ namespace Nethermind.Dsl.Pipeline.Sources
 
         private void OnNewPending(object? sender, TxEventArgs args)
         {
-            Emit?.Invoke((TOut) args.Transaction);
+            var data = PendingTxData.FromTransaction(args.Transaction);
+            Emit?.Invoke((TOut) data);
         }
     }
 }

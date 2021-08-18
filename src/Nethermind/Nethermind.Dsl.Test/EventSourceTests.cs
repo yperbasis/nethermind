@@ -18,6 +18,7 @@
 using System;
 using System.Net.Http;
 using System.Net.WebSockets;
+using FluentAssertions;
 using Nethermind.Abi;
 using Nethermind.Api;
 using Nethermind.Blockchain.Contracts.Json;
@@ -26,6 +27,7 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Dsl.ANTLR;
 using Nethermind.Dsl.Pipeline.Builders;
+using Nethermind.Dsl.Pipeline.Data;
 using Nethermind.Serialization.Json;
 using Nethermind.Sockets;
 using NSubstitute;
@@ -126,6 +128,17 @@ namespace Nethermind.Dsl.Test
             _interpreter = new Interpreter(_api, script);
 
             _api.MainBlockProcessor.TransactionProcessed += Raise.Event<EventHandler<TxProcessedEventArgs>>(this, new TxProcessedEventArgs(0, null, receipt));
+        }
+
+        [Test]
+        public void Will_convert_LogEntry_to_EventData()
+        {
+            var log = new LogEntry(Address.Zero, new byte[] { 1, 5, 8}, new Keccak[] { Keccak.OfAnEmptyString});
+
+            EventData data = (EventData) log;
+            
+            Assert.AreEqual(data.Data, log.Data);
+            Assert.AreEqual(data.LoggersAddress, log.LoggersAddress);
         }
     }
 }

@@ -29,7 +29,8 @@ namespace Nethermind.Dsl.Pipeline.Sources
 
         private void OnBlockProcessed(object? sender, BlockProcessedEventArgs args)
         {
-            Emit?.Invoke((TOut) args.Block);
+            var data = BlockData.FromBlock(args.Block);
+            Emit?.Invoke((TOut) data);
         }
     }
 }

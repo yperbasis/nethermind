@@ -17,6 +17,7 @@
 
 using System;
 using System.Numerics;
+using Fractions;
 using Nethermind.Api;
 using Nethermind.Core.Extensions;
 using Nethermind.Dsl.ANTLR;
@@ -51,15 +52,22 @@ namespace Nethermind.Dsl.Test
         [Test]
         public void test()
         {
-            UInt256.TryParse("1420126735814661362314364650126280", out UInt256 sqrtPriceX96);
-            
-            var priceX96 = sqrtPriceX96 * sqrtPriceX96;
-            var denom = Math.Pow(2, 192);
-            
-            var divided = (double)priceX96 / denom;
-            var multiplied = divided * Math.Pow(10,6);
-            var price1 = multiplied / Math.Pow(10,18);
-            var price0 = 1 / price1;
+            double.TryParse("1410634821923451694259008447385435", out double sqrtPriceX96);
+
+            var token0Decimals = 6;
+            var token1Deimals = 18;
+
+            var scalarNumerator = Math.Pow(10, token0Decimals);
+            var scalarDenominator = Math.Pow(10, token1Deimals);
+
+            var inputNumerator = sqrtPriceX96 * sqrtPriceX96;
+            var inputDenominator = Math.Pow(2, 192);
+
+            var numerator = scalarDenominator * inputDenominator;
+            var denominator = scalarNumerator * inputNumerator;
+
+            Fraction price = Fraction.FromDouble(numerator / denominator);
+            var x = price.ToDecimal().ToString();
         }
     }
 }

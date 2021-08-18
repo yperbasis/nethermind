@@ -29,6 +29,12 @@ namespace Nethermind.Dsl.Pipeline.Data
         {
         }
 
+        public static EventData FromLogEntry(LogEntry log)
+        {
+            return new(log.LoggersAddress, log.Data, log.Topics);
+        }
+        
+
         public override string ToString()
         {
             var result = $"Found new event at {LoggersAddress}. \n";
