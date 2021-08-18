@@ -19,6 +19,7 @@
 using System;
 using System.Linq;
 using System.Numerics;
+using Fractions;
 using Nethermind.Abi;
 using Nethermind.Api;
 using Nethermind.Blockchain.Processing;
@@ -86,13 +87,16 @@ namespace Nethermind.Dsl.Pipeline.Sources
             if(logs is null || !logs.Any()) return;
 
             var swapLogsV3 = logs.Where(l => l.Topics.Any() && l.Topics.First().Equals(_swapSignatureV3));
-
-            var swapLogsV2 = logs.Where(l => l.Topics.Any() && l.Topics.First().Equals(_swapSignatureV2)); foreach (var log in swapLogsV3)
+            var swapLogsV2 = logs.Where(l => l.Topics.Any() && l.Topics.First().Equals(_swapSignatureV2)); 
+            
+            foreach (var log in swapLogsV3)
             {
                 var data = ConvertV3LogToData(log);
                 data.Transaction = args.Transaction.Hash;
                 data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
                 data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
+                data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0)} USDC";
+                data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1)} USDC";
                 Emit?.Invoke(data);
             }
 
@@ -102,6 +106,8 @@ namespace Nethermind.Dsl.Pipeline.Sources
                 data.Transaction = args.Transaction.Hash;
                 data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
                 data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
+                data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0)} USDC";
+                data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1)} USDC";
                 Emit?.Invoke(data);
             }
         }
@@ -203,13 +209,23 @@ namespace Nethermind.Dsl.Pipeline.Sources
             
             var sqrtPriceX96 = pool.slot0(_api.BlockTree.Head.Header).Item1;
 
-            var priceX96 = (double)(sqrtPriceX96 * sqrtPriceX96);
-            var denom = Math.Pow(2, 192);
+            var priceX96 = sqrtPriceX96 * sqrtPriceX96;
 
-            var price1 = ((priceX96 / denom) * (double) token0.decimals()) * (double) token1.decimals();
-            var price0 = 1 / price1;
+            var token0Decimals = (int)token0.decimals();
+            var token1Decimals = (int)token1.decimals();
 
-            return _usdcAddress == token0Address ? price1 : price0; // we want to get price of token in pool with USDC
+            var scalarNumerator = Math.Pow(10, token0Decimals);
+            var scalarDenominator = Math.Pow(10, token1Decimals);
+
+            var inputNumerator = priceX96;
+            var inputDenominator = Math.Pow(2, 192);
+
+            var numerator = scalarDenominator * inputDenominator;
+            var denominator = scalarNumerator * inputNumerator;
+
+            Fraction price = Fraction.FromDouble(numerator / denominator);
+
+            return price.ToDouble();
         }
     }
 }

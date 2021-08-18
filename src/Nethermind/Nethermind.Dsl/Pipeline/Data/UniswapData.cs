@@ -27,10 +27,10 @@ namespace Nethermind.Dsl.Pipeline.Data
         public Address? Pool { get; set; }
         public Address? Token0 { get; set; }
         public Address? Token1 { get; set; }
-        public string Token0V2Reserves { get; set; }
-        public string Token1V2Reserves { get; set; }
         public string? Token0V2Price { get; set; }
         public string? Token1V2Price { get; set; }
+        public string? Token0V3Price { get; set; }
+        public string? Token1V3Price { get; set; }
         public string? Token0In { get; set; }
         public string? Token0Out { get; set; }
         public string? Token1In { get; set; }

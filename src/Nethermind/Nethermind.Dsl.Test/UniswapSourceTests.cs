@@ -67,7 +67,7 @@ namespace Nethermind.Dsl.Test
             var denominator = scalarNumerator * inputNumerator;
 
             Fraction price = Fraction.FromDouble(numerator / denominator);
-            var x = price.ToDecimal().ToString();
+            var x = price.ToDouble().ToString();
         }
     }
 }
