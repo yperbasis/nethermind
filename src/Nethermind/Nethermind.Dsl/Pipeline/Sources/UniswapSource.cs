@@ -87,9 +87,14 @@ namespace Nethermind.Dsl.Pipeline.Sources
             if(logs is null || !logs.Any()) return;
 
             var swapLogsV3 = logs.Where(l => l.Topics.Any() && l.Topics.First().Equals(_swapSignatureV3));
-            var swapLogsV2 = logs.Where(l => l.Topics.Any() && l.Topics.First().Equals(_swapSignatureV2)); 
+            var swapLogsV2 = logs.Where(l => l.Topics.Any() && l.Topics.First().Equals(_swapSignatureV2));
+
+            var logEntriesV3 = swapLogsV3 as LogEntry[] ?? swapLogsV3.ToArray();
+            var logEntriesV2 = swapLogsV2 as LogEntry[] ?? swapLogsV2.ToArray();
             
-            foreach (var log in swapLogsV3)
+            if(_logger.IsInfo) _logger.Info($"Found {logEntriesV2.Length} V2 swaps and {logEntriesV3.Length} V3 swaps.");
+            
+            foreach (var log in logEntriesV3)
             {
                 var data = ConvertV3LogToData(log);
                 data.Transaction = args.Transaction.Hash;
@@ -97,10 +102,12 @@ namespace Nethermind.Dsl.Pipeline.Sources
                 data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
                 data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0)} USDC";
                 data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1)} USDC";
+                
+                if(_logger.IsInfo) _logger.Info(data.ToString());
                 Emit?.Invoke(data);
             }
 
-            foreach (var log in swapLogsV2)
+            foreach (var log in logEntriesV2)
             {
                 var data = ConvertV2LogToData(log);
                 data.Transaction = args.Transaction.Hash;
@@ -108,6 +115,8 @@ namespace Nethermind.Dsl.Pipeline.Sources
                 data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
                 data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0)} USDC";
                 data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1)} USDC";
+
+                if (_logger.IsInfo) _logger.Info(data.ToString());
                 Emit?.Invoke(data);
             }
         }
@@ -140,7 +149,7 @@ namespace Nethermind.Dsl.Pipeline.Sources
         {
             var pool = new UniswapV2Pool(log.LoggersAddress, _api.CreateBlockchainBridge());
             
-            return new UniswapData()
+            return new UniswapData
             {
                 Swapper = new Address(log.Topics[1]),
                 Pool = log.LoggersAddress,
