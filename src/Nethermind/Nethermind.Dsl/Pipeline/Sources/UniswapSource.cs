@@ -207,6 +207,8 @@ namespace Nethermind.Dsl.Pipeline.Sources
             var poolAddres = _v3Factory.getPool(_api.BlockTree.Head.Header, tokenAddress, _usdcAddress, 300)
                        ?? _v3Factory.getPool(_api.BlockTree.Head.Header, tokenAddress, _usdcAddress, 500)
                        ?? _v3Factory.getPool(_api.BlockTree.Head.Header, tokenAddress, _usdcAddress, 1000);
+            
+            
 
             if (poolAddres == null) return null;
 

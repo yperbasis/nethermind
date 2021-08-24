@@ -33,7 +33,9 @@ namespace Nethermind.Dsl.Contracts
 
         public Address getPool(BlockHeader header, Address tokenA, Address tokenB, uint fee)
         {
-            return ConstantContract.Call<Address>(header, nameof(getPool), Address.Zero, tokenA, tokenB, fee);
+            var address = ConstantContract.Call<Address>(header, nameof(getPool), Address.Zero, tokenA, tokenB, fee);
+            
+            return address.Equals(Address.Zero) ? null : address;
         }  
     }
 }
