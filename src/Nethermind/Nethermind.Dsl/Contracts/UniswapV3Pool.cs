@@ -43,9 +43,9 @@ namespace Nethermind.Dsl.Contracts
             return ConstantContract.Call<Address>(header, nameof(token1), Address.Zero);
         }
 
-        public (double, int, ushort, ushort, ushort, ushort, bool) slot0(BlockHeader header)
+        public (double, int, UInt256, UInt256, UInt256, UInt256, bool) slot0(BlockHeader header)
         {
-            return ConstantContract.Call<double, int, ushort, ushort, ushort, ushort, bool>(header, nameof(slot0), Address.Zero);
+            return ConstantContract.Call<double, int, UInt256, UInt256, UInt256, UInt256, bool>(header, nameof(slot0), Address.Zero);
         }
     }
 }
