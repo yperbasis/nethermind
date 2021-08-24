@@ -210,6 +210,7 @@ namespace Nethermind.Dsl.Pipeline.Sources
 
             if (poolAddres == null) return null;
 
+            if(_logger.IsInfo) _logger.Info($"Found v3 pool for token {tokenAddress} with USDC at address {poolAddres}");
             var pool = new UniswapV3Pool(poolAddres, _api.CreateBlockchainBridge());
             var token0Address = pool.token0(_api.BlockTree.Head.Header);
             var token1Address = pool.token1(_api.BlockTree.Head.Header);
