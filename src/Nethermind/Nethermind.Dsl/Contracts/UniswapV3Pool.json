@@ -767,19 +767,19 @@
         "type": "int24"
       },
       {
-        "internalType": "uint256",
+        "internalType": "uint16",
         "name": "observationIndex",
-        "type": "uint256"
+        "type": "uint16"
       },
       {
-        "internalType": "uint256",
+        "internalType": "uint16",
         "name": "observationCardinality",
-        "type": "uint256"
+        "type": "uint16"
       },
       {
-        "internalType": "uint256",
+        "internalType": "uint16",
         "name": "observationCardinalityNext",
-        "type": "uint256"
+        "type": "uint16"
       },
       {
         "internalType": "uint8",
