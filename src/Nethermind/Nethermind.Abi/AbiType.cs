@@ -36,7 +36,8 @@ namespace Nethermind.Abi
         public static AbiUInt UInt32 { get; } = new(32);
         
         public static AbiUInt UInt16 { get; } = new(16);
-        
+        public static AbiUInt UInt8 { get; } = new(8);
+
         public static AbiUInt UInt96 { get; } = new(96);
         public static AbiUInt UInt160 { get; } = new(160);
         

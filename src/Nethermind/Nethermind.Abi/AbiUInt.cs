@@ -63,7 +63,7 @@ namespace Nethermind.Abi
         {
             var (value, length) = DecodeUInt(data, position, packed);
 
-            switch (value.BitLen)
+            switch (Length)
             {
                 case <= 8:
                     try
