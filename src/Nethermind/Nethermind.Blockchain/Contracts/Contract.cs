@@ -20,6 +20,7 @@ using Nethermind.Abi;
 using Nethermind.Blockchain.Contracts.Json;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Crypto;
 using Nethermind.Int256;
 using Nethermind.Evm;
@@ -229,7 +230,7 @@ namespace Nethermind.Blockchain.Contracts
             }
             catch (Exception e)
             {
-                throw new AbiException($"Cannot decode return data for function {abiEncodingInfo.Signature} for contract {ContractAddress}.", e);
+                throw new AbiException($"Cannot decode return data for function {abiEncodingInfo.Signature} with data {data.ToHexString()} and encoding style {abiEncodingInfo.EncodingStyle} for contract {ContractAddress}.", e);
             }
         }
 
