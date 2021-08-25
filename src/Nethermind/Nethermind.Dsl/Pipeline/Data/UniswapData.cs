@@ -46,7 +46,9 @@ namespace Nethermind.Dsl.Pipeline.Data
                    $"Token1Out {Token1Out} \n" +
                    $"Token1In {Token1In} \n" +
                    $"Token0 price on uniswap V2 is {Token0V2Price}$ \n" +
+                   $"Token0 price on uniswap V3 is {Token0V3Price}$ \n" +
                    $"Token1 price on uniswap V2 is {Token1V2Price}$ \n" +
+                   $"Token1 price on uniswap V3 is {Token1V3Price}$ \n" +
                    $"Swapper address is {Swapper}";
         }
     }

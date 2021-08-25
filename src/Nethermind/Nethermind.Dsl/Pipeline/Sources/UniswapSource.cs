@@ -92,14 +92,13 @@ namespace Nethermind.Dsl.Pipeline.Sources
             var logEntriesV3 = swapLogsV3 as LogEntry[] ?? swapLogsV3.ToArray();
             var logEntriesV2 = swapLogsV2 as LogEntry[] ?? swapLogsV2.ToArray();
             
-            if(_logger.IsInfo) _logger.Info($"Found {logEntriesV2.Length} V2 swaps and {logEntriesV3.Length} V3 swaps.");
             
             foreach (var log in logEntriesV3)
             {
                 var data = ConvertV3LogToData(log);
                 data.Transaction = args.Transaction.Hash;
-                // data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
-                // data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
+                data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
+                data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
                 data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0)} USDC";
                 data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1)} USDC";
                 
@@ -111,8 +110,8 @@ namespace Nethermind.Dsl.Pipeline.Sources
             {
                 var data = ConvertV2LogToData(log);
                 data.Transaction = args.Transaction.Hash;
-                // data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
-                // data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
+                data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
+                data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
                 data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0)} USDC";
                 data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1)} USDC";
 
@@ -212,7 +211,6 @@ namespace Nethermind.Dsl.Pipeline.Sources
 
             if (poolAddres == null) return null;
 
-            if(_logger.IsInfo) _logger.Info($"Found v3 pool for token {tokenAddress} with USDC at address {poolAddres}");
             var pool = new UniswapV3Pool(poolAddres, _api.CreateBlockchainBridge());
             var token0Address = pool.token0(_api.BlockTree.Head.Header);
             var token1Address = pool.token1(_api.BlockTree.Head.Header);
