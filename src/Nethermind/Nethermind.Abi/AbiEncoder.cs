@@ -88,6 +88,7 @@ namespace Nethermind.Abi
 
         public object[] Decode(AbiEncodingStyle encodingStyle, AbiSignature signature, byte[] data)
         {
+            throw new Exception($"Encoding style: {encodingStyle.ToString()}, data: {data.ToHexString()}");
             bool packed = (encodingStyle & AbiEncodingStyle.Packed) == AbiEncodingStyle.Packed; 
             bool includeSig = encodingStyle == AbiEncodingStyle.IncludeSignature;
             int sigOffset = includeSig ? 4 : 0;
