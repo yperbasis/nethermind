@@ -64,14 +64,13 @@ namespace Nethermind.Abi
             
             switch (Length)
             {
-                case { } n when n <= 8:
+                case <= 8:
                     return ((byte) value, length);
-                case { } n when n <= 16:
-                    throw new Exception($"Tried casting UInt with value: {value} and length: {length} at ushort.");
+                case <= 16:
                     return ((ushort) value, length);
-                case { } n when n <= 32:
+                case <= 32:
                     return ((uint) value, length);
-                case { } n when n <= 64:
+                case <= 64:
                     return ((ulong) value, length);
                 default:
                     return (value, length);
