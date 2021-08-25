@@ -61,15 +61,13 @@ namespace Nethermind.Abi
         public override (object, int) Decode(byte[] data, int position, bool packed)
         {
             var (value, length) = DecodeUInt(data, position, packed);
-
-            if(length <= 16) 
-                throw new Exception($"Tried to decode UInt with value: {value} and length: {length}");
             
             switch (Length)
             {
                 case { } n when n <= 8:
                     return ((byte) value, length);
                 case { } n when n <= 16:
+                    throw new Exception($"Tried casting UInt with value: {value} and length: {length} at ushort.");
                     return ((ushort) value, length);
                 case { } n when n <= 32:
                     return ((uint) value, length);
