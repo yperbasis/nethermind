@@ -47,4 +47,38 @@
       <Name>Nethermind.Evm</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\tests\GeneralStateTests\jumpdestAnalysis\jd_attack_london_10MGas_JUMPDEST_250M.json">
+      <Link>jumpdestAnalysis\jd_attack_london_10MGas_JUMPDEST_250M.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\tests\GeneralStateTests\jumpdestAnalysis\jd_attack_london_10MGas_PUSH1_250M.json">
+      <Link>jumpdestAnalysis\jd_attack_london_10MGas_PUSH1_250M.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\tests\GeneralStateTests\jumpdestAnalysis\jd_attack_london_10MGas_PUSH7_250M.json">
+      <Link>jumpdestAnalysis\jd_attack_london_10MGas_PUSH7_250M.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\tests\GeneralStateTests\jumpdestAnalysis\jd_attack_london_10MGas_STOP_250M.json">
+      <Link>jumpdestAnalysis\jd_attack_london_10MGas_STOP_250M.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\tests\GeneralStateTests\jumpdestAnalysis\jd_attack_london_30MGas_JUMPDEST_1320M.json">
+      <Link>jumpdestAnalysis\jd_attack_london_30MGas_JUMPDEST_1320M.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\tests\GeneralStateTests\jumpdestAnalysis\jd_attack_london_30MGas_PUSH1_1320M.json">
+      <Link>jumpdestAnalysis\jd_attack_london_30MGas_PUSH1_1320M.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\tests\GeneralStateTests\jumpdestAnalysis\jd_attack_london_30MGas_PUSH7_1320M.json">
+      <Link>jumpdestAnalysis\jd_attack_london_30MGas_PUSH7_1320M.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\tests\GeneralStateTests\jumpdestAnalysis\jd_attack_london_30MGas_STOP_1320M.json">
+      <Link>jumpdestAnalysis\jd_attack_london_30MGas_STOP_1320M.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

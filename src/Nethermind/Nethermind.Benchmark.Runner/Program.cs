@@ -43,11 +43,12 @@ namespace Nethermind.Benchmark.Runner
             
             Assembly[] assemblies =
             {
-                typeof(Nethermind.JsonRpc.Benchmark.EthModuleBenchmarks).Assembly,
-                typeof(Nethermind.Benchmarks.Core.Keccak256Benchmarks).Assembly,
-                typeof(Nethermind.Evm.Benchmark.EvmStackBenchmarks).Assembly,
-                typeof(Nethermind.Network.Benchmarks.DiscoveryBenchmarks).Assembly,
-                typeof(Nethermind.Precompiles.Benchmark.KeccakBenchmark).Assembly
+                typeof(Nethermind.EthereumTests.Benchmark.JumpdestBenchmark).Assembly,
+                // typeof(Nethermind.JsonRpc.Benchmark.EthModuleBenchmarks).Assembly,
+                // typeof(Nethermind.Benchmarks.Core.Keccak256Benchmarks).Assembly,
+                // typeof(Nethermind.Evm.Benchmark.EvmStackBenchmarks).Assembly,
+                // typeof(Nethermind.Network.Benchmarks.DiscoveryBenchmarks).Assembly,
+                // typeof(Nethermind.Precompiles.Benchmark.KeccakBenchmark).Assembly
             };
 
             if (Debugger.IsAttached)
