@@ -62,12 +62,12 @@ namespace Nethermind.Abi
         {
             var (value, length) = DecodeUInt(data, position, packed);
             
-            switch (Length)
+            switch (length)
             {
                 case <= 8:
                     return ((byte) value, length);
                 case <= 16:
-                    throw new Exception($"Casting Uint256 to ushort with value: {value} length: {length}");
+                    return ((ushort) value, length);
                 case <= 32:
                     return ((uint) value, length);
                 case <= 64:
