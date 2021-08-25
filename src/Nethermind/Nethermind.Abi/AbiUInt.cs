@@ -62,17 +62,49 @@ namespace Nethermind.Abi
         public override (object, int) Decode(byte[] data, int position, bool packed)
         {
             var (value, length) = DecodeUInt(data, position, packed);
-            
-            switch (length)
+
+            switch (Length)
             {
                 case <= 8:
-                    return value >= (UInt256) byte.MaxValue ? (value, length) : ((byte) value, length);
+                    try
+                    {
+                        return ((byte) value, length);
+                    }
+                    catch (Exception)
+                    {
+                        throw new Exception(
+                            $"Tried casting UInt256 to byte with data: {data}, position: {position}, packed: {packed}, value: {value}, length: {length}");
+                    }
                 case <= 16:
-                    return value >= (UInt256) ushort.MaxValue ? (value, length) : ((ushort) value, length);
+                    try
+                    {
+                        return ((ushort) value, length);
+                    }
+                    catch (Exception)
+                    {
+                        throw new Exception(
+                            $"Tried casting UInt256 to ushort with data: {data}, position: {position}, packed: {packed}, value: {value}, length: {length}");
+                    }
                 case <= 32:
-                    return value >= (UInt256) uint.MaxValue ? (value, length) : ((uint) value, length);
+                    try
+                    {
+                        return ((uint) value, length);
+                    }
+                    catch (Exception)
+                    {
+                        throw new Exception(
+                            $"Tried casting UInt256 to uint with data: {data}, position: {position}, packed: {packed}, value: {value}, length: {length}");
+                    }
                 case <= 64:
-                    return value >= (UInt256) ulong.MaxValue ? (value, length) : ((ulong) value, length);
+                    try
+                    {
+                        return ((ulong) value, length);
+                    }
+                    catch (Exception)
+                    {
+                        throw new Exception(
+                            $"Tried casting UInt256 to ulong with data: {data}, position: {position}, packed: {packed}, value: {value}, length: {length}");
+                    }
                 default:
                     return (value, length);
             }
@@ -134,7 +166,7 @@ namespace Nethermind.Abi
         }
 
         public override Type CSharpType { get; }
-        
+
         private Type GetCSharpType()
         {
             switch (Length)
