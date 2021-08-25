@@ -17,6 +17,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Numerics;
+using Microsoft.VisualBasic;
 using Nethermind.Core.Extensions;
 using Nethermind.Int256;
 
@@ -61,15 +62,16 @@ namespace Nethermind.Abi
         public override (object, int) Decode(byte[] data, int position, bool packed)
         {
             var (value, length) = DecodeUInt(data, position, packed);
+
+            if (value >= Nethermind.Int256.UInt256.MaxValue) return (value, length);
             
-            switch (length)
+            switch (Length)
             {
                 case <= 8:
                     return ((byte) value, length);
                 case <= 16:
                     return ((ushort) value, length);
                 case <= 32:
-                    throw new Exception($"Casting UInt256 to uint with value: {value}, length: {length}");
                     return ((uint) value, length);
                 case <= 64:
                     return ((ulong) value, length);
