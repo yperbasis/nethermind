@@ -70,9 +70,9 @@ namespace Nethermind.Abi
                 case <= 8:
                     return ((byte) value, length);
                 case <= 16:
-                    return value >= (UInt256)ushort.MaxValue ? ((uint) value, length) : ((ushort) value, length);
+                    return value >= (UInt256)ushort.MaxValue ? (value, length) : ((ushort) value, length);
                 case <= 32:
-                    return value >= (UInt256) uint.MaxValue ? ((ulong) value, length) : ((uint) value, length);
+                    return value >= (UInt256) uint.MaxValue ? (value, length) : ((uint) value, length);
                 case <= 64:
                     return ((ulong) value, length);
                 default:
