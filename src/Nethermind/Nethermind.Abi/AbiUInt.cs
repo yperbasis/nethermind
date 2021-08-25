@@ -69,6 +69,7 @@ namespace Nethermind.Abi
                 case <= 16:
                     return ((ushort) value, length);
                 case <= 32:
+                    throw new Exception($"Casting UInt256 to uint with value: {value}, length: {length}");
                     return ((uint) value, length);
                 case <= 64:
                     return ((ulong) value, length);
