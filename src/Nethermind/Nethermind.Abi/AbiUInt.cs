@@ -62,19 +62,17 @@ namespace Nethermind.Abi
         public override (object, int) Decode(byte[] data, int position, bool packed)
         {
             var (value, length) = DecodeUInt(data, position, packed);
-
-            if (value >= Nethermind.Int256.UInt256.MaxValue) return (value, length);
             
             switch (Length)
             {
                 case <= 8:
-                    return ((byte) value, length);
+                    return value >= (UInt256) byte.MaxValue ? (value, length) : ((byte) value, length);
                 case <= 16:
-                    return value >= (UInt256)ushort.MaxValue ? (value, length) : ((ushort) value, length);
+                    return value >= (UInt256) ushort.MaxValue ? (value, length) : ((ushort) value, length);
                 case <= 32:
                     return value >= (UInt256) uint.MaxValue ? (value, length) : ((uint) value, length);
                 case <= 64:
-                    return ((ulong) value, length);
+                    return value >= (UInt256) ulong.MaxValue ? (value, length) : ((ulong) value, length);
                 default:
                     return (value, length);
             }
