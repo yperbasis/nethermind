@@ -98,8 +98,8 @@ namespace Nethermind.Dsl.Pipeline.Sources
             {
                 var data = ConvertV3LogToData(log);
                 data.Transaction = args.Transaction.Hash;
-                data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
-                data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
+                // data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
+                // data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
                 data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0)} USDC";
                 data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1)} USDC";
                 
@@ -111,8 +111,8 @@ namespace Nethermind.Dsl.Pipeline.Sources
             {
                 var data = ConvertV2LogToData(log);
                 data.Transaction = args.Transaction.Hash;
-                data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
-                data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
+                // data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
+                // data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
                 data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0)} USDC";
                 data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1)} USDC";
 
