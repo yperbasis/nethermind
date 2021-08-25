@@ -219,7 +219,7 @@ namespace Nethermind.Dsl.Pipeline.Sources
             var token0 = new ERC20(token0Address, _api);
             var token1 = new ERC20(token1Address, _api);
             
-            var sqrtPriceX96 = pool.slot0(_api.BlockTree.Head.Header).Item1;
+            var sqrtPriceX96 = (double)pool.slot0(_api.BlockTree.Head.Header).Item1;
 
             var priceX96 = sqrtPriceX96 * sqrtPriceX96;
 

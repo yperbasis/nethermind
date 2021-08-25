@@ -767,24 +767,24 @@
         "type": "int24"
       },
       {
-        "internalType": "UInt256",
+        "internalType": "uint16",
         "name": "observationIndex",
-        "type": "uint256"
+        "type": "uint16"
       },
       {
-        "internalType": "UInt256",
+        "internalType": "uint16",
         "name": "observationCardinality",
-        "type": "uint256"
+        "type": "uint16"
       },
       {
-        "internalType": "UInt256",
+        "internalType": "uint16",
         "name": "observationCardinalityNext",
-        "type": "UInt256"
+        "type": "uint16"
       },
       {
-        "internalType": "uint256",
+        "internalType": "uint8",
         "name": "feeProtocol",
-        "type": "uint256"
+        "type": "uint8"
       },
       {
         "internalType": "bool",
