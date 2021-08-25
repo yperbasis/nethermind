@@ -67,7 +67,7 @@ namespace Nethermind.Abi
                 case <= 8:
                     return ((byte) value, length);
                 case <= 16:
-                    return ((ushort) value, length);
+                    throw new Exception($"Casting Uint256 to ushort with value: {value} length: {length}");
                 case <= 32:
                     return ((uint) value, length);
                 case <= 64:
