@@ -62,7 +62,8 @@ namespace Nethermind.Abi
         {
             var (value, length) = DecodeUInt(data, position, packed);
 
-            throw new Exception($"Tried to decode UInt with value: {value} and length: {length}");
+            if(length <= 16) 
+                throw new Exception($"Tried to decode UInt with value: {value} and length: {length}");
             
             switch (Length)
             {
