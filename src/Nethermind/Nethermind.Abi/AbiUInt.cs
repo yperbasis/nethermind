@@ -73,7 +73,7 @@ namespace Nethermind.Abi
                     catch (Exception)
                     {
                         throw new Exception(
-                            $"Tried casting UInt256 to byte with data: {data}, position: {position}, packed: {packed}, value: {value}, length: {length}");
+                            $"Tried casting UInt256 to byte with data: {data.ToHexString()}, position: {position}, packed: {packed}, value: {value}, length: {length}");
                     }
                 case <= 16:
                     try
@@ -83,7 +83,7 @@ namespace Nethermind.Abi
                     catch (Exception)
                     {
                         throw new Exception(
-                            $"Tried casting UInt256 to ushort with data: {data}, position: {position}, packed: {packed}, value: {value}, length: {length}");
+                            $"Tried casting UInt256 to ushort with data: {data.ToHexString()}, position: {position}, packed: {packed}, value: {value}, length: {length}");
                     }
                 case <= 32:
                     try
@@ -93,7 +93,7 @@ namespace Nethermind.Abi
                     catch (Exception)
                     {
                         throw new Exception(
-                            $"Tried casting UInt256 to uint with data: {data}, position: {position}, packed: {packed}, value: {value}, length: {length}");
+                            $"Tried casting UInt256 to uint with data: {data.ToHexString()}, position: {position}, packed: {packed}, value: {value}, length: {length}");
                     }
                 case <= 64:
                     try
@@ -103,7 +103,7 @@ namespace Nethermind.Abi
                     catch (Exception)
                     {
                         throw new Exception(
-                            $"Tried casting UInt256 to ulong with data: {data}, position: {position}, packed: {packed}, value: {value}, length: {length}");
+                            $"Tried casting UInt256 to ulong with data: {data.ToHexString()}, position: {position}, packed: {packed}, value: {value}, length: {length}");
                     }
                 default:
                     return (value, length);
