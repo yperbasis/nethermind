@@ -63,7 +63,7 @@ namespace Nethermind.Abi
         {
             var (value, length) = DecodeUInt(data, position, packed);
             
-            switch (Length)
+            switch (length)
             {
                 case <= 8:
                     return value >= (UInt256) byte.MaxValue ? (value, length) : ((byte) value, length);
