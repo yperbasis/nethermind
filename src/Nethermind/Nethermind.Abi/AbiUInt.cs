@@ -61,6 +61,8 @@ namespace Nethermind.Abi
         public override (object, int) Decode(byte[] data, int position, bool packed)
         {
             var (value, length) = DecodeUInt(data, position, packed);
+
+            throw new Exception($"Tried to decode UInt with value: {value} and length: {length}");
             
             switch (Length)
             {
