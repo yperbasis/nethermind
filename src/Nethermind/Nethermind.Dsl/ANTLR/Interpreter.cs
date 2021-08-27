@@ -188,7 +188,7 @@ namespace Nethermind.Dsl.ANTLR
                 case PipelineSource.Uniswap:
                     var uniswapElement = _uniswapElementsBuilder.GetConditionElement(key, symbol, value);
                     var condition = uniswapElement.Conditions.Last();
-                    var lastElement = (PipelineElement<UniswapData, UniswapData>) _eventsPipelineBuilder.LastElement;
+                    var lastElement = (PipelineElement<UniswapData, UniswapData>) _uniswapPipelineBuilder.LastElement;
                     lastElement.AddCondition(condition);
                     break;
             }

@@ -48,6 +48,13 @@ namespace Nethermind.Dsl.Test
         {
             _interpreter = new Interpreter(_api, script);
         }
+        
+        [Test]
+        [TestCase("WATCH Uniswap WHERE Token IS 0x0275e1001e293c46cfe158b3702aade0b99f88a5 OR Token IS 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2 PUBLISH WebSockets test")]
+        public void will_stream_swap_with_specified_tokens(string script)
+        {
+            _interpreter = new Interpreter(_api, script);
+        }
 
         [Test]
         public void test()
