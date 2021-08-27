@@ -102,7 +102,6 @@ namespace Nethermind.Dsl.Pipeline.Sources
                 data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0)} USDC";
                 data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1)} USDC";
                 
-                if(_logger.IsInfo) _logger.Info(data.ToString());
                 Emit?.Invoke(data);
             }
 
@@ -115,7 +114,6 @@ namespace Nethermind.Dsl.Pipeline.Sources
                 data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0)} USDC";
                 data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1)} USDC";
 
-                if (_logger.IsInfo) _logger.Info(data.ToString());
                 Emit?.Invoke(data);
             }
         }

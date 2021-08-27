@@ -1,6 +1,7 @@
 using System;
 using Nethermind.Core;
 using Nethermind.Dsl.Pipeline.Data;
+using Nethermind.Logging;
 using Nethermind.Pipeline;
 using Nethermind.TxPool;
 
@@ -10,17 +11,14 @@ namespace Nethermind.Dsl.Pipeline.Sources
     public class PendingTransactionsSource<TOut> : IPipelineElement<TOut> where TOut : PendingTxData
     {
         private readonly ITxPool _txPool;
+        private readonly ILogger _logger;
 
-        public PendingTransactionsSource(ITxPool txPool)
+        public PendingTransactionsSource(ITxPool txPool, ILogger logger)
         {
             _txPool = txPool;
-            try
-            {
-                _txPool.NewPending += OnNewPending;
-            }
-            catch (Exception e)
-            {
-            }
+            _logger = logger;
+
+            _txPool.NewPending += OnNewPending;
         }
 
         public Action<TOut>? Emit { private get; set; }
@@ -28,6 +26,9 @@ namespace Nethermind.Dsl.Pipeline.Sources
         private void OnNewPending(object? sender, TxEventArgs args)
         {
             var data = PendingTxData.FromTransaction(args.Transaction);
+            
+            if(_logger.IsInfo) _logger.Info(data.ToString());
+            
             Emit?.Invoke((TOut) data);
         }
     }
