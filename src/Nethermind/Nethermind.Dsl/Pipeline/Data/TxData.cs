@@ -36,7 +36,8 @@ namespace Nethermind.Dsl.Pipeline.Data
                 Nonce = tx.Nonce,
                 Value = tx.Value,
                 Signature = tx.Signature,
-                Timestamp = tx.Timestamp
+                Timestamp = tx.Timestamp,
+                Data = tx.Data
             };
         }
         

@@ -96,6 +96,7 @@ namespace Nethermind.Dsl.Pipeline.Sources
             foreach (var log in logEntriesV3)
             {
                 var data = ConvertV3LogToData(log);
+                if(_logger.IsInfo) _logger.Info($"{data.ToString()}");
                 data.Transaction = args.Transaction.Hash;
                 data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
                 data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
@@ -163,7 +164,11 @@ namespace Nethermind.Dsl.Pipeline.Sources
         private double? GetV2PriceOfTokenInUSDC(Address tokenAddress)
         {
             var poolAddress = _v2Factory.getPair(_api.BlockTree.Head.Header, tokenAddress, _usdcAddress);
-            if (poolAddress == Address.Zero || poolAddress is null) return null; // there might not be any usdc-token pair on v2 for this exact token - fix for later to retrieve prices from v3 as well
+            if (poolAddress == Address.Zero || poolAddress is null)
+            {
+                if(_logger.IsInfo) _logger.Info($"Couldn't find v2 usdc pair with token {tokenAddress}.");
+                return null;
+            }// there might not be any usdc-token pair on v2 for this exact token - fix for later to retrieve prices from v3 as well
             
             var pool = new UniswapV2Pool(poolAddress, _api.CreateBlockchainBridge());
 
@@ -175,23 +180,41 @@ namespace Nethermind.Dsl.Pipeline.Sources
             (UInt256, UInt256, uint) reserves = pool.getReserves(_api.BlockTree.Head.Header);
             var token0Reserves = reserves.Item1;
             var token1Reserves = reserves.Item2;
+            
+            if(_logger.IsInfo) _logger.Info($"Pool {poolAddress} reserves of token0 {token0Reserves} token1 {token1Reserves}.");
 
-            ERC20 token = null;
+            ERC20? token = null;
 
             if (token0 == _usdcAddress)
             {
                 token = new ERC20(token1, _api);
+                if (token.decimals() == 0)
+                {
+                    if(_logger.IsInfo) _logger.Info($"Couldn't create ERC20 token out of address {token0}");
+                    return null;
+                }
+                
                 usdcReserves = token0Reserves; 
                 tokenReserves = token1Reserves;
             }
             else if (token1 == _usdcAddress)
             {
                 token = new ERC20(token0, _api);
+                if (token.decimals() == 0)
+                {
+                    if(_logger.IsInfo) _logger.Info($"Couldn't create ERC20 token out of address {token0}");
+                    return null;
+                }
+
                 usdcReserves = token1Reserves;
                 tokenReserves = token0Reserves;
             }
 
-            if (token is null) return null;
+            if (token is null)
+            {
+                if(_logger.IsInfo) _logger.Info($"Couldn't create ERC20 out of {token1} or {token0}.");
+                return null;
+            }
 
             if (token.decimals() == 6) return (double) usdcReserves / (double) tokenReserves;
 
@@ -201,13 +224,16 @@ namespace Nethermind.Dsl.Pipeline.Sources
         //https://ethereum.stackexchange.com/questions/98685/computing-the-uniswap-v3-pair-price-from-q64-96-number
         private double? GetV3PriceOfTokenInUSDC(Address tokenAddress)
         {
-            var poolAddres = _v3Factory.getPool(_api.BlockTree.Head.Header, tokenAddress, _usdcAddress, 300)
-                       ?? _v3Factory.getPool(_api.BlockTree.Head.Header, tokenAddress, _usdcAddress, 500)
-                       ?? _v3Factory.getPool(_api.BlockTree.Head.Header, tokenAddress, _usdcAddress, 1000);
-            
-            
+            var poolAddres = _v3Factory.getPool(_api.BlockTree?.Head?.Header, tokenAddress, _usdcAddress, 300)
+                       ?? _v3Factory.getPool(_api.BlockTree?.Head?.Header, tokenAddress, _usdcAddress, 500)
+                       ?? _v3Factory.getPool(_api.BlockTree?.Head?.Header, tokenAddress, _usdcAddress, 1000);
 
-            if (poolAddres == null) return null;
+
+
+            if (poolAddres == null)
+            {
+                if(_logger.IsInfo) _logger.Info($"Couldn't create a v3 pool of USDC and {tokenAddress}.");
+            }
 
             var pool = new UniswapV3Pool(poolAddres, _api.CreateBlockchainBridge());
             var token0Address = pool.token0(_api.BlockTree.Head.Header);
