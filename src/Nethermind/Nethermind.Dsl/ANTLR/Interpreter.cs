@@ -61,7 +61,7 @@ namespace Nethermind.Dsl.ANTLR
             
             _blockElementsBuilder = blockElementsBuilder ?? new BlockElementsBuilder(_api.MainBlockProcessor);
             _transactionElementsBuilder = transactionElementsBuilder ?? new TransactionElementsBuilder(_api.MainBlockProcessor);
-            _pendingTransactionElementsBuilder = pendingTransactionElementsBuilder ?? new PendingTransactionElementsBuilder(_api.TxPool);
+            _pendingTransactionElementsBuilder = pendingTransactionElementsBuilder ?? new PendingTransactionElementsBuilder(_api.TxPool, _logger);
             _eventElementsBuilder = eventElementsBuilder ?? new EventElementsBuilder(_api.MainBlockProcessor);
             _uniswapElementsBuilder = uniswapElementsBuilder ?? new UniswapElementsBuilder(_api.MainBlockProcessor);
 

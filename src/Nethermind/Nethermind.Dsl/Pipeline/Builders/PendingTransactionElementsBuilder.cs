@@ -21,6 +21,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Dsl.Pipeline.Data;
 using Nethermind.Dsl.Pipeline.Sources;
 using Nethermind.Int256;
+using Nethermind.Logging;
 using Nethermind.TxPool;
 
 namespace Nethermind.Dsl.Pipeline.Builders
@@ -28,15 +29,17 @@ namespace Nethermind.Dsl.Pipeline.Builders
     public class PendingTransactionElementsBuilder
     {
         private readonly ITxPool _txPool;
+        private readonly ILogger _logger;
 
-        public PendingTransactionElementsBuilder(ITxPool txPool)
+        public PendingTransactionElementsBuilder(ITxPool txPool, ILogger logger)
         {
             _txPool = txPool ?? throw new ArgumentNullException(nameof(txPool));
+            _logger = logger;
         }
 
         public PendingTransactionsSource<PendingTxData> GetSourceElement()
         {
-            return new(_txPool);
+            return new(_txPool, _logger);
         }
         
         public PipelineElement<PendingTxData, PendingTxData> GetConditionElement(string key, string operation, string value)
