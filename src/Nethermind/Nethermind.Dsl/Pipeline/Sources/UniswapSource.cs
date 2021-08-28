@@ -249,6 +249,13 @@ namespace Nethermind.Dsl.Pipeline.Sources
             var pool = new UniswapV3Pool(poolAddres, _api.CreateBlockchainBridge());
             var token0Address = pool.token0(_api.BlockTree.Head.Header);
             var token1Address = pool.token1(_api.BlockTree.Head.Header);
+
+            if (token0Address != _usdcAddress && token1Address == _usdcAddress)
+            {
+                token1Address = token0Address;
+                token0Address = _usdcAddress;
+            }
+            
             var token0 = new ERC20(token0Address, _api);
             var token1 = new ERC20(token1Address, _api);
             
