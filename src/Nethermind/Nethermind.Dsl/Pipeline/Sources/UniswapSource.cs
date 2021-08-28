@@ -18,6 +18,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Fractions;
 using Nethermind.Abi;
@@ -107,8 +108,8 @@ namespace Nethermind.Dsl.Pipeline.Sources
                 data.Transaction = args.Transaction.Hash;
                 data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0) ?? 0}";
                 data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1) ?? 0}";
-                data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0) ?? 0}";
-                data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1) ?? 0}";
+                data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0) ?? "0"}";
+                data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1) ?? "0"}";
                 
                 Emit?.Invoke(data);
             }
@@ -119,8 +120,8 @@ namespace Nethermind.Dsl.Pipeline.Sources
                 data.Transaction = args.Transaction.Hash;
                 data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0) ?? 0}";
                 data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1) ?? 0}";
-                data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0) ?? 0}";
-                data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1) ?? 0}";
+                data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0) ?? "0"}";
+                data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1) ?? "0"}";
 
                 Emit?.Invoke(data);
             }
@@ -234,7 +235,7 @@ namespace Nethermind.Dsl.Pipeline.Sources
         }
 
         //https://ethereum.stackexchange.com/questions/98685/computing-the-uniswap-v3-pair-price-from-q64-96-number
-        private double? GetV3PriceOfTokenInUSDC(Address tokenAddress)
+        private string? GetV3PriceOfTokenInUSDC(Address tokenAddress)
         {
             var poolAddres = _v3Factory.getPool(_api.BlockTree?.Head?.Header, tokenAddress, _usdcAddress, 300)
                        ?? _v3Factory.getPool(_api.BlockTree?.Head?.Header, tokenAddress, _usdcAddress, 500)
@@ -278,7 +279,7 @@ namespace Nethermind.Dsl.Pipeline.Sources
             Fraction price = Fraction.FromDouble(numerator / denominator);
 
             if(_logger.IsInfo) _logger.Info($"V3 Price of token {tokenAddress} is {price.ToDouble().ToString()}");
-            return price.ToDouble();
+            return price.ToDecimal().ToString(CultureInfo.CurrentCulture);
         }
     }
 }
