@@ -17,6 +17,7 @@
 
 #nullable enable
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using Fractions;
@@ -216,9 +217,21 @@ namespace Nethermind.Dsl.Pipeline.Sources
                 return null;
             }
 
-            if (token.decimals() == 6) return (double) usdcReserves / (double) tokenReserves;
+            double price = 0;
+            if (token.decimals() == 6)
+            {
+                price = (double) usdcReserves / (double) tokenReserves;
+            }
 
-            return ((double)usdcReserves / (double)tokenReserves) * Math.Pow(10, 12);
+            price = ((double)usdcReserves / (double)tokenReserves) * Math.Pow(10, 12);
+
+            double calculatedUSDCReserves = (double)usdcReserves * Math.Pow(10, (double) token.decimals());
+            Fraction newMethodPrice = Fraction.FromDouble(calculatedUSDCReserves / (double)tokenReserves); 
+                
+            if(_logger.IsInfo) _logger.Info($"V2 Price of token {tokenAddress} is {price.ToString()} with old method.");
+            if(_logger.IsInfo) _logger.Info($"V2 Price of token {tokenAddress} with new method is {newMethodPrice.ToDouble()}");
+
+            return price;
         }
 
         //https://ethereum.stackexchange.com/questions/98685/computing-the-uniswap-v3-pair-price-from-q64-96-number
@@ -228,11 +241,10 @@ namespace Nethermind.Dsl.Pipeline.Sources
                        ?? _v3Factory.getPool(_api.BlockTree?.Head?.Header, tokenAddress, _usdcAddress, 500)
                        ?? _v3Factory.getPool(_api.BlockTree?.Head?.Header, tokenAddress, _usdcAddress, 1000);
 
-
-
             if (poolAddres == null)
             {
                 if(_logger.IsInfo) _logger.Info($"Couldn't create a v3 pool of USDC and {tokenAddress}.");
+                return null;
             }
 
             var pool = new UniswapV3Pool(poolAddres, _api.CreateBlockchainBridge());
@@ -259,6 +271,7 @@ namespace Nethermind.Dsl.Pipeline.Sources
 
             Fraction price = Fraction.FromDouble(numerator / denominator);
 
+            if(_logger.IsInfo) _logger.Info($"V3 Price of token {tokenAddress} is {price.ToDouble().ToString()}");
             return price.ToDouble();
         }
     }
