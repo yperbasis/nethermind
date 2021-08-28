@@ -17,9 +17,8 @@
 
 #nullable enable
 using System;
-using System.Globalization;
+using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using Fractions;
 using Nethermind.Abi;
 using Nethermind.Api;
@@ -45,10 +44,17 @@ namespace Nethermind.Dsl.Pipeline.Sources
         private readonly ILogger _logger;
         private readonly UniswapV3Factory _v3Factory;
         private readonly UniswapV2Factory _v2Factory;
-        private Address _usdcAddress = new Address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
+        private Address _usdcAddress = new ("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
         private uint _usdcDecimals = 6;
-        private Address _v2FactoryAddress = new Address("0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f");
-        private Address _v3FactoryAddress = new Address("0x1F98431c8aD98523631AE4a59f267346ea31F984");
+        private Address _v2FactoryAddress = new ("0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f");
+        private Address _v3FactoryAddress = new ("0x1F98431c8aD98523631AE4a59f267346ea31F984");
+
+        private List<Address> _stableCoins = new()
+        {
+            new ("0xdac17f958d2ee523a2206206994597c13d831ec7"),
+            new ("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
+            new ("0x6b175474e89094c44da98b954eedeac495271d0f")
+        };
 
         public UniswapSource(IBlockProcessor blockProcessor, INethermindApi api)
         {
@@ -99,10 +105,10 @@ namespace Nethermind.Dsl.Pipeline.Sources
                 var data = ConvertV3LogToData(log);
                 if(_logger.IsInfo) _logger.Info($"{data.ToString()}");
                 data.Transaction = args.Transaction.Hash;
-                data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
-                data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
-                data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0)} USDC";
-                data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1)} USDC";
+                data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0) ?? 0}";
+                data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1) ?? 0}";
+                data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0) ?? 0}";
+                data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1) ?? 0}";
                 
                 Emit?.Invoke(data);
             }
@@ -111,10 +117,10 @@ namespace Nethermind.Dsl.Pipeline.Sources
             {
                 var data = ConvertV2LogToData(log);
                 data.Transaction = args.Transaction.Hash;
-                data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0)} USDC";
-                data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1)} USDC";
-                data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0)} USDC";
-                data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1)} USDC";
+                data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0) ?? 0}";
+                data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1) ?? 0}";
+                data.Token0V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token0) ?? 0}";
+                data.Token1V3Price = $"{GetV3PriceOfTokenInUSDC(data.Token1) ?? 0}";
 
                 Emit?.Invoke(data);
             }
@@ -217,21 +223,14 @@ namespace Nethermind.Dsl.Pipeline.Sources
                 return null;
             }
 
-            double price = 0;
-            if (token.decimals() == 6)
+            if (usdcReserves < new UInt256(400000)) return null;
+
+            if (_stableCoins.Contains(tokenAddress))
             {
-                price = (double) usdcReserves / (double) tokenReserves;
+                return 1; //stablecoin
             }
 
-            price = ((double)usdcReserves / (double)tokenReserves) * Math.Pow(10, 12);
-
-            double calculatedUSDCReserves = (double)usdcReserves * Math.Pow(10, (double) token.decimals());
-            Fraction newMethodPrice = Fraction.FromDouble(calculatedUSDCReserves / (double)tokenReserves); 
-                
-            if(_logger.IsInfo) _logger.Info($"V2 Price of token {tokenAddress} is {price.ToString()} with old method.");
-            if(_logger.IsInfo) _logger.Info($"V2 Price of token {tokenAddress} with new method is {newMethodPrice.ToDouble()}");
-
-            return price;
+            return ((double)usdcReserves / (double)tokenReserves) * Math.Pow(10, 12);
         }
 
         //https://ethereum.stackexchange.com/questions/98685/computing-the-uniswap-v3-pair-price-from-q64-96-number
