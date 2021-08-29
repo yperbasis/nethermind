@@ -23,6 +23,24 @@ namespace Nethermind.Dsl.Pipeline.Data
 {
     public class PendingTxData : TxData
     {
+        public new static PendingTxData FromTransaction(Transaction tx)
+        {
+            return new()
+            {
+                Type = tx.Type,
+                Hash = tx.Hash,
+                SenderAddress = tx.SenderAddress,
+                To = tx.To,
+                GasPrice = tx.GasPrice,
+                GasLimit = tx.GasLimit,
+                Nonce = tx.Nonce,
+                Value = tx.Value,
+                Signature = tx.Signature,
+                Timestamp = tx.Timestamp,
+                Data = tx.Data
+            };
+        }
+        
         public override string ToString()
         {
             StringBuilder builder = new();
