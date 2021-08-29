@@ -62,6 +62,7 @@ namespace Nethermind.Pipeline.Publishers
             {
                 var message = _jsonSerializer.Serialize(data);
                 if (!_isEnabled) return;
+                if(_logger.IsInfo) _logger.Info($"Sending data to websockets ... {message}");
                 await Task.WhenAll(_clientsHandlers.Values.Select(v => v.SendRawAsync(message)));
             }
             catch (Exception ex)

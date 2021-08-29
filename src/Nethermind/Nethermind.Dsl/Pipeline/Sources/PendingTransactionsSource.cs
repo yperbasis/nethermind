@@ -1,5 +1,4 @@
 using System;
-using Nethermind.Core;
 using Nethermind.Dsl.Pipeline.Data;
 using Nethermind.Logging;
 using Nethermind.Pipeline;
