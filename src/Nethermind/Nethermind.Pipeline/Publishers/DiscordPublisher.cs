@@ -69,7 +69,7 @@ namespace Nethermind.Pipeline.Publishers
 
             var values = new Dictionary<string, string>
             {
-                { "content", _serializer.Serialize(data.ToString()) }
+                { "content", _serializer.Serialize(data.ToString().Replace("\n", string.Empty)) }
             };
 
             var content = new FormUrlEncodedContent(values);
