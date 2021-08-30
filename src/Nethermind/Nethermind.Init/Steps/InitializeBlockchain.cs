@@ -32,10 +32,13 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Evm;
+using Nethermind.Evm.Tracing;
 using Nethermind.Evm.TransactionProcessing;
+using Nethermind.JsonRpc.Converters;
 using Nethermind.JsonRpc.Modules.DebugModule;
 using Nethermind.JsonRpc.Modules.Trace;
 using Nethermind.Logging;
+using Nethermind.Serialization.Json;
 using Nethermind.State;
 using Nethermind.State.Witnesses;
 using Nethermind.Synchronization.BeamSync;
@@ -67,9 +70,8 @@ namespace Nethermind.Init.Steps
         [Todo(Improve.Refactor, "Use chain spec for all chain configuration")]
         private Task InitBlockchain()
         {
-            BlockTraceDumper.Converters.AddRange(DebugModuleFactory.Converters);
-            BlockTraceDumper.Converters.AddRange(TraceModuleFactory.Converters);
-            
+            InitBlockTraceDumper();
+
             var (getApi, setApi) = _api.ForBlockchain;
             
             if (getApi.ChainSpec == null) throw new StepDependencyException(nameof(getApi.ChainSpec));
@@ -224,6 +226,7 @@ namespace Nethermind.Init.Steps
                 {
                     AutoProcess = !syncConfig.BeamSync,
                     StoreReceiptsByDefault = initConfig.StoreReceipts,
+                    DumpOptions = initConfig.AutoDump
                 });
 
             setApi.BlockProcessingQueue = blockchainProcessor;
@@ -260,7 +263,15 @@ namespace Nethermind.Init.Steps
             if(_logger.IsInfo) _logger.Info("Initialize blockchain step finished.");
             return Task.CompletedTask;
         }
-        
+
+        private static void InitBlockTraceDumper()
+        {
+            BlockTraceDumper.Converters.AddRange(EthereumJsonSerializer.CommonConverters);
+            BlockTraceDumper.Converters.AddRange(DebugModuleFactory.Converters);
+            BlockTraceDumper.Converters.AddRange(TraceModuleFactory.Converters);
+            BlockTraceDumper.Converters.Add(new TxReceiptConverter());
+        }
+
         private void ReorgBoundaryReached(object? sender, ReorgBoundaryReached e)
         {
             if (_logger.IsDebug) _logger.Debug($"Saving reorg boundary {e.BlockNumber}");
