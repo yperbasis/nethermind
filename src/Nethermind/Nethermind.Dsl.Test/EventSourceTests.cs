@@ -16,8 +16,11 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.WebSockets;
+using System.Text;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Nethermind.Abi;
 using Nethermind.Api;
@@ -135,10 +138,28 @@ namespace Nethermind.Dsl.Test
         {
             var log = new LogEntry(Address.Zero, new byte[] { 1, 5, 8}, new Keccak[] { Keccak.OfAnEmptyString});
 
-            EventData data = (EventData) log;
+            EventData data = EventData.FromLogEntry(log);
             
             Assert.AreEqual(data.Data, log.Data);
             Assert.AreEqual(data.LoggersAddress, log.LoggersAddress);
+        }
+
+        [Test]
+        public async Task will_send_to_discord()
+        {
+            var log = new LogEntry(Address.Zero, new byte[] { 1, 5, 8}, new Keccak[] { Keccak.OfAnEmptyString});
+            EventData data = EventData.FromLogEntry(log);
+
+            var client = new HttpClient();
+            var serializer = new EthereumJsonSerializer();
+            var values = new Dictionary<string, string>
+            {
+                { "content", serializer.Serialize(data) }
+            };
+
+            var content = new FormUrlEncodedContent(values);
+
+            var response = await client.PostAsync("https://discord.com/api/webhooks/881857651846303764/cx3raxzElhz3hBuYyqSnyP85zNIWwDNXvwnqj4MzeupCv11CkTnunv03QqjplUl_3AqP", content);
         }
     }
 }

@@ -238,9 +238,9 @@ namespace Nethermind.Dsl.ANTLR
             BuildPipelines();
         }
 
-        private void AddDiscordPublisher(string chatId)
+        private void AddDiscordPublisher(string webhookUrl)
         {
-            var discordPublisher = new DiscordPublisher(_api.EthereumJsonSerializer, chatId);
+            var discordPublisher = new DiscordPublisher(_api.EthereumJsonSerializer, webhookUrl);
 
             AddBlocksPublisher(discordPublisher);
             AddTransactionsPublisher(discordPublisher);

@@ -33,20 +33,17 @@ namespace Nethermind.Pipeline.Publishers
     public class DiscordPublisher : IPublisher
     {
         private readonly IJsonSerializer _serializer;
-        private readonly string _chatId;
-        private string _botToken;
+        private readonly string _webhookUrl;
         private readonly HttpClient _httpClient;
         private bool _isEnabled;
 
-        public DiscordPublisher(IJsonSerializer serializer, string chatId)
+        public DiscordPublisher(IJsonSerializer serializer, string webhookUrl)
         {
             _serializer = serializer;
-            _chatId = $"{chatId}";
-            _botToken = LoadBotToken();
+            _webhookUrl = $"{webhookUrl}";
             _httpClient = new HttpClient();
 
             Start();
-       
         }
 
         public void SubscribeToData<T>(T data)
@@ -68,37 +65,16 @@ namespace Nethermind.Pipeline.Publishers
 
         private async Task SendMessageAsync(object data)
         {
-            var headers = _httpClient.DefaultRequestHeaders;
+            var uri = new Uri(_webhookUrl);
 
-            var uri = new Uri($"https://discordapp.com/api/channels/{_chatId}/messages");
-
-            var messageContents = new FormUrlEncodedContent(new[]
+            var values = new Dictionary<string, string>
             {
-                new KeyValuePair<string, string>("chat_id", _chatId),
-                new KeyValuePair<string, string>("text", data.ToString())
-            });
+                { "content", _serializer.Serialize(data) }
+            };
 
-            var message = await messageContents.ReadAsStringAsync();
+            var content = new FormUrlEncodedContent(values);
 
-            string content = "{\"content\":\"" + message + "\"}";
-
-            _httpClient.DefaultRequestHeaders.Add("Authorization", "Bot " + _botToken);
-            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Nethermind Bot (https://nethermind.io, v1.0)");
-
-            try {
-
-              var x = await _httpClient.PostAsync(uri, new StringContent(content, Encoding.UTF8, "application/json"));
-
-
-            } catch (HttpRequestException) {
-
-            }
+            await _httpClient.PostAsync(uri, content);
         }
-
-        private string LoadBotToken()
-        {
-            return "";
-        }
-
     }
 }
