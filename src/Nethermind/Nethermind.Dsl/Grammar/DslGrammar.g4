@@ -28,9 +28,9 @@ DISCORD : 'Discord' | 'discord' ;
 SLACK : 'Slack' | 'slack' ;
 
 
+URL: 'https://'(.*) ;
 WORD : [a-zA-Z]+ ;
 DIGIT : [0-9]+;
 BYTECODE : [a-fA-F0-9]+ ;
 ADDRESS : '0x'[a-fA-F0-9]* ;
-URL: 'https'()+? ;
 WS : [ \t\r\n]+ -> skip ; // skip spaces, tabs, newlines
