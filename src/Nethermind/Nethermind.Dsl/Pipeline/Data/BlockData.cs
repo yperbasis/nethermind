@@ -44,21 +44,21 @@ namespace Nethermind.Dsl.Pipeline.Data
         public override string ToString()
         {
             StringBuilder builder = new();
-            builder.AppendLine("Found new block on chain");
-            builder.AppendLine($"Block {Number}");
-            builder.AppendLine("  Header:");
-            builder.Append($"{Header.ToString("    ")}");
+            builder.AppendLine("Found new block on chain  ");
+            builder.AppendLine($"Block {Number}  ");
+            builder.AppendLine("  Header: ");
+            builder.Append($"{Header.ToString("    ")} ");
 
             builder.AppendLine("  Ommers:");
             foreach (BlockHeader ommer in Body.Ommers ?? Array.Empty<BlockHeader>())
             {
-                builder.Append($"{ommer.ToString("    ")}");
+                builder.Append($"{ommer.ToString("    ")} ");
             }
 
             builder.AppendLine("  Transactions:");
             foreach (Transaction tx in Body?.Transactions ?? Array.Empty<Transaction>())
             {
-                builder.Append($"{tx.Hash}");
+                builder.Append($"{tx.Hash}, ");
             }
 
             return builder.ToString();
