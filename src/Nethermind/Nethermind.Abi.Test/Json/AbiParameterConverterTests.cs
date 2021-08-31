@@ -52,7 +52,7 @@ namespace Nethermind.Abi.Test.Json
                 yield return new TestCaseData(GetTestData("fixed16x10", new AbiFixed(16, 10)));
                 yield return new TestCaseData(GetTestData("ufixed256x80", new AbiUFixed(256, 80)));
                 yield return new TestCaseData(GetTestData("fixed96x1", new AbiFixed(96, 1)));
-                yield return new TestCaseData(GetTestData("bytes", AbiType.DynamicBytes));
+                //yield return new TestCaseData(GetTestData("bytes", AbiType.DynamicBytes));
                 yield return new TestCaseData(GetTestData("bytes32", new AbiBytes(32)));
                 yield return new TestCaseData(GetTestData("function", AbiType.Function));
                 yield return new TestCaseData(GetTestData("string", AbiType.String));
