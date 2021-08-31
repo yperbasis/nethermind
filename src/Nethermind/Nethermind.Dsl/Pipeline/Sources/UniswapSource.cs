@@ -104,7 +104,6 @@ namespace Nethermind.Dsl.Pipeline.Sources
             foreach (var log in logEntriesV3)
             {
                 var data = ConvertV3LogToData(log);
-                if (_logger.IsInfo) _logger.Info($"{data.ToString()}");
                 data.Transaction = args.Transaction.Hash;
                 data.Token0V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token0) ?? 0}";
                 data.Token1V2Price = $"{GetV2PriceOfTokenInUSDC(data.Token1) ?? 0}";

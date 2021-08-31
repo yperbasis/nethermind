@@ -25,7 +25,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-
+using Nethermind.Logging;
 
 
 namespace Nethermind.Pipeline.Publishers
@@ -36,9 +36,11 @@ namespace Nethermind.Pipeline.Publishers
         private readonly string _webhookUrl;
         private readonly HttpClient _httpClient;
         private bool _isEnabled;
+        private ILogger _logger;
 
-        public DiscordPublisher(IJsonSerializer serializer, string webhookUrl)
+        public DiscordPublisher(IJsonSerializer serializer, ILogger logger, string webhookUrl)
         {
+            _logger = logger;
             _serializer = serializer;
             _webhookUrl = $"{webhookUrl}";
             _httpClient = new HttpClient();
@@ -74,6 +76,7 @@ namespace Nethermind.Pipeline.Publishers
 
             var content = new FormUrlEncodedContent(values);
 
+            if(_logger.IsInfo) _logger.Info($"Sending data from discord publisher ...");
             await _httpClient.PostAsync(uri, content);
         }
     }

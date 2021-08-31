@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Nethermind.Logging;
 using Nethermind.Serialization.Json;
 
 namespace Nethermind.Pipeline.Publishers
@@ -27,20 +28,22 @@ namespace Nethermind.Pipeline.Publishers
     public class TelegramPublisher : IPublisher
     {
         private readonly IJsonSerializer _serializer;
+        private readonly ILogger _logger;
         private readonly string _chatId;
         private string _botToken;
         private readonly HttpClient _httpClient;
         private bool _isEnabled;
-        
-        public TelegramPublisher(IJsonSerializer serializer, string chatId)
+
+        public TelegramPublisher(IJsonSerializer serializer, ILogger logger, string chatId)
         {
+            _logger = logger;
             _serializer = serializer;
             _chatId = $"-{chatId}";
             _botToken = LoadBotToken();
             _httpClient = new HttpClient();
             Start();
         }
-        
+
         public void SubscribeToData<T>(T data)
         {
             if (!_isEnabled) return;
@@ -69,7 +72,8 @@ namespace Nethermind.Pipeline.Publishers
 
             try
             {
-             await _httpClient.PostAsync(uri, content);
+                if(_logger.IsInfo) _logger.Info($"Sending data from telegram publisher...");
+                await _httpClient.PostAsync(uri, content);
             }
             catch (HttpRequestException)
             {
@@ -78,7 +82,8 @@ namespace Nethermind.Pipeline.Publishers
 
         private string LoadBotToken()
         {
-            return "1894135076:AAHmdMwkLia8FzUiDBsZ-h3kqsBIzeGa4y8"; //this is just a test bot, will do a proper secret token after tests are done and we will create another bot  
+            return
+                "1894135076:AAHmdMwkLia8FzUiDBsZ-h3kqsBIzeGa4y8"; //this is just a test bot, will do a proper secret token after tests are done and we will create another bot  
         }
     }
 }

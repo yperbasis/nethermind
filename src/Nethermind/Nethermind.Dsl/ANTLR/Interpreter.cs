@@ -213,7 +213,7 @@ namespace Nethermind.Dsl.ANTLR
 
         private void AddTelegramPublisher(string chatId)
         {
-            var telegramPublisher = new TelegramPublisher(_api.EthereumJsonSerializer, chatId);
+            var telegramPublisher = new TelegramPublisher(_api.EthereumJsonSerializer, _logger, chatId);
 
             AddBlocksPublisher(telegramPublisher);
             AddTransactionsPublisher(telegramPublisher);
@@ -240,7 +240,7 @@ namespace Nethermind.Dsl.ANTLR
 
         private void AddDiscordPublisher(string webhookUrl)
         {
-            var discordPublisher = new DiscordPublisher(_api.EthereumJsonSerializer, webhookUrl);
+            var discordPublisher = new DiscordPublisher(_api.EthereumJsonSerializer, _logger, webhookUrl);
 
             AddBlocksPublisher(discordPublisher);
             AddTransactionsPublisher(discordPublisher);
