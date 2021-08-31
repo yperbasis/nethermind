@@ -236,6 +236,7 @@ namespace Nethermind.Network
             while (true)
             {
                 Stopwatch sw = new Stopwatch();
+                sw.Start();
                 _logger.Warn("Started peer update loop");
                 try
                 {
@@ -283,7 +284,8 @@ namespace Nethermind.Network
                         break;
                     }
 
-                    int currentPosition = 0;                    
+                    int currentPosition = 0;
+                    _logger.Warn($"Starting analyzing {remainingCandidates.Count}");
                     while (true)
                     {
                         if (_cancellationTokenSource.IsCancellationRequested)
@@ -378,6 +380,8 @@ namespace Nethermind.Network
                         await Task.Delay(1000);
                     }
                 }
+                sw.Stop();
+                _logger.Warn($"Finished peer update loop {sw.Elapsed}");
             }
         }
 
