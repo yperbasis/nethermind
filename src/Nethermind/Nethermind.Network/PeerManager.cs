@@ -235,6 +235,8 @@ namespace Nethermind.Network
             int failCount = 0;
             while (true)
             {
+                Stopwatch sw = new Stopwatch();
+                _logger.Warn("Started peer update loop");
                 try
                 {
                     if (loopCount++ % 100 == 0)
