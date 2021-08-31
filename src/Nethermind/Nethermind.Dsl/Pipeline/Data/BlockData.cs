@@ -58,7 +58,7 @@ namespace Nethermind.Dsl.Pipeline.Data
             builder.AppendLine("  Transactions:");
             foreach (Transaction tx in Body?.Transactions ?? Array.Empty<Transaction>())
             {
-                builder.Append($"{tx.ToString("    ")}");
+                builder.Append($"{tx.Hash}");
             }
 
             return builder.ToString();
