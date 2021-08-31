@@ -20,6 +20,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 
 namespace Nethermind.Dsl.Pipeline.Data
 {
@@ -53,7 +54,7 @@ namespace Nethermind.Dsl.Pipeline.Data
 
             if (Data.Length != 0)
             {
-                result += $"Data: {Data} \n";
+                result += $"Data: {Data.ToHexString()} \n";
             }
 
             return result;
