@@ -16,6 +16,9 @@
 
 using System;
 using System.Collections;
+using System.Diagnostics;
+using System.Threading;
+using Nethermind.Core.Extensions;
 using Nethermind.Evm.Precompiles;
 
 namespace Nethermind.Evm
@@ -43,6 +46,8 @@ namespace Nethermind.Evm
 
         public bool ValidateJump(int destination, bool isSubroutine)
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            
             if (_validJumpDestinations is null)
             {
                 CalculateJumpDestinations();
@@ -54,6 +59,9 @@ namespace Nethermind.Evm
                 return false;
             }
 
+            Interlocked.Increment(ref Metrics.JumpdestCount);
+            Interlocked.Add(ref Metrics.JumpdestAnalyzisTime, stopwatch.ElapsedMicroseconds());
+            
             return true;
         }
       
