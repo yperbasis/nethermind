@@ -59,14 +59,16 @@ namespace Nethermind.Evm
             }
 
             bool result;
-            
+
             if (isSubroutine)
             {
                 result = MachineCode[destination] == 0x5c;
             }
-
-            result = MachineCode[destination] == 0x5b;
-
+            else
+            {
+                result = MachineCode[destination] == 0x5b;
+            }
+            
             Interlocked.Increment(ref Metrics.JumpdestCount);
             Interlocked.Add(ref Metrics.JumpdestAnalyzisTime, stopwatch.ElapsedMicroseconds());
             
