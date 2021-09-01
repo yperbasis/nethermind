@@ -21,25 +21,35 @@ using Microsoft.Extensions.Logging;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
+using Transaction = System.Transactions.Transaction;
 
 namespace Nethermind.Dsl.Pipeline.Data
 {
     public class EventData : LogEntry
     {
+        public Keccak TransactionHash { get; set; }
+
+        public EventData(Address address, byte[] data, Keccak[] topics, Keccak transactionHash) : base(address, data, topics)
+        {
+            TransactionHash = transactionHash;
+        }
+        
         public EventData(Address address, byte[] data, Keccak[] topics) : base(address, data, topics)
         {
         }
 
-        public static EventData FromLogEntry(LogEntry log)
+        public static EventData FromLogEntry(LogEntry log, Keccak transactionHash)
         {
-            return new(log.LoggersAddress, log.Data, log.Topics);
+            return new(log.LoggersAddress, log.Data, log.Topics, transactionHash);
         }
         
 
         public override string ToString()
         {
-            var result = $"Found new event at {LoggersAddress}. \n";
+            var result = $"Found new event at {TransactionHash}. \n";
 
+            result += $"Logger address {LoggersAddress} \n"; 
+            
             if (Topics.Any())
             {
                 result += "Topics: \n";

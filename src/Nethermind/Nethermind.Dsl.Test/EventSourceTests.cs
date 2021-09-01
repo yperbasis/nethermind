@@ -138,7 +138,7 @@ namespace Nethermind.Dsl.Test
         {
             var log = new LogEntry(Address.Zero, new byte[] { 1, 5, 8}, new Keccak[] { Keccak.OfAnEmptyString});
 
-            EventData data = EventData.FromLogEntry(log);
+            EventData data = EventData.FromLogEntry(log, Keccak.OfAnEmptyString);
             
             Assert.AreEqual(data.Data, log.Data);
             Assert.AreEqual(data.LoggersAddress, log.LoggersAddress);
@@ -148,7 +148,7 @@ namespace Nethermind.Dsl.Test
         public async Task will_send_to_discord()
         {
             var log = new LogEntry(Address.Zero, new byte[] { 1, 5, 8}, new Keccak[] { Keccak.OfAnEmptyString});
-            EventData data = EventData.FromLogEntry(log);
+            EventData data = EventData.FromLogEntry(log, Keccak.OfAnEmptyString);
 
             var client = new HttpClient();
             var serializer = new EthereumJsonSerializer();
