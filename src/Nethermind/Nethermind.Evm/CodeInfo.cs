@@ -16,7 +16,10 @@
 
 using System;
 using System.Collections;
+using System.Diagnostics;
 using System.Reflection.PortableExecutable;
+using System.Threading;
+using Nethermind.Core.Extensions;
 using Nethermind.Evm.Precompiles;
 
 namespace Nethermind.Evm
@@ -41,6 +44,8 @@ namespace Nethermind.Evm
         }
         public bool ValidateJump(int destination, bool isSubroutine)
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            
             if (destination < 0 || MachineCode == null || destination >= MachineCode.Length)
             {
                 return false;
@@ -52,13 +57,20 @@ namespace Nethermind.Evm
             {
                 return false;
             }
+
+            bool result;
             
             if (isSubroutine)
             {
-                return MachineCode[destination] == 0x5c;
+                result = MachineCode[destination] == 0x5c;
             }
 
-            return MachineCode[destination] == 0x5b;
+            result = MachineCode[destination] == 0x5b;
+
+            Interlocked.Increment(ref Metrics.JumpdestCount);
+            Interlocked.Add(ref Metrics.JumpdestAnalyzisTime, stopwatch.ElapsedMicroseconds());
+            
+            return result;
         }
     }
     

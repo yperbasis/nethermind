@@ -61,5 +61,11 @@ namespace Nethermind.Evm
         
         [Description("Number of SHA256 precompile calls.")]
         public static long Sha256Precompile { get; set; }
+        
+        [Description("Number of JUMPDEST analyzis performed.")]
+        public static long JumpdestCount;
+
+        [Description("Sum of all JUMPDEST analyzis performed in .")]
+        public static long JumpdestAnalyzisTime;
     }
 }
