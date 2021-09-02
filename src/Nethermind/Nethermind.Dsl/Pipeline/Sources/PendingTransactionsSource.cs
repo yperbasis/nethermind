@@ -25,7 +25,6 @@ namespace Nethermind.Dsl.Pipeline.Sources
         private void OnNewPending(object? sender, TxEventArgs args)
         {
             var data = PendingTxData.FromTransaction(args.Transaction);
-            if(_logger.IsInfo) _logger.Info(data.ToString());
             
             Emit?.Invoke((TOut) data);
         }
