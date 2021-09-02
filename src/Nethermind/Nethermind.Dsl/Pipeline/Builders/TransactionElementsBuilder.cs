@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
+using System;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
@@ -40,37 +41,44 @@ namespace Nethermind.Dsl.Pipeline.Builders
         
         public PipelineElement<TxData, TxData> GetConditionElement(string key, string operation, string value)
         {
-            return operation switch
+            try
             {
-                "IS" => new PipelineElement<TxData, TxData>(
-                    condition: (t => t.GetType().GetProperty(key).GetValue(t).ToString()?.ToLowerInvariant() == value.ToLowerInvariant()),
-                    transformData: (t => t)),
-                "==" => new PipelineElement<TxData, TxData>(
-                    condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() == value.ToLowerInvariant()),
-                    transformData: (t => t)),
-                "NOT" => new PipelineElement<TxData, TxData>(
-                    condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() != value.ToLowerInvariant()),
-                    transformData: (t => t)),
-                "!=" => new PipelineElement<TxData, TxData>(
-                    condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() != value.ToLowerInvariant()),
-                    transformData: (t => t)),
-                ">" => new PipelineElement<TxData, TxData>(
-                    condition: (t => (UInt256) t.GetType().GetProperty(key)?.GetValue(t) > UInt256.Parse(value)),
-                    transformData: (t => t)),
-                "<" => new PipelineElement<TxData, TxData>(
-                    condition: (t => (UInt256) t.GetType().GetProperty(key)?.GetValue(t) < UInt256.Parse(value)),
-                    transformData: (t => t)),
-                ">=" => new PipelineElement<TxData, TxData>(
-                    condition: (t => (UInt256) t.GetType().GetProperty(key)?.GetValue(t) >= UInt256.Parse(value)),
-                    transformData: (t => t)),
-                "<=" => new PipelineElement<TxData, TxData>(
-                    condition: (t => (UInt256) t.GetType().GetProperty(key)?.GetValue(t) <= UInt256.Parse(value)),
-                    transformData: (t => t)),
-                "CONTAINS" => new PipelineElement<TxData, TxData>(
-                    condition: (t => CheckIfDataContains(t, value)),
-                    transformData: (t => t)),
-                _ => null
-            };
+                return operation switch
+                {
+                    "IS" => new PipelineElement<TxData, TxData>(
+                        condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() == value.ToLowerInvariant()),
+                        transformData: (t => t)),
+                    "==" => new PipelineElement<TxData, TxData>(
+                        condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() == value.ToLowerInvariant()),
+                        transformData: (t => t)),
+                    "NOT" => new PipelineElement<TxData, TxData>(
+                        condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() != value.ToLowerInvariant()),
+                        transformData: (t => t)),
+                    "!=" => new PipelineElement<TxData, TxData>(
+                        condition: (t => t.GetType().GetProperty(key)?.GetValue(t)?.ToString()?.ToLowerInvariant() != value.ToLowerInvariant()),
+                        transformData: (t => t)),
+                    ">" => new PipelineElement<TxData, TxData>(
+                        condition: (t => (UInt256) t.GetType().GetProperty(key)?.GetValue(t) > UInt256.Parse(value)),
+                        transformData: (t => t)),
+                    "<" => new PipelineElement<TxData, TxData>(
+                        condition: (t => (UInt256) t.GetType().GetProperty(key)?.GetValue(t) < UInt256.Parse(value)),
+                        transformData: (t => t)),
+                    ">=" => new PipelineElement<TxData, TxData>(
+                        condition: (t => (UInt256) t.GetType().GetProperty(key)?.GetValue(t) >= UInt256.Parse(value)),
+                        transformData: (t => t)),
+                    "<=" => new PipelineElement<TxData, TxData>(
+                        condition: (t => (UInt256) t.GetType().GetProperty(key)?.GetValue(t) <= UInt256.Parse(value)),
+                        transformData: (t => t)),
+                    "CONTAINS" => new PipelineElement<TxData, TxData>(
+                        condition: (t => CheckIfDataContains(t, value)),
+                        transformData: (t => t)),
+                    _ => null
+                };
+            }
+            catch(NullReferenceException)
+            {
+                throw new Exception($"NULL REFERENCE WITH DATA: key: {key} operation: {operation} value: {value}");
+            }
         }
         
         private static bool CheckIfDataContains(Transaction tx, string value)
