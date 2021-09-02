@@ -23,13 +23,15 @@ namespace Nethermind.Dsl.Pipeline.Data
 {
     public class TxData : Transaction
     {
+        public Address From { get; set; }
+        
         public static TxData FromTransaction(Transaction tx)
         {
             return new()
             {
                 Type = tx.Type,
                 Hash = tx.Hash,
-                SenderAddress = tx.SenderAddress,
+                From = tx.SenderAddress,
                 To = tx.To,
                 GasPrice = tx.GasPrice,
                 GasLimit = tx.GasLimit,
@@ -46,7 +48,7 @@ namespace Nethermind.Dsl.Pipeline.Data
             StringBuilder builder = new();
             builder.Append("Found new transaction on chain");
             builder.AppendLine($"Hash:      {Hash}");
-            builder.AppendLine($"From:      {SenderAddress}");
+            builder.AppendLine($"From:      {From}");
             builder.AppendLine($"To:        {To}");
             if (IsEip1559)
             {
