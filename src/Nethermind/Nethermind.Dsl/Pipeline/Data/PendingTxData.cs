@@ -23,11 +23,14 @@ namespace Nethermind.Dsl.Pipeline.Data
 {
     public class PendingTxData : TxData
     {
+        public Address From { get; set; } 
+        
         public new static PendingTxData FromTransaction(Transaction tx)
         {
             return new()
             {
                 Type = tx.Type,
+                From = tx.SenderAddress,
                 Hash = tx.Hash,
                 SenderAddress = tx.SenderAddress,
                 To = tx.To,
@@ -46,7 +49,7 @@ namespace Nethermind.Dsl.Pipeline.Data
             StringBuilder builder = new();
             builder.Append("Found new transaction in the mempool");
             builder.AppendLine($"Hash:      {Hash}");
-            builder.AppendLine($"From:      {SenderAddress}");
+            builder.AppendLine($"From:      {From}");
             builder.AppendLine($"To:        {To}");
             if (IsEip1559)
             {
