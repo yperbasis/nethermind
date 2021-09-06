@@ -54,7 +54,7 @@ namespace Nethermind.Synchronization.Blocks
 
         private SyncBatchSize _syncBatchSize;
         private int _sinceLastTimeout;
-        private readonly int[] _ancestorJumps = {1, 2, 3, 8, 16, 32, 64, 128, 256, 384, 512, 640, 768, 896, 1024, 10240, 102400};
+        private readonly int[] _ancestorJumps = {1, 2, 3, 8, 16, 32, 64, 128, 256, 384, 512, 640, 768, 896, 1024, 10240, 1024000};
 
         public BlockDownloader(
             ISyncFeed<BlocksRequest?>? feed,
@@ -178,7 +178,7 @@ namespace Nethermind.Synchronization.Blocks
 
                     int ancestorJump = _ancestorJumps[ancestorLookupLevel] - _ancestorJumps[ancestorLookupLevel - 1];
                     currentNumber = currentNumber >= ancestorJump ? (currentNumber - ancestorJump) : 0L;
-                    if (_ancestorJumps[ancestorLookupLevel] == 102400)           //    if (cosTamMaxHeaders >= _currentAncestorLookup && parentIsKnown)
+                    if (_ancestorJumps[ancestorLookupLevel] == 1024000)           //    if (cosTamMaxHeaders >= _currentAncestorLookup && parentIsKnown)
                     {
                         farAncestorFound = true;
                     }
@@ -315,7 +315,7 @@ namespace Nethermind.Synchronization.Blocks
 
                         int ancestorJump = _ancestorJumps[ancestorLookupLevel] - _ancestorJumps[ancestorLookupLevel - 1];
                         currentNumber = currentNumber >= ancestorJump ? (currentNumber - ancestorJump) : 0L;
-                        if (_ancestorJumps[ancestorLookupLevel] == 102400)           //    if (cosTamMaxHeaders >= _currentAncestorLookup && parentIsKnown)
+                        if (_ancestorJumps[ancestorLookupLevel] == 1024000)           //    if (cosTamMaxHeaders >= _currentAncestorLookup && parentIsKnown)
                         {
                             farAncestorFound = true;
                         }
