@@ -30,8 +30,8 @@ namespace Nethermind.Network.Config
         public int P2PPingInterval { get; set; } = 1000 * 10;
         public int MaxPersistedPeerCount { get; set; } = 2000;
         public int PersistedPeerCountCleanupThreshold { get; set; } = 2200;
-        public int MaxCandidatePeerCount { get; set; } = 10000;
-        public int CandidatePeerCountCleanupThreshold { get; set; } = 11000;
+        public int MaxCandidatePeerCount { get; set; } = 500;
+        public int CandidatePeerCountCleanupThreshold { get; set; } = 1000;
         public bool DiagTracerEnabled { get; set; } = false;
         public int NettyArenaOrder { get; set; } = INetworkConfig.DefaultNettyArenaOrder;
         public int DiscoveryPort { get; set; } = 30303;
