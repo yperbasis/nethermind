@@ -1074,6 +1074,11 @@ namespace Nethermind.Network
 
             if (nodesToRemove.Length > 0)
             {
+                var debugNodesRemoved = nodesToRemove.Where(x => NodesToDebug.Contains(x.Node.Id.ToString())).ToList();
+                var debugString = string.Join(",",
+                    debugNodesRemoved.Select(x => (x.Node.Id, x.Node.CurrentReputation))
+                        .Select(y => $"Reputation {y.CurrentReputation} Id {y.Id}"));
+                if (debugNodesRemoved.Any()) _logger.Error($"Debugs nodes removed {debugString}");
                 _logger.Info($"Removing {nodesToRemove.Length} out of {candidates.Count} peer candidates (candidates cleanup).");
                 foreach (Peer peer in nodesToRemove)
                 {

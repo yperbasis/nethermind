@@ -54,7 +54,7 @@ namespace Nethermind.Synchronization.Blocks
 
         private SyncBatchSize _syncBatchSize;
         private int _sinceLastTimeout;
-        private readonly int[] _ancestorJumps = {1, 2, 3, 8, 16, 32, 64, 128, 256, 384, 512, 640, 768, 896, 1024};
+        private readonly int[] _ancestorJumps = {1, 2, 3, 8, 16, 32, 64, 128, 256, 384, 512, 640, 768, 896, 1024, 10240, 102400};
 
         public BlockDownloader(
             ISyncFeed<BlocksRequest?>? feed,
@@ -258,9 +258,10 @@ namespace Nethermind.Synchronization.Blocks
             long currentNumber = Math.Max(0, Math.Min(_blockTree.BestKnownNumber, bestPeer.HeadNumber - 1));
             // pivot number - 6 for uncle validation
             // long currentNumber = Math.Max(Math.Max(0, pivotNumber - 6), Math.Min(_blockTree.BestKnownNumber, bestPeer.HeadNumber - 1));
-
+            bool farAncestorFound = false;
             while (bestPeer.TotalDifficulty > (_blockTree.BestSuggestedHeader?.TotalDifficulty ?? 0) && currentNumber <= bestPeer.HeadNumber)
             {
+
                 if (_logger.IsDebug) _logger.Debug($"Continue full sync with {bestPeer} (our best {_blockTree.BestKnownNumber})");
 
                 long blocksLeft = bestPeer.HeadNumber - currentNumber - (blocksRequest.NumberOfLatestBlocksToBeIgnored ?? 0);
@@ -294,9 +295,10 @@ namespace Nethermind.Synchronization.Blocks
 
                 Block[] blocks = context.Blocks;
                 Block blockZero = blocks[0];
-                if (context.FullBlocksCount > 0)
+                if (context.FullBlocksCount > 0 && farAncestorFound == false)
                 {
                     bool parentIsKnown = _blockTree.IsKnownBlock(blockZero.Number - 1, blockZero.ParentHash);
+
                     if (!parentIsKnown)
                     {
                         ancestorLookupLevel++;
@@ -308,6 +310,10 @@ namespace Nethermind.Synchronization.Blocks
 
                         int ancestorJump = _ancestorJumps[ancestorLookupLevel] - _ancestorJumps[ancestorLookupLevel - 1];
                         currentNumber = currentNumber >= ancestorJump ? (currentNumber - ancestorJump) : 0L;
+                        if (_ancestorJumps[ancestorLookupLevel] == 102400)           //    if (cosTamMaxHeaders >= _currentAncestorLookup && parentIsKnown)
+                        {
+                            farAncestorFound = true;
+                        }
                         continue;
                     }
                 }
@@ -374,7 +380,7 @@ namespace Nethermind.Synchronization.Blocks
                     _syncReport.FullSyncBlocksDownloaded.Update(_blockTree.BestSuggestedHeader?.Number ?? 0);
                     _syncReport.FullSyncBlocksKnown = bestPeer.HeadNumber;
                 }
-                else
+                else if (farAncestorFound == false)
                 {
                     break;
                 }
