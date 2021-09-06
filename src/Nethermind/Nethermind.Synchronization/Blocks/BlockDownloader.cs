@@ -148,6 +148,7 @@ namespace Nethermind.Synchronization.Blocks
             int ancestorLookupLevel = 0;
 
             long currentNumber = Math.Max(0, Math.Min(_blockTree.BestKnownNumber, bestPeer.HeadNumber - 1));
+            long startingNumber = currentNumber;
             bool farAncestorFound = false;
             while (bestPeer.TotalDifficulty > (_blockTree.BestSuggestedHeader?.TotalDifficulty ?? 0) && currentNumber <= bestPeer.HeadNumber)
             {
@@ -177,10 +178,17 @@ namespace Nethermind.Synchronization.Blocks
                     }
 
                     int ancestorJump = _ancestorJumps[ancestorLookupLevel] - _ancestorJumps[ancestorLookupLevel - 1];
+                    long theSumOfJumps = Math.Max(startingNumber - _ancestorJumps[ancestorLookupLevel], 0);
                     currentNumber = currentNumber >= ancestorJump ? (currentNumber - ancestorJump) : 0L;
-                    if (_ancestorJumps[ancestorLookupLevel] == 1024000)           //    if (cosTamMaxHeaders >= _currentAncestorLookup && parentIsKnown)
+                    if (headersToRequest < theSumOfJumps)
                     {
+                        // var result = await TryFindFarAncestor(bestPeer, cancellation, startingNumber,
+                        //     ancestorLookupLevel);
+                        // if (result != null)
+                        // {
+                        //currentNumber = result.Value;
                         farAncestorFound = true;
+                        //}
                     }
                     continue;
                 }
@@ -261,6 +269,7 @@ namespace Nethermind.Synchronization.Blocks
             int ancestorLookupLevel = 0;
 
             long currentNumber = Math.Max(0, Math.Min(_blockTree.BestKnownNumber, bestPeer.HeadNumber - 1));
+            long startingNumber = currentNumber;
             // pivot number - 6 for uncle validation
             // long currentNumber = Math.Max(Math.Max(0, pivotNumber - 6), Math.Min(_blockTree.BestKnownNumber, bestPeer.HeadNumber - 1));
             bool farAncestorFound = false;
@@ -314,10 +323,17 @@ namespace Nethermind.Synchronization.Blocks
                         }
 
                         int ancestorJump = _ancestorJumps[ancestorLookupLevel] - _ancestorJumps[ancestorLookupLevel - 1];
+                        long theSumOfJumps = Math.Max(startingNumber - _ancestorJumps[ancestorLookupLevel], 0);
                         currentNumber = currentNumber >= ancestorJump ? (currentNumber - ancestorJump) : 0L;
-                        if (_ancestorJumps[ancestorLookupLevel] == 1024000)           //    if (cosTamMaxHeaders >= _currentAncestorLookup && parentIsKnown)
+                        if (headersToRequest < theSumOfJumps)
                         {
-                            farAncestorFound = true;
+                            // var result = await TryFindFarAncestor(bestPeer, cancellation, startingNumber,
+                            //     ancestorLookupLevel);
+                            // if (result != null)
+                            // {
+                                //currentNumber = result.Value;
+                                farAncestorFound = true;
+                            //}
                         }
                         continue;
                     }
@@ -415,6 +431,7 @@ namespace Nethermind.Synchronization.Blocks
         }
 
         private readonly Guid _sealValidatorUserGuid = Guid.NewGuid();
+  
 
         private async Task<BlockHeader[]> RequestHeaders(PeerInfo peer, CancellationToken cancellation, long currentNumber, int headersToRequest)
         {
@@ -499,6 +516,51 @@ namespace Nethermind.Synchronization.Blocks
                     headers[i].MaybeParent = new WeakReference<BlockHeader>(headers[i - 1]);
                 }
             }
+        }
+        
+        // public async Task<(long?, bool)> TryFindAncestor(PeerInfo bestPeer, CancellationToken cancellation, BlockHeader blockHeader, long startingNumber, int ancestorLookupLevel, int)
+        // {
+        //     bool parentIsKnown = _blockTree.IsKnownBlock(blockHeader.Number - 1, blockHeader.ParentHash);
+        //
+        //     if (!parentIsKnown)
+        //     {
+        //         ancestorLookupLevel++;
+        //         if (ancestorLookupLevel >= _ancestorJumps.Length)
+        //         {
+        //             if (_logger.IsWarn) _logger.Warn($"Could not find common ancestor with {bestPeer}");
+        //             throw new EthSyncException("Peer with inconsistent chain in sync");
+        //         }
+        //
+        //         int ancestorJump = _ancestorJumps[ancestorLookupLevel] - _ancestorJumps[ancestorLookupLevel - 1];
+        //         long theSumOfJumps = Math.Max(startingNumber - _ancestorJumps[ancestorLookupLevel], 0);
+        //         currentNumber = currentNumber >= ancestorJump ? (currentNumber - ancestorJump) : 0L;
+        //         if (headersToRequest < theSumOfJumps)
+        //         {
+        //             var result = await TryFindFarAncestor(bestPeer, cancellation, startingNumber,
+        //                 ancestorLookupLevel);
+        //             if (result != null)
+        //             {
+        //                 currentNumber = result.Value;
+        //                 farAncestorFound = true;
+        //             }
+        //         }
+        //     }
+        //
+        //     return startHeader?.Number;
+        // }
+        
+        public async Task<long?> TryFindFarAncestor(PeerInfo peer, CancellationToken cancellation, long startingNumber, int currentAncestorLookupLevel)
+        {
+            const int maxAncestorJump = 1024000;
+            int? farAncestor = null;
+            long requestHeaderNumber = Math.Min(0, startingNumber - maxAncestorJump);
+            BlockHeader[] headers = await RequestHeaders(peer, cancellation, requestHeaderNumber, 1);
+            Keccak? startHeaderHash = headers[0]?.Hash;
+            BlockHeader? startHeader = (startHeaderHash is null)
+                ? null : _blockTree.FindHeader(startHeaderHash, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
+            
+
+            return startHeader?.Number;
         }
 
         private void ValidateSeals(BlockHeader?[] headers, CancellationToken cancellation)
