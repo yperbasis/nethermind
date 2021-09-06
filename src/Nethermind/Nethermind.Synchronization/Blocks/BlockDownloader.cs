@@ -168,6 +168,19 @@ namespace Nethermind.Synchronization.Blocks
                 Keccak? startHeaderHash = headers[0]?.Hash;
                 BlockHeader? startHeader = (startHeaderHash is null)
                     ? null : _blockTree.FindHeader(startHeaderHash, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
+                long theSumOfJumps = Math.Max(startingNumber - currentNumber, 0);
+                if (headersToRequest < theSumOfJumps && startHeader is not null)
+                {
+                    // var result = await TryFindFarAncestor(bestPeer, cancellation, startingNumber,
+                    //     ancestorLookupLevel);
+                    // if (result != null)
+                    // {
+                    //currentNumber = result.Value;
+                    _logger.Warn($"(DownloadBlocks) Found far ancestor for peer {bestPeer}, currentNumber {currentNumber}, headersToRequest {headersToRequest}, theSumOfJumps {theSumOfJumps}, ancestorLookupLevel {ancestorLookupLevel}");
+                    farAncestorFound = true;
+                    //}
+                }
+                
                 if (startHeader is null && farAncestorFound == false)
                 {
                     ancestorLookupLevel++;
@@ -178,18 +191,7 @@ namespace Nethermind.Synchronization.Blocks
                     }
 
                     int ancestorJump = _ancestorJumps[ancestorLookupLevel] - _ancestorJumps[ancestorLookupLevel - 1];
-                    long theSumOfJumps = Math.Max(startingNumber - _ancestorJumps[ancestorLookupLevel], 0);
                     currentNumber = currentNumber >= ancestorJump ? (currentNumber - ancestorJump) : 0L;
-                    if (headersToRequest < theSumOfJumps)
-                    {
-                        // var result = await TryFindFarAncestor(bestPeer, cancellation, startingNumber,
-                        //     ancestorLookupLevel);
-                        // if (result != null)
-                        // {
-                        //currentNumber = result.Value;
-                        farAncestorFound = true;
-                        //}
-                    }
                     continue;
                 }
 
@@ -312,7 +314,19 @@ namespace Nethermind.Synchronization.Blocks
                 if (context.FullBlocksCount > 0 && farAncestorFound == false)
                 {
                     bool parentIsKnown = _blockTree.IsKnownBlock(blockZero.Number - 1, blockZero.ParentHash);
-
+                    long theSumOfJumps = Math.Max(startingNumber - currentNumber, 0);
+                    if (headersToRequest < theSumOfJumps && parentIsKnown)
+                    {
+                        // var result = await TryFindFarAncestor(bestPeer, cancellation, startingNumber,
+                        //     ancestorLookupLevel);
+                        // if (result != null)
+                        // {
+                        //currentNumber = result.Value;
+                        _logger.Warn($"(DownloadBlocks) Found far ancestor for peer {bestPeer}, currentNumber {currentNumber}, headersToRequest {headersToRequest}, theSumOfJumps {theSumOfJumps}, ancestorLookupLevel {ancestorLookupLevel}");
+                        farAncestorFound = true;
+                        //}
+                    }
+                    
                     if (!parentIsKnown)
                     {
                         ancestorLookupLevel++;
@@ -323,18 +337,9 @@ namespace Nethermind.Synchronization.Blocks
                         }
 
                         int ancestorJump = _ancestorJumps[ancestorLookupLevel] - _ancestorJumps[ancestorLookupLevel - 1];
-                        long theSumOfJumps = Math.Max(startingNumber - _ancestorJumps[ancestorLookupLevel], 0);
+                        
                         currentNumber = currentNumber >= ancestorJump ? (currentNumber - ancestorJump) : 0L;
-                        if (headersToRequest < theSumOfJumps)
-                        {
-                            // var result = await TryFindFarAncestor(bestPeer, cancellation, startingNumber,
-                            //     ancestorLookupLevel);
-                            // if (result != null)
-                            // {
-                                //currentNumber = result.Value;
-                                farAncestorFound = true;
-                            //}
-                        }
+ 
                         continue;
                     }
                 }
