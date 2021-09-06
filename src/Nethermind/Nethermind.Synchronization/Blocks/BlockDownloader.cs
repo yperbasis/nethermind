@@ -148,6 +148,7 @@ namespace Nethermind.Synchronization.Blocks
             int ancestorLookupLevel = 0;
 
             long currentNumber = Math.Max(0, Math.Min(_blockTree.BestKnownNumber, bestPeer.HeadNumber - 1));
+            bool farAncestorFound = false;
             while (bestPeer.TotalDifficulty > (_blockTree.BestSuggestedHeader?.TotalDifficulty ?? 0) && currentNumber <= bestPeer.HeadNumber)
             {
                 int headersSyncedInPreviousRequests = headersSynced;
@@ -166,7 +167,7 @@ namespace Nethermind.Synchronization.Blocks
                 Keccak? startHeaderHash = headers[0]?.Hash;
                 BlockHeader? startHeader = (startHeaderHash is null)
                     ? null : _blockTree.FindHeader(startHeaderHash, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
-                if (startHeader is null)
+                if (startHeader is null && farAncestorFound == false)
                 {
                     ancestorLookupLevel++;
                     if (ancestorLookupLevel >= _ancestorJumps.Length)
@@ -177,6 +178,10 @@ namespace Nethermind.Synchronization.Blocks
 
                     int ancestorJump = _ancestorJumps[ancestorLookupLevel] - _ancestorJumps[ancestorLookupLevel - 1];
                     currentNumber = currentNumber >= ancestorJump ? (currentNumber - ancestorJump) : 0L;
+                    if (_ancestorJumps[ancestorLookupLevel] == 102400)           //    if (cosTamMaxHeaders >= _currentAncestorLookup && parentIsKnown)
+                    {
+                        farAncestorFound = true;
+                    }
                     continue;
                 }
 
@@ -229,7 +234,7 @@ namespace Nethermind.Synchronization.Blocks
                     _syncReport.FullSyncBlocksDownloaded.Update(_blockTree.BestSuggestedHeader?.Number ?? 0);
                     _syncReport.FullSyncBlocksKnown = bestPeer.HeadNumber;
                 }
-                else
+                else if (farAncestorFound == false)
                 {
                     break;
                 }
