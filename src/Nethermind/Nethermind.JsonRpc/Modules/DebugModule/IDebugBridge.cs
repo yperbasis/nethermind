@@ -14,6 +14,7 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Find;
@@ -31,6 +32,7 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
         GethLikeTxTrace GetTransactionTrace(Keccak blockHash, int index, CancellationToken cancellationToken, GethTraceOptions gethTraceOptions = null);
         GethLikeTxTrace GetTransactionTrace(Rlp blockRlp, Keccak transactionHash, CancellationToken cancellationToken, GethTraceOptions gethTraceOptions = null);
         GethLikeTxTrace[] GetBlockTrace(Keccak blockHash, CancellationToken cancellationToken, GethTraceOptions gethTraceOptions = null);
+        List<(Keccak, byte[])> GetBlockTraceForWitness(BlockParameter blockHash, CancellationToken cancellationToken, GethTraceOptions gethTraceOptions = null);
         GethLikeTxTrace[] GetBlockTrace(long blockNumber, CancellationToken cancellationToken, GethTraceOptions gethTraceOptions = null);
         GethLikeTxTrace[] GetBlockTrace(Rlp blockRlp, CancellationToken cancellationToken, GethTraceOptions gethTraceOptions = null);
         byte[] GetBlockRlp(Keccak blockHash);

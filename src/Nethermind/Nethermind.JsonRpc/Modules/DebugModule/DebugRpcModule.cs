@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -182,6 +183,23 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
 
             if (_logger.IsTrace) _logger.Trace($"{nameof(debug_traceBlockByHash)} request {blockHash}, result: blockTrace");
             return ResultWrapper<GethLikeTxTrace[]>.Success(gethLikeBlockTrace);
+        }
+
+        public ResultWrapper<List<(Keccak, byte[])>> debug_getWitness(BlockParameter blockParameter)
+        {
+            using CancellationTokenSource cancellationTokenSource = new(_traceTimeout);
+            CancellationToken cancellationToken = cancellationTokenSource.Token;
+            
+            List<(Keccak, byte[])> witness = _debugBridge.GetBlockTraceForWitness(blockParameter,  cancellationToken);
+            if (witness == null)
+            {
+                return ResultWrapper<List<(Keccak, byte[])>>.Fail(
+                    "Witness not found",
+                    ErrorCodes.ResourceUnavailable);
+            }
+
+            if (_logger.IsTrace) _logger.Trace($"{nameof(debug_getWitness)}");
+            return ResultWrapper<List<(Keccak,byte[])>>.Success(witness);
         }
 
         public ResultWrapper<GethLikeTxTrace[]> debug_traceBlockFromFile(string fileName, GethTraceOptions options = null)

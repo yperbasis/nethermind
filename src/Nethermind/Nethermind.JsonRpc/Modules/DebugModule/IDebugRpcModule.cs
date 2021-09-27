@@ -14,6 +14,7 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Find;
@@ -57,6 +58,12 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
         [JsonRpcMethod(Description = "", IsImplemented = true, IsSharable = true)]
         ResultWrapper<GethLikeTxTrace[]> debug_traceBlockByHash(Keccak blockHash, GethTraceOptions options = null);
 
+        [JsonRpcMethod(IsImplemented = true, 
+            Description = "Returns Witness for provided block", 
+            IsSharable = true,
+            ExampleResponse = "0x6c8ae945bfe6e")]
+        ResultWrapper<List<(Keccak, byte[])>> debug_getWitness(BlockParameter blockParameter);
+        
         [JsonRpcMethod(Description = "", IsImplemented = false, IsSharable = false)]
         ResultWrapper<GethLikeTxTrace[]> debug_traceBlockFromFile(string fileName, GethTraceOptions options = null);
 

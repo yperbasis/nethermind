@@ -46,7 +46,7 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
 
         public DebugBridge(
             IConfigProvider configProvider,
-            IReadOnlyDbProvider dbProvider,
+            IDbProvider dbProvider,
             IGethStyleTracer tracer,
             IBlockTree blockTree,
             IReceiptStorage receiptStorage,
@@ -65,6 +65,7 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
             IDb headersDb = dbProvider.HeadersDb ?? throw new ArgumentNullException(nameof(dbProvider.HeadersDb));
             IDb receiptsDb = dbProvider.ReceiptsDb ?? throw new ArgumentNullException(nameof(dbProvider.ReceiptsDb));
             IDb codeDb = dbProvider.CodeDb ?? throw new ArgumentNullException(nameof(dbProvider.CodeDb));
+            IDb witness = dbProvider.WitnessDb;
 
             _dbMappings = new Dictionary<string, IDb>(StringComparer.InvariantCultureIgnoreCase)
             {
@@ -75,6 +76,7 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
                 {DbNames.Headers, headersDb},
                 {DbNames.Code, codeDb},
                 {DbNames.Receipts, receiptsDb},
+                {DbNames.Witness, witness}
             };
         }
 
@@ -143,6 +145,12 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
         public GethLikeTxTrace[] GetBlockTrace(Keccak blockHash,CancellationToken cancellationToken, GethTraceOptions gethTraceOptions = null)
         {
             return _tracer.TraceBlock(blockHash, gethTraceOptions ?? GethTraceOptions.Default, cancellationToken); 
+        }
+
+        public List<(Keccak, byte[])> GetBlockTraceForWitness(BlockParameter blockHash, CancellationToken cancellationToken,
+            GethTraceOptions gethTraceOptions = null)
+        {
+            return _tracer.TraceBlockForWitness(blockHash, gethTraceOptions ?? GethTraceOptions.Default, cancellationToken);
         }
 
         public GethLikeTxTrace[] GetBlockTrace(long blockNumber, CancellationToken cancellationToken, GethTraceOptions gethTraceOptions = null)

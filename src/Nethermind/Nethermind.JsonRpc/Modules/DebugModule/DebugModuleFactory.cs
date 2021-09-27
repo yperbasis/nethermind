@@ -26,6 +26,8 @@ using Nethermind.Config;
 using Nethermind.Core.Specs;
 using Nethermind.Db;
 using Nethermind.Logging;
+using Nethermind.State;
+using Nethermind.State.Witnesses;
 using Nethermind.Trie.Pruning;
 using Newtonsoft.Json;
 
@@ -43,9 +45,10 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
         private readonly ISpecProvider _specProvider;
         private readonly ILogManager _logManager;
         private readonly IBlockPreprocessorStep _recoveryStep;
-        private readonly IReadOnlyDbProvider _dbProvider;
-        private readonly IReadOnlyBlockTree _blockTree;
+        private readonly IDbProvider _dbProvider;
+        private readonly IBlockTree _blockTree;
         private ILogger _logger;
+        private WitnessCollector _witnessCollector;
 
         public DebugModuleFactory(
             IDbProvider dbProvider,
@@ -59,10 +62,12 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
             IReadOnlyTrieStore trieStore,
             IConfigProvider configProvider,
             ISpecProvider specProvider,
-            ILogManager logManager)
+            ILogManager logManager,
+            WitnessCollector witnessCollector)
         {
-            _dbProvider = dbProvider.AsReadOnly(false);
-            _blockTree = blockTree.AsReadOnly();
+            _dbProvider = dbProvider;
+            _witnessCollector = witnessCollector;
+            _blockTree = blockTree;
             _jsonRpcConfig = jsonRpcConfig ?? throw new ArgumentNullException(nameof(jsonRpcConfig));
             _blockValidator = blockValidator ?? throw new ArgumentNullException(nameof(blockValidator));
             _recoveryStep = recoveryStep ?? throw new ArgumentNullException(nameof(recoveryStep));
@@ -83,7 +88,8 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
                 _trieStore,
                 _blockTree,
                 _specProvider,
-                _logManager);
+                _logManager, 
+                _witnessCollector);
 
             ReadOnlyChainProcessingEnv chainProcessingEnv = new(
                 txEnv,
@@ -93,7 +99,9 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
                 _receiptStorage,
                 _dbProvider,
                 _specProvider,
-                _logManager);
+                _logManager,
+                _witnessCollector
+                );
 
             GethStyleTracer tracer = new(
                 chainProcessingEnv.ChainProcessor,
