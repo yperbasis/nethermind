@@ -17,6 +17,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Jint.Native;
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
 using Nethermind.Blockchain;
@@ -111,7 +112,8 @@ namespace Nethermind.Consensus.Clique
                 getFromApi.ReadOnlyTrieStore,
                 readOnlyBlockTree,
                 getFromApi.SpecProvider,
-                getFromApi.LogManager);
+                getFromApi.LogManager,
+                NullWitnessCollector.Instance);
                 
             BlockProcessor producerProcessor = new BlockProcessor(
                 getFromApi!.SpecProvider,
