@@ -114,6 +114,11 @@ namespace Nethermind.Blockchain.Test
                     }
                 }
 
+                public List<(Keccak, byte[])> GetWitness(Block block)
+                {
+                    throw new NotImplementedException();
+                }
+
                 public event EventHandler<BlocksProcessingEventArgs> BlocksProcessing;
 
                 public event EventHandler<BlockProcessedEventArgs> BlockProcessed;
