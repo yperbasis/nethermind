@@ -105,13 +105,13 @@ namespace Nethermind.Store.Test.Witnesses
             public Context()
             {
                 WitnessCollector = new WitnessCollector(new MemDb(), LimboLogs.Instance);
-                Database = new WitnessingStore(Wrapped, WitnessCollector, new MemDb(), new MemDb());
+                Database = new WitnessingStore(Wrapped, WitnessCollector);
             }
             
             public Context(int cacheSize)
             {
                 WitnessCollector = new WitnessCollector(new MemDb(), LimboLogs.Instance);
-                Database = new WitnessingStore(new CachingStore(Wrapped, cacheSize), WitnessCollector, new MemDb(), new MemDb());
+                Database = new WitnessingStore(new CachingStore(Wrapped, cacheSize), WitnessCollector);
             }
         }
 

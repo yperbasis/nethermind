@@ -34,8 +34,8 @@ namespace Nethermind.Store.Test.Witnesses
         public void Collects_each_cache_once()
         {
             WitnessCollector witnessCollector = new WitnessCollector(new MemDb(), LimboLogs.Instance);
-            witnessCollector.Add(Keccak.Zero);
-            witnessCollector.Add(Keccak.Zero);
+            witnessCollector.Add(Keccak.Zero, System.Array.Empty<byte>());
+            witnessCollector.Add(Keccak.Zero, System.Array.Empty<byte>());
             witnessCollector.Collected.Should().HaveCount(1);
         }
         
@@ -43,8 +43,8 @@ namespace Nethermind.Store.Test.Witnesses
         public void Can_collect_many()
         {
             WitnessCollector witnessCollector = new WitnessCollector(new MemDb(), LimboLogs.Instance);
-            witnessCollector.Add(TestItem.KeccakA);
-            witnessCollector.Add(TestItem.KeccakB);
+            witnessCollector.Add(TestItem.KeccakA, System.Array.Empty<byte>());
+            witnessCollector.Add(TestItem.KeccakB, System.Array.Empty<byte>());
             witnessCollector.Collected.Should().HaveCount(2);
         }
         
@@ -52,8 +52,8 @@ namespace Nethermind.Store.Test.Witnesses
         public void Can_reset()
         {
             WitnessCollector witnessCollector = new WitnessCollector(new MemDb(), LimboLogs.Instance);
-            witnessCollector.Add(TestItem.KeccakA);
-            witnessCollector.Add(TestItem.KeccakB);
+            witnessCollector.Add(TestItem.KeccakA, System.Array.Empty<byte>());
+            witnessCollector.Add(TestItem.KeccakB, System.Array.Empty<byte>());
             witnessCollector.Reset();
             witnessCollector.Collected.Should().HaveCount(0);
         }
@@ -62,10 +62,10 @@ namespace Nethermind.Store.Test.Witnesses
         public void Can_collect_after_reset()
         {
             WitnessCollector witnessCollector = new WitnessCollector(new MemDb(), LimboLogs.Instance);
-            witnessCollector.Add(TestItem.KeccakA);
-            witnessCollector.Add(TestItem.KeccakB);
+            witnessCollector.Add(TestItem.KeccakA, System.Array.Empty<byte>());
+            witnessCollector.Add(TestItem.KeccakB, System.Array.Empty<byte>());
             witnessCollector.Reset();
-            witnessCollector.Add(TestItem.KeccakC);
+            witnessCollector.Add(TestItem.KeccakC, System.Array.Empty<byte>());
             witnessCollector.Collected.Should().HaveCount(1);
         }
         
@@ -73,10 +73,10 @@ namespace Nethermind.Store.Test.Witnesses
         public void Collects_what_it_should_collect()
         {
             WitnessCollector witnessCollector = new WitnessCollector(new MemDb(), LimboLogs.Instance);
-            witnessCollector.Add(TestItem.KeccakA);
-            witnessCollector.Add(TestItem.KeccakB);
-            witnessCollector.Collected.Should().Contain(TestItem.KeccakA);
-            witnessCollector.Collected.Should().Contain(TestItem.KeccakB);
+            witnessCollector.Add(TestItem.KeccakA, System.Array.Empty<byte>());
+            witnessCollector.Add(TestItem.KeccakB, System.Array.Empty<byte>());
+            witnessCollector.Collected.Should().Contain(TestItem.KeccakA, System.Array.Empty<byte>());
+            witnessCollector.Collected.Should().Contain(TestItem.KeccakB, System.Array.Empty<byte>());
         }
         
         [Test]
@@ -101,11 +101,11 @@ namespace Nethermind.Store.Test.Witnesses
         public void Can_reset_non_empty_many_times()
         {
             WitnessCollector witnessCollector = new WitnessCollector(new MemDb(), LimboLogs.Instance);
-            witnessCollector.Add(TestItem.KeccakA);
+            witnessCollector.Add(TestItem.KeccakA, System.Array.Empty<byte>());
             witnessCollector.Reset();
-            witnessCollector.Add(TestItem.KeccakA);
+            witnessCollector.Add(TestItem.KeccakA, System.Array.Empty<byte>());
             witnessCollector.Reset();
-            witnessCollector.Add(TestItem.KeccakA);
+            witnessCollector.Add(TestItem.KeccakA, System.Array.Empty<byte>());
             witnessCollector.Reset();
             witnessCollector.Collected.Should().HaveCount(0);
         }
@@ -125,8 +125,8 @@ namespace Nethermind.Store.Test.Witnesses
         {
             IKeyValueStore keyValueStore = new MemDb();
             WitnessCollector witnessCollector = new WitnessCollector(keyValueStore, LimboLogs.Instance);
-            witnessCollector.Add(TestItem.KeccakA);
-            witnessCollector.Add(TestItem.KeccakB);
+            witnessCollector.Add(TestItem.KeccakA, System.Array.Empty<byte>());
+            witnessCollector.Add(TestItem.KeccakB, System.Array.Empty<byte>());
             witnessCollector.Persist(Keccak.Zero);
             var witness = keyValueStore[Keccak.Zero.Bytes];
             witness.Length.Should().Be(64);
@@ -137,8 +137,8 @@ namespace Nethermind.Store.Test.Witnesses
         {
             IKeyValueStore keyValueStore = new MemDb();
             WitnessCollector witnessCollector = new WitnessCollector(keyValueStore, LimboLogs.Instance);
-            witnessCollector.Add(TestItem.KeccakA);
-            witnessCollector.Add(TestItem.KeccakB);
+            witnessCollector.Add(TestItem.KeccakA, System.Array.Empty<byte>());
+            witnessCollector.Add(TestItem.KeccakB, System.Array.Empty<byte>());
             witnessCollector.Persist(Keccak.Zero);
             var witness = witnessCollector.Load(Keccak.Zero);
             witness.Should().HaveCount(2);
@@ -160,7 +160,7 @@ namespace Nethermind.Store.Test.Witnesses
             WitnessCollector witnessCollector = new WitnessCollector(keyValueStore, LimboLogs.Instance);
             for (int i = 0; i < 255; i++)
             {
-                witnessCollector.Add(TestItem.Keccaks[i]);
+                witnessCollector.Add(TestItem.Keccaks[i], System.Array.Empty<byte>());
                 witnessCollector.Persist(TestItem.Keccaks[i]);    
             }
             

@@ -30,7 +30,7 @@ namespace Nethermind.Store.Test.Witnesses
         public void Cannot_call_add()
         {
             Assert.Throws<InvalidOperationException>(
-                () => NullWitnessCollector.Instance.Add(Keccak.Zero));
+                () => NullWitnessCollector.Instance.Add(Keccak.Zero, System.Array.Empty<byte>()));
         }
         
         [Test]
