@@ -37,10 +37,15 @@ namespace Nethermind.JsonRpc.Test.Modules
     {
         private const string GetOneWitnessHashResponse =
             "{\"jsonrpc\":\"2.0\",\"result\":[\"0xa2a9f03b9493046696099d27b2612b99497aa1f392ec966716ab393c715a5bb6\"],\"id\":67}";
-        private const string BlockNotFoundResponse = 
+
+        private const string BlockNotFoundResponse =
             "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Block not found\"},\"id\":67}";
-        private const string WitnessNotFoundResponse = 
+
+        private const string WitnessNotFoundResponse =
             "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32002,\"message\":\"Witness unavailable\"},\"id\":67}";
+
+        private const string WitnessBodyResponse =
+            "{\"jsonrpc\":\"2.0\",\"result\":\"0x2222222222fa222222222222\",\"id\":67}";
 
         private IBlockFinder _blockFinder;
 
@@ -53,9 +58,9 @@ namespace Nethermind.JsonRpc.Test.Modules
         [SetUp]
         public void Setup()
         {
-            _block =  Build.A.Block
+            _block = Build.A.Block
                 .WithOmmers(Build.A.BlockHeader.TestObject, Build.A.BlockHeader.TestObject).TestObject;
-            
+
             _blockFinder = Substitute.For<IBlockTree>();
             _witnessRepository = new WitnessCollector(new MemDb(), LimboLogs.Instance);
             _witnessRpcModule = new WitnessRpcModule(_witnessRepository, _blockFinder);
@@ -67,11 +72,12 @@ namespace Nethermind.JsonRpc.Test.Modules
             _blockFinder.FindHeader((BlockParameter)null).ReturnsForAnyArgs(_block.Header);
             _blockFinder.Head.Returns(_block);
 
-            _witnessRepository.Add(_block.Hash);
+            _witnessRepository.Add(_block.Hash, System.Array.Empty<byte>());
             _witnessRepository.Persist(_block.Hash);
 
             string serialized =
-                RpcTest.TestSerializedRequest<IWitnessRpcModule>(_witnessRpcModule, "get_witnesses", _block.CalculateHash().ToString());
+                RpcTest.TestSerializedRequest<IWitnessRpcModule>(_witnessRpcModule, "get_witnesses",
+                    _block.CalculateHash().ToString());
             serialized.Should().Be(GetOneWitnessHashResponse);
         }
 
@@ -92,7 +98,21 @@ namespace Nethermind.JsonRpc.Test.Modules
             string serialized =
                 RpcTest.TestSerializedRequest<IWitnessRpcModule>(_witnessRpcModule, "get_witnesses", "0x1");
             serialized.Should().Be(WitnessNotFoundResponse);
-            
+        }
+
+        [Test]
+        public void GetWitnessBytes()
+        {
+            _blockFinder.FindHeader((BlockParameter)null).ReturnsForAnyArgs(_block.Header);
+            _blockFinder.Head.Returns(_block);
+
+            _witnessRepository.Add(_block.Hash, new byte[] {34, 34, 34, 34, 34, 250, 34, 34, 34, 34, 34, 34});
+            _witnessRepository.Persist(_block.Hash);
+
+            string serialized =
+                RpcTest.TestSerializedRequest<IWitnessRpcModule>(_witnessRpcModule, "get_witnesses_body",
+                    _block.Hash.ToString());
+            serialized.Should().Be(WitnessBodyResponse);
         }
     }
 }
