@@ -42,6 +42,7 @@ using Nethermind.Evm.Tracing;
 using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Logging;
 using Nethermind.Runner.Ethereum.Api;
+using Nethermind.State;
 using Nethermind.TxPool;
 using Nethermind.TxPool.Comparison;
 
@@ -109,7 +110,7 @@ namespace Nethermind.Runner.Ethereum.Steps
         }
 
         private ReadOnlyTxProcessingEnv CreateReadOnlyTransactionProcessorSource() => 
-            new ReadOnlyTxProcessingEnv(_api.DbProvider, _api.ReadOnlyTrieStore, _api.BlockTree, _api.SpecProvider, _api.LogManager);
+            new ReadOnlyTxProcessingEnv(_api.DbProvider, _api.ReadOnlyTrieStore, _api.BlockTree, _api.SpecProvider, _api.LogManager, NullWitnessCollector.Instance);
 
         protected override IHealthHintService CreateHealthHintService() =>
             new AuraHealthHintService(_auRaStepCalculator, _api.ValidatorStore);

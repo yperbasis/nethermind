@@ -96,7 +96,8 @@ namespace Nethermind.Runner.Ethereum.Api
                 ReadOnlyTrieStore,
                 readOnlyTree,
                 SpecProvider,
-                LogManager);
+                LogManager, 
+                NullWitnessCollector.Instance);
 
             IMiningConfig miningConfig = ConfigProvider.GetConfig<IMiningConfig>();
             ISyncConfig syncConfig = ConfigProvider.GetConfig<ISyncConfig>();

@@ -108,14 +108,13 @@ namespace Nethermind.Runner.Ethereum.Steps
                 .Cached(Trie.MemoryAllowance.TrieNodeCacheCount);
             setApi.MainStateDbWithCache = cachedStateDb;
             IKeyValueStore codeDb = getApi.DbProvider.CodeDb
-                .WitnessedBy(witnessCollector, getApi.DbProvider.StateDb, getApi.DbProvider.CodeDb);
+                .WitnessedBy(witnessCollector);
 
             TrieStore trieStore;
             if (pruningConfig.Enabled)
             {
                 setApi.TrieStore = trieStore = new TrieStore(
-                    setApi.MainStateDbWithCache.WitnessedBy(witnessCollector, getApi.DbProvider.StateDb,
-                        getApi.DbProvider.CodeDb),
+                    setApi.MainStateDbWithCache.WitnessedBy(witnessCollector),
                     Prune.WhenCacheReaches(pruningConfig.CacheMb.MB()), // TODO: memory hint should define this
                     Persist.IfBlockOlderThan(pruningConfig.PersistenceInterval), // TODO: this should be based on time
                     getApi.LogManager);
@@ -123,8 +122,7 @@ namespace Nethermind.Runner.Ethereum.Steps
             else
             {
                 setApi.TrieStore = trieStore = new TrieStore(
-                    setApi.MainStateDbWithCache.WitnessedBy(witnessCollector, getApi.DbProvider.StateDb,
-                        getApi.DbProvider.CodeDb),
+                    setApi.MainStateDbWithCache.WitnessedBy(witnessCollector),
                     No.Pruning,
                     Persist.EveryBlock,
                     getApi.LogManager);

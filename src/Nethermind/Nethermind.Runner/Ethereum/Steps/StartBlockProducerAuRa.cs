@@ -42,6 +42,7 @@ using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Logging;
 using Nethermind.Runner.Ethereum.Api;
 using Nethermind.Specs.ChainSpecStyle;
+using Nethermind.State;
 using Nethermind.TxPool;
 
 namespace Nethermind.Runner.Ethereum.Steps
@@ -156,7 +157,7 @@ namespace Nethermind.Runner.Ethereum.Steps
         {
             // We need special one for TxPriority as its following Head separately with events and we want rules from Head, not produced block
             IReadOnlyTxProcessorSource readOnlyTxProcessorSourceForTxPriority = 
-                new ReadOnlyTxProcessingEnv(_api.DbProvider, _api.ReadOnlyTrieStore, _api.BlockTree, _api.SpecProvider, _api.LogManager);
+                new ReadOnlyTxProcessingEnv(_api.DbProvider, _api.ReadOnlyTrieStore, _api.BlockTree, _api.SpecProvider, _api.LogManager, NullWitnessCollector.Instance);
             
             (_txPriorityContract, _localDataSource) = TxAuRaFilterBuilders.CreateTxPrioritySources(_auraConfig, _api, readOnlyTxProcessorSourceForTxPriority);
 
@@ -215,7 +216,7 @@ namespace Nethermind.Runner.Ethereum.Steps
         {
             ReadOnlyTxProcessingEnv CreateReadonlyTxProcessingEnv(ReadOnlyDbProvider dbProvider, ReadOnlyBlockTree blockTree)
             {
-                return new ReadOnlyTxProcessingEnv(dbProvider, _api.ReadOnlyTrieStore, blockTree, _api.SpecProvider, _api.LogManager);
+                return new ReadOnlyTxProcessingEnv(dbProvider, _api.ReadOnlyTrieStore, blockTree, _api.SpecProvider, _api.LogManager, NullWitnessCollector.Instance);
             }
 
             BlockProducerEnv Create()
