@@ -25,6 +25,7 @@ using Nethermind.Blockchain.Validators;
 using Nethermind.Core.Specs;
 using Nethermind.Db;
 using Nethermind.Logging;
+using Nethermind.State;
 using Nethermind.Trie.Pruning;
 
 namespace Nethermind.Mev.Execution
@@ -60,10 +61,10 @@ namespace Nethermind.Mev.Execution
         public ITracer Create()
         {
             ReadOnlyTxProcessingEnv txProcessingEnv = new(
-                _dbProvider, _trieStore, _blockTree, _specProvider, _logManager);
+                _dbProvider, _trieStore, _blockTree, _specProvider, _logManager, NullWitnessCollector.Instance);
             
             ReadOnlyChainProcessingEnv chainProcessingEnv = new(
-                txProcessingEnv, Always.Valid, _recoveryStep, NoBlockRewards.Instance, new InMemoryReceiptStorage(), _dbProvider, _specProvider, _logManager);
+                txProcessingEnv, Always.Valid, _recoveryStep, NoBlockRewards.Instance, new InMemoryReceiptStorage(), _dbProvider, _specProvider, _logManager, NullWitnessCollector.Instance);
 
             return CreateTracer(txProcessingEnv, chainProcessingEnv);
         }
