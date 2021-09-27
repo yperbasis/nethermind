@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -30,7 +31,8 @@ namespace Nethermind.Blockchain.Tracing
         private readonly IBlockchainProcessor _blockProcessor;
         private readonly ProcessingOptions _processingOptions;
 
-        public Tracer(IStateProvider stateProvider, IBlockchainProcessor blockProcessor, ProcessingOptions processingOptions = ProcessingOptions.Trace)
+        public Tracer(IStateProvider stateProvider, IBlockchainProcessor blockProcessor,
+            ProcessingOptions processingOptions = ProcessingOptions.Trace)
         {
             _stateProvider = stateProvider ?? throw new ArgumentNullException(nameof(stateProvider));
             _blockProcessor = blockProcessor ?? throw new ArgumentNullException(nameof(blockProcessor));
@@ -53,10 +55,33 @@ namespace Nethermind.Blockchain.Tracing
                 _stateProvider.Reset();
                 throw;
             }
-            
+
             blockTracer.EndBlockTrace();
 
             return _stateProvider.StateRoot;
+        }
+
+        public List<(Keccak, byte[])> TraceForWitness(Block block, IBlockTracer blockTracer)
+        {
+            /* We force process since we want to process a block that has already been processed in the past and normally it would be ignored.
+               We also want to make it read only so the state is not modified persistently in any way. */
+
+            blockTracer.StartNewBlockTrace(block);
+            List<(Keccak, byte[])> witness = new();
+            try
+            {
+                // Block _;
+                (_, witness) = _blockProcessor.ProcessForWitness(block, _processingOptions, blockTracer);
+            }
+            catch (Exception)
+            {
+                _stateProvider.Reset();
+                throw;
+            }
+
+            blockTracer.EndBlockTrace();
+
+            return witness;
         }
 
         public void Accept(ITreeVisitor visitor, Keccak stateRoot)

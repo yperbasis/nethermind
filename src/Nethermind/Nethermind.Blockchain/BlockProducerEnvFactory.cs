@@ -78,7 +78,7 @@ namespace Nethermind.Blockchain
             ReadOnlyBlockTree readOnlyBlockTree = _blockTree.AsReadOnly();
 
             ReadOnlyTxProcessingEnv txProcessingEnv =
-                new(readOnlyDbProvider, _readOnlyTrieStore, readOnlyBlockTree, _specProvider, _logManager);
+                new(readOnlyDbProvider, _readOnlyTrieStore, readOnlyBlockTree, _specProvider, _logManager, NullWitnessCollector.Instance);
                 
             BlockProcessor blockProcessor =
                 CreateBlockProcessor(txProcessingEnv, 

@@ -15,8 +15,10 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nethermind.Core;
+using Nethermind.Core.Crypto;
 using Nethermind.Evm.Tracing;
 
 namespace Nethermind.Blockchain.Processing
@@ -30,6 +32,8 @@ namespace Nethermind.Blockchain.Processing
         Task StopAsync(bool processRemainingBlocks = false);
         
         Block? Process(Block block, ProcessingOptions options, IBlockTracer tracer);
+
+        (Block, List<(Keccak, byte[])>) ProcessForWitness(Block block, ProcessingOptions options, IBlockTracer tracer);
 
         bool IsProcessingBlocks(ulong? maxProcessingInterval);
     }

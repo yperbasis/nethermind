@@ -24,6 +24,7 @@ using Nethermind.Blockchain.Validators;
 using Nethermind.Core;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Resettables;
 using Nethermind.Core.Specs;
 using Nethermind.Crypto;
 using Nethermind.Int256;
@@ -77,7 +78,8 @@ namespace Nethermind.Blockchain.Processing
             _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
             _witnessCollector = witnessCollector ?? throw new ArgumentNullException(nameof(witnessCollector));
             _rewardCalculator = rewardCalculator ?? throw new ArgumentNullException(nameof(rewardCalculator));
-            _blockTransactionsExecutor = blockTransactionsExecutor ?? throw new ArgumentNullException(nameof(blockTransactionsExecutor));
+            _blockTransactionsExecutor = blockTransactionsExecutor ??
+                                         throw new ArgumentNullException(nameof(blockTransactionsExecutor));
 
             _receiptsTracer = new BlockReceiptsTracer();
         }
@@ -91,10 +93,11 @@ namespace Nethermind.Blockchain.Processing
         }
 
         // TODO: move to branch processor
-        public Block[] Process(Keccak newBranchStateRoot, List<Block> suggestedBlocks, ProcessingOptions options, IBlockTracer blockTracer)
+        public Block[] Process(Keccak newBranchStateRoot, List<Block> suggestedBlocks, ProcessingOptions options,
+            IBlockTracer blockTracer)
         {
             if (suggestedBlocks.Count == 0) return Array.Empty<Block>();
-            
+
             BlocksProcessing?.Invoke(this, new BlocksProcessingEventArgs(suggestedBlocks));
 
             /* We need to save the snapshot state root before reorganization in case the new branch has invalid blocks.
@@ -112,7 +115,9 @@ namespace Nethermind.Blockchain.Processing
                 {
                     if (blocksCount > 64 && i % 8 == 0)
                     {
-                        if(_logger.IsInfo) _logger.Info($"Processing part of a long blocks branch {i}/{blocksCount}. Block: {suggestedBlocks[i]}");
+                        if (_logger.IsInfo)
+                            _logger.Info(
+                                $"Processing part of a long blocks branch {i}/{blocksCount}. Block: {suggestedBlocks[i]}");
                     }
 
                     _witnessCollector.Reset();
@@ -162,6 +167,42 @@ namespace Nethermind.Blockchain.Processing
             }
         }
 
+        public (Block[], List<(Keccak, byte[])>) GetWitness(Keccak newBranchStateRoot, List<Block> suggestedBlocks,
+            ProcessingOptions options,
+            IBlockTracer blockTracer)
+        {
+            if (suggestedBlocks.Count == 0) return (Array.Empty<Block>(), new List<(Keccak, byte[])>());
+
+            BlocksProcessing?.Invoke(this, new BlocksProcessingEventArgs(suggestedBlocks));
+
+            /* We need to save the snapshot state root before reorganization in case the new branch has invalid blocks.
+               In case of invalid blocks on the new branch we will discard the entire branch and come back to 
+               the previous head state.*/
+            _stateProvider.RecalculateStateRoot();
+            Keccak previousBranchStateRoot = CreateCheckpoint();
+            InitBranch(newBranchStateRoot);
+
+            int blocksCount = suggestedBlocks.Count;
+            Block[] processedBlocks = new Block[blocksCount];
+            try
+            {
+                (Block processedBlock, ResettableDictionary<Keccak, byte[]> witness) =
+                    ProcessOneForWitness(suggestedBlocks[0], options, blockTracer);
+                processedBlocks[0] = processedBlock;
+             
+                RestoreBranch(previousBranchStateRoot);
+
+                return (processedBlocks,
+                    witness.Select(pairs => (pairs.Key, pairs.Value)).ToList());
+            }
+            catch (Exception ex) // try to restore for all cost
+            {
+                _logger.Trace($"Encountered exception {ex} while processing blocks.");
+                RestoreBranch(previousBranchStateRoot);
+                throw;
+            }
+        }
+
         public event EventHandler<BlocksProcessingEventArgs>? BlocksProcessing;
 
         // TODO: move to branch processor
@@ -192,7 +233,8 @@ namespace Nethermind.Blockchain.Processing
         // TODO: move to block processing pipeline
         private void PreCommitBlock(Keccak newBranchStateRoot, long blockNumber)
         {
-            if (_logger.IsTrace) _logger.Trace($"Committing the branch - {newBranchStateRoot} | {_stateProvider.StateRoot}");
+            if (_logger.IsTrace)
+                _logger.Trace($"Committing the branch - {newBranchStateRoot} | {_stateProvider.StateRoot}");
             _storageProvider.CommitTrees(blockNumber);
             _stateProvider.CommitTree(blockNumber);
         }
@@ -211,13 +253,17 @@ namespace Nethermind.Blockchain.Processing
             _storageProvider.Reset();
             _stateProvider.Reset();
             _stateProvider.StateRoot = branchingPointStateRoot;
-            if (_logger.IsTrace) _logger.Trace($"Restored the branch checkpoint - {branchingPointStateRoot} | {_stateProvider.StateRoot}");
+            if (_logger.IsTrace)
+                _logger.Trace(
+                    $"Restored the branch checkpoint - {branchingPointStateRoot} | {_stateProvider.StateRoot}");
         }
-        
+
         // TODO: block processor pipeline
-        private (Block Block, TxReceipt[] Receipts) ProcessOne(Block suggestedBlock, ProcessingOptions options, IBlockTracer blockTracer)
+        private (Block Block, TxReceipt[] Receipts) ProcessOne(Block suggestedBlock, ProcessingOptions options,
+            IBlockTracer blockTracer)
         {
-            if (_logger.IsTrace) _logger.Trace($"Processing block {suggestedBlock.ToString(Block.Format.Short)} ({options})");
+            if (_logger.IsTrace)
+                _logger.Trace($"Processing block {suggestedBlock.ToString(Block.Format.Short)} ({options})");
 
             ApplyDaoTransition(suggestedBlock);
             Block block = PrepareBlockForProcessing(suggestedBlock);
@@ -227,33 +273,58 @@ namespace Nethermind.Blockchain.Processing
             {
                 StoreTxReceipts(block, receipts);
             }
-            
+
             return (block, receipts);
+        }
+        // TODO: block processor pipeline
+
+        private (Block Block, ResettableDictionary<Keccak, byte[]>) ProcessOneForWitness(Block suggestedBlock,
+            ProcessingOptions options,
+            IBlockTracer blockTracer)
+        {
+            if (_logger.IsTrace)
+                _logger.Trace($"Processing block {suggestedBlock.ToString(Block.Format.Short)} ({options})");
+
+            ApplyDaoTransition(suggestedBlock);
+            Block block = PrepareBlockForProcessing(suggestedBlock);
+            TxReceipt[] receipts = ProcessBlock(block, blockTracer, options);
+            ValidateProcessedBlock(suggestedBlock, options, block, receipts);
+            if ((options & ProcessingOptions.StoreReceipts) != 0)
+            {
+                StoreTxReceipts(block, receipts);
+            }
+
+            return (block, _witnessCollector.Collected);
         }
 
         // TODO: block processor pipeline
-        private void ValidateProcessedBlock(Block suggestedBlock, ProcessingOptions options, Block block, TxReceipt[] receipts)
+        private void ValidateProcessedBlock(Block suggestedBlock, ProcessingOptions options, Block block,
+            TxReceipt[] receipts)
         {
-            if ((options & ProcessingOptions.NoValidation) == 0 && !_blockValidator.ValidateProcessedBlock(block, receipts, suggestedBlock))
+            if ((options & ProcessingOptions.NoValidation) == 0 &&
+                !_blockValidator.ValidateProcessedBlock(block, receipts, suggestedBlock))
             {
-                if (_logger.IsError) _logger.Error($"Processed block is not valid {suggestedBlock.ToString(Block.Format.FullHashAndNumber)}");
+                if (_logger.IsError)
+                    _logger.Error(
+                        $"Processed block is not valid {suggestedBlock.ToString(Block.Format.FullHashAndNumber)}");
                 throw new InvalidBlockException(suggestedBlock.Hash);
             }
         }
 
         // TODO: block processor pipeline
         protected virtual TxReceipt[] ProcessBlock(
-            Block block, 
-            IBlockTracer blockTracer, 
+            Block block,
+            IBlockTracer blockTracer,
             ProcessingOptions options)
         {
             IReleaseSpec spec = _specProvider.GetSpec(block.Number);
-            
+
             _receiptsTracer.SetOtherTracer(blockTracer);
             _receiptsTracer.StartNewBlockTrace(block);
-            TxReceipt[] receipts = _blockTransactionsExecutor.ProcessTransactions(block, options, blockTracer, _receiptsTracer, spec);
+            TxReceipt[] receipts =
+                _blockTransactionsExecutor.ProcessTransactions(block, options, blockTracer, _receiptsTracer, spec);
             _receiptsTracer.EndBlockTrace();
-            
+
             block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
             ApplyMinerRewards(block, blockTracer, spec);
 
@@ -336,7 +407,9 @@ namespace Nethermind.Blockchain.Processing
         // TODO: block processor pipeline (only where rewards needed)
         private void ApplyMinerReward(Block block, BlockReward reward, IReleaseSpec spec)
         {
-            if (_logger.IsTrace) _logger.Trace($"  {(BigInteger) reward.Value / (BigInteger) Unit.Ether:N3}{Unit.EthSymbol} for account at {reward.Address}");
+            if (_logger.IsTrace)
+                _logger.Trace(
+                    $"  {(BigInteger)reward.Value / (BigInteger)Unit.Ether:N3}{Unit.EthSymbol} for account at {reward.Address}");
 
             if (!_stateProvider.AccountExists(reward.Address))
             {

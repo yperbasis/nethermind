@@ -15,8 +15,10 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nethermind.Core;
+using Nethermind.Core.Crypto;
 using Nethermind.Db;
 using Nethermind.Evm.Tracing;
 
@@ -63,6 +65,24 @@ namespace Nethermind.Blockchain.Processing
 
                 return result;
             }
+        }
+
+        public (Block, List<(Keccak, byte[])>) ProcessForWitness(Block block, ProcessingOptions options, IBlockTracer tracer)
+        {
+            lock (_lock)
+            {
+                List<(Keccak, byte[])> result;
+                try
+                {
+                    (_, result) = _processor.ProcessForWitness(block, options, tracer);
+                }
+                finally
+                {
+                    _readOnlyDbProvider.ClearTempChanges();
+                }
+
+                return (block, result);
+            }        
         }
 
         public bool IsProcessingBlocks(ulong? maxProcessingInterval)

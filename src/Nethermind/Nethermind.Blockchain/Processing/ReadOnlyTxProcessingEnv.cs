@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Db;
@@ -22,6 +23,7 @@ using Nethermind.Evm;
 using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Logging;
 using Nethermind.State;
+using Nethermind.State.Witnesses;
 using Nethermind.Trie.Pruning;
 
 namespace Nethermind.Blockchain.Processing
@@ -43,40 +45,45 @@ namespace Nethermind.Blockchain.Processing
             IReadOnlyTrieStore? trieStore,
             IBlockTree? blockTree,
             ISpecProvider? specProvider,
-            ILogManager? logManager) 
-            : this(dbProvider?.AsReadOnly(false), trieStore, blockTree?.AsReadOnly(), specProvider, logManager)
+            ILogManager? logManager,
+            IWitnessCollector witnessCollector)
+            : this(dbProvider?.AsReadOnly(false), trieStore, blockTree?.AsReadOnly(), specProvider, logManager,
+                witnessCollector)
         {
         }
 
         public ReadOnlyTxProcessingEnv(
             IReadOnlyDbProvider? readOnlyDbProvider,
             IReadOnlyTrieStore? readOnlyTrieStore,
-            IReadOnlyBlockTree? readOnlyBlockTree,
+            IBlockTree? readOnlyBlockTree,
             ISpecProvider? specProvider,
-            ILogManager? logManager)
+            ILogManager? logManager,
+            IWitnessCollector witness)
         {
             DbProvider = readOnlyDbProvider ?? throw new ArgumentNullException(nameof(readOnlyDbProvider));
             _codeDb = readOnlyDbProvider.CodeDb.AsReadOnly(true);
-
-            StateReader = new StateReader(readOnlyTrieStore, _codeDb, logManager);
-            StateProvider = new StateProvider(readOnlyTrieStore, _codeDb, logManager);
+            IKeyValueStoreWithBatching codeDb = readOnlyDbProvider.CodeDb.WitnessedBy(witness);
+            StateReader = new StateReader(readOnlyTrieStore, codeDb, logManager);
+            StateProvider = new StateProvider(readOnlyTrieStore, codeDb, logManager);
             StorageProvider = new StorageProvider(readOnlyTrieStore, StateProvider, logManager);
 
             BlockTree = readOnlyBlockTree ?? throw new ArgumentNullException(nameof(readOnlyBlockTree));
             BlockhashProvider = new BlockhashProvider(BlockTree, logManager);
 
             Machine = new VirtualMachine(StateProvider, StorageProvider, BlockhashProvider, specProvider, logManager);
-            TransactionProcessor = new TransactionProcessor(specProvider, StateProvider, StorageProvider, Machine, logManager);
+            TransactionProcessor =
+                new TransactionProcessor(specProvider, StateProvider, StorageProvider, Machine, logManager);
         }
 
         public void Reset()
         {
             StateProvider.Reset();
             StorageProvider.Reset();
-            
+
             _codeDb.ClearTempChanges();
         }
 
-        public IReadOnlyTransactionProcessor Build(Keccak stateRoot) => new ReadOnlyTransactionProcessor(TransactionProcessor, StateProvider, StorageProvider, stateRoot);
+        public IReadOnlyTransactionProcessor Build(Keccak stateRoot) =>
+            new ReadOnlyTransactionProcessor(TransactionProcessor, StateProvider, StorageProvider, stateRoot);
     }
 }

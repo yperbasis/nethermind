@@ -80,6 +80,7 @@ namespace Nethermind.Blockchain.Processing
             {
                 _blockTree.NewBestSuggestedBlock += OnNewBestBlock;
             }
+
             _blockTree.NewHeadBlock += OnNewHeadBlock;
 
             _stats = new ProcessingStats(_logger);
@@ -87,7 +88,7 @@ namespace Nethermind.Blockchain.Processing
 
         private void OnNewHeadBlock(object? sender, BlockEventArgs e)
         {
-            _lastProcessedBlock = DateTime.UtcNow;;
+            _lastProcessedBlock = DateTime.UtcNow;
         }
 
         private void OnNewBestBlock(object sender, BlockEventArgs blockEventArgs)
@@ -326,6 +327,73 @@ namespace Nethermind.Blockchain.Processing
             return lastProcessed;
         }
 
+        public (Block, List<(Keccak, byte[])>) ProcessForWitness(Block suggestedBlock, ProcessingOptions options,
+            IBlockTracer tracer)
+        {
+            if (!RunSimpleChecksAheadOfProcessing(suggestedBlock, options))
+            {
+                return (null, new List<(Keccak, byte[])>());
+            }
+
+            UInt256 totalDifficulty = suggestedBlock.TotalDifficulty ?? 0;
+            if (_logger.IsTrace)
+                _logger.Trace(
+                    $"Total difficulty of block {suggestedBlock.ToString(Block.Format.Short)} is {totalDifficulty}");
+
+            bool shouldProcess =
+                suggestedBlock.IsGenesis
+                || _blockTree.IsBetterThanHead(suggestedBlock.Header)
+                || (options & ProcessingOptions.ForceProcessing) == ProcessingOptions.ForceProcessing;
+
+            if (!shouldProcess)
+            {
+                if (_logger.IsDebug)
+                    _logger.Debug(
+                        $"Skipped processing of {suggestedBlock.ToString(Block.Format.FullHashAndNumber)}, Head = {_blockTree.Head?.Header?.ToString(BlockHeader.Format.Short)}, total diff = {totalDifficulty}, head total diff = {_blockTree.Head?.TotalDifficulty}");
+                return (null, new List<(Keccak, byte[])>());
+            }
+
+            ProcessingBranch processingBranch = PrepareProcessingBranch(suggestedBlock, options);
+            PrepareBlocksToProcess(suggestedBlock, options, processingBranch);
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            (Block[]? processedBlocks, List<(Keccak, byte[])> witness) =
+                ProcessBranchWitness(processingBranch, options, tracer);
+            stopwatch.Stop();
+            if (processedBlocks == null)
+            {
+                return (null, new List<(Keccak, byte[])>());
+            }
+
+            if ((options & (ProcessingOptions.ReadOnlyChain | ProcessingOptions.DoNotUpdateHead)) == 0)
+            {
+                _blockTree.UpdateMainChain(processingBranch.Blocks.ToArray(), true);
+                Metrics.LastBlockProcessingTimeInMs = stopwatch.ElapsedMilliseconds;
+            }
+
+            Block? lastProcessed = null;
+            if (processedBlocks.Length > 0)
+            {
+                lastProcessed = processedBlocks[^1];
+                if (_logger.IsTrace)
+                    _logger.Trace($"Setting total on last processed to {lastProcessed.ToString(Block.Format.Short)}");
+                lastProcessed.Header.TotalDifficulty = suggestedBlock.TotalDifficulty;
+            }
+            else
+            {
+                if (_logger.IsDebug)
+                    _logger.Debug(
+                        $"Skipped processing of {suggestedBlock.ToString(Block.Format.FullHashAndNumber)}, last processed is null: {lastProcessed == null}, processedBlocks.Length: {processedBlocks?.Length}");
+            }
+
+            if ((options & ProcessingOptions.ReadOnlyChain) == ProcessingOptions.None)
+            {
+                _stats.UpdateStats(lastProcessed, _recoveryQueue.Count, _blockQueue.Count);
+            }
+
+            return (lastProcessed, witness);
+        }
+
         public bool IsProcessingBlocks(ulong? maxProcessingInterval)
         {
             if (_processorTask == null || _recoveryTask == null || _processorTask.IsCompleted || _recoveryTask.IsCompleted)
@@ -392,6 +460,49 @@ namespace Nethermind.Blockchain.Processing
             }
 
             return processedBlocks;
+        }
+
+        private (Block[]?, List<(Keccak, byte[])>) ProcessBranchWitness(ProcessingBranch processingBranch,
+            ProcessingOptions options,
+            IBlockTracer tracer)
+        {
+            Block[]? processedBlocks;
+            List<(Keccak, byte[])> witness = new List<(Keccak, byte[])>();
+            try
+            {
+                (processedBlocks, witness) = _blockProcessor.GetWitness(
+                    processingBranch.Root,
+                    processingBranch.BlocksToProcess,
+                    options,
+                    tracer);
+            }
+            catch (InvalidBlockException ex)
+            {
+                TraceFailingBranch(
+                    processingBranch,
+                    options,
+                    new GethLikeBlockTracer(GethTraceOptions.Default));
+                TraceFailingBranch(
+                    processingBranch,
+                    options,
+                    new ParityLikeBlockTracer(ParityTraceTypes.StateDiff | ParityTraceTypes.Trace));
+
+                Keccak invalidBlockHash = ex.InvalidBlockHash;
+                for (int i = 0; i < processingBranch.BlocksToProcess.Count; i++)
+                {
+                    if (processingBranch.BlocksToProcess[i].Hash == invalidBlockHash)
+                    {
+                        _blockTree.DeleteInvalidBlock(processingBranch.BlocksToProcess[i]);
+                        if (_logger.IsDebug)
+                            _logger.Debug(
+                                $"Skipped processing of {processingBranch.BlocksToProcess[^1].ToString(Block.Format.FullHashAndNumber)} because of {processingBranch.BlocksToProcess[i].ToString(Block.Format.FullHashAndNumber)} is invalid");
+                    }
+                }
+
+                processedBlocks = null;
+            }
+
+            return (processedBlocks, witness);
         }
 
         private void PrepareBlocksToProcess(Block suggestedBlock, ProcessingOptions options, ProcessingBranch processingBranch)

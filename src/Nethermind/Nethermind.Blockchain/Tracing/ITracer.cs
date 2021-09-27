@@ -14,6 +14,8 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System.Collections.Generic;
+using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Evm.Tracing;
@@ -33,6 +35,8 @@ namespace Nethermind.Blockchain.Tracing
         /// <param name="tracer">Trace to act on block processing events.</param>
         /// <returns>Post trace state root</returns>
         Keccak Trace(Block block, IBlockTracer tracer);
+
+        List<(Keccak, byte[])> TraceForWitness(Block block, IBlockTracer tracer);
         
         void Accept(ITreeVisitor visitor, Keccak stateRoot);
     }

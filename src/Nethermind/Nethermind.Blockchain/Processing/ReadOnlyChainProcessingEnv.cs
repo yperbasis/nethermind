@@ -22,6 +22,7 @@ using Nethermind.Core.Specs;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.State;
+using Nethermind.State.Witnesses;
 
 namespace Nethermind.Blockchain.Processing
 {
@@ -31,7 +32,7 @@ namespace Nethermind.Blockchain.Processing
     public class ReadOnlyChainProcessingEnv : IDisposable
     {
         private readonly ReadOnlyTxProcessingEnv _txEnv;
-        
+
         private readonly BlockchainProcessor _blockProcessingQueue;
         public IBlockProcessor BlockProcessor { get; }
         public IBlockchainProcessor ChainProcessor { get; }
@@ -44,12 +45,13 @@ namespace Nethermind.Blockchain.Processing
             IBlockPreprocessorStep recoveryStep,
             IRewardCalculator rewardCalculator,
             IReceiptStorage receiptStorage,
-            IReadOnlyDbProvider dbProvider,
+            IDbProvider dbProvider,
             ISpecProvider specProvider,
-            ILogManager logManager)
+            ILogManager logManager,
+            IWitnessCollector witness)
         {
             _txEnv = txEnv;
-
+            
             BlockProcessor = new BlockProcessor(
                 specProvider,
                 blockValidator,
@@ -58,12 +60,13 @@ namespace Nethermind.Blockchain.Processing
                 StateProvider,
                 _txEnv.StorageProvider,
                 receiptStorage,
-                NullWitnessCollector.Instance,
+                witness,
                 logManager);
-            
-            _blockProcessingQueue = new BlockchainProcessor(_txEnv.BlockTree, BlockProcessor, recoveryStep, logManager, BlockchainProcessor.Options.NoReceipts);
+
+            _blockProcessingQueue = new BlockchainProcessor(_txEnv.BlockTree, BlockProcessor, recoveryStep, logManager,
+                BlockchainProcessor.Options.NoReceipts);
             BlockProcessingQueue = _blockProcessingQueue;
-            ChainProcessor = new OneTimeChainProcessor(dbProvider, _blockProcessingQueue);
+            ChainProcessor = new OneTimeChainProcessor(dbProvider.AsReadOnly(true), _blockProcessingQueue);
         }
 
         public void Dispose()

@@ -42,23 +42,41 @@ namespace Nethermind.Blockchain.Processing
             IBlockTracer blockTracer);
 
         /// <summary>
+        /// Processes a block to fulfill the witness.
+        /// </summary>
+        /// <param name="newBranchStateRoot">Initial state for the processed branch.</param>
+        /// <param name="suggestedBlocks">List of blocks to be processed.</param>
+        /// <param name="processingOptions">Options to use for processor and transaction processor.</param>
+        /// <param name="blockTracer">
+        /// Block tracer to use. By default either <see cref="NullBlockTracer"/> or <see cref="BlockReceiptsTracer"/>
+        /// </param>
+        /// <returns>Witness of processed block.</returns>
+        (Block[], List<(Keccak, byte[])>) GetWitness(
+            Keccak newBranchStateRoot,
+            List<Block> suggestedBlocks,
+            ProcessingOptions processingOptions,
+            IBlockTracer blockTracer);
+
+        /// <summary>
         /// Fired when a branch is being processed.
         /// </summary>
         event EventHandler<BlocksProcessingEventArgs> BlocksProcessing;
-        
+
         /// <summary>
         /// Fired after a block has been processed.
         /// </summary>
         event EventHandler<BlockProcessedEventArgs> BlockProcessed;
-        
+
         /// <summary>
         /// Fired after a transaction has been processed (even if inside the block).
         /// </summary>
         event EventHandler<TxProcessedEventArgs> TransactionProcessed;
-        
+
         public interface IBlockTransactionsExecutor
         {
-            TxReceipt[] ProcessTransactions(Block block, ProcessingOptions processingOptions, IBlockTracer blockTracer, BlockReceiptsTracer receiptsTracer, IReleaseSpec spec);
+            TxReceipt[] ProcessTransactions(Block block, ProcessingOptions processingOptions, IBlockTracer blockTracer,
+                BlockReceiptsTracer receiptsTracer, IReleaseSpec spec);
+
             event EventHandler<TxProcessedEventArgs> TransactionProcessed;
         }
     }

@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Nethermind.Blockchain.Find;
@@ -100,6 +101,11 @@ namespace Nethermind.Blockchain.Tracing
             Block block = _blockTree.FindBlock(blockHash, BlockTreeLookupOptions.None);
             return TraceBlock(block, options, cancellationToken);
         }
+        public List<(Keccak, byte[])> TraceBlockForWitness(BlockParameter blockParameter, GethTraceOptions options, CancellationToken cancellationToken)
+        {
+            Block block = _blockTree.FindBlock(blockParameter);
+            return TraceBlockForWitness(block, options, cancellationToken);
+        }
 
         public GethLikeTxTrace[] TraceBlock(long blockNumber, GethTraceOptions options, CancellationToken cancellationToken)
         {
@@ -139,6 +145,26 @@ namespace Nethermind.Blockchain.Tracing
             GethLikeBlockTracer listener = txHash == null ? new GethLikeBlockTracer(options) : new GethLikeBlockTracer(txHash, options);
             _processor.Process(block, ProcessingOptions.Trace, listener.WithCancellation(cancellationToken));
             return listener.BuildResult().ToArray();
+        }
+
+        private List<(Keccak, byte[])> TraceBlockForWitness(Block? block, GethTraceOptions options, CancellationToken cancellationToken, Keccak? txHash = null)
+        {
+            if (block == null) throw new InvalidOperationException("Only canonical, historical blocks supported");
+
+            if (!block.IsGenesis)
+            {
+                BlockHeader? parent = _blockTree.FindParentHeader(block.Header, BlockTreeLookupOptions.None);
+                if (parent?.Hash is null)
+                {
+                    throw new InvalidOperationException("Cannot trace blocks with invalid parents");
+                }
+                
+                if (!_blockTree.IsMainChain(parent.Hash)) throw new InvalidOperationException("Cannot trace orphaned blocks");
+            }
+
+            GethLikeBlockTracer listener = txHash == null ? new GethLikeBlockTracer(options) : new GethLikeBlockTracer(txHash, options);
+            (Block _, List<(Keccak, byte[])> witness) = _processor.ProcessForWitness(block, ProcessingOptions.Trace, listener);
+            return witness;
         }
 
         private static Block GetBlockToTrace(Rlp blockRlp)
