@@ -16,8 +16,11 @@
 // 
 
 using System;
+using System.Text;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
+using Nethermind.Core.Resettables;
 using Nethermind.Db;
 
 namespace Nethermind.State.Witnesses
@@ -26,11 +29,11 @@ namespace Nethermind.State.Witnesses
     {
         public static IKeyValueStoreWithBatching WitnessedBy(
             this IKeyValueStoreWithBatching @this,
-            IWitnessCollector witnessCollector, IDb stateDb, IDb codeDb)
+            IWitnessCollector witnessCollector)
         {
             return witnessCollector == NullWitnessCollector.Instance
                 ? @this
-                : new WitnessingStore(@this, witnessCollector, stateDb, codeDb);
+                : new WitnessingStore(@this, witnessCollector);
         }
     }
 
@@ -38,16 +41,11 @@ namespace Nethermind.State.Witnesses
     {
         private readonly IKeyValueStoreWithBatching _wrapped;
         private readonly IWitnessCollector _witnessCollector;
-        private readonly IDb _stateDb;
-        private readonly IDb _codeDb;
 
-        public WitnessingStore(IKeyValueStoreWithBatching? wrapped, IWitnessCollector? witnessCollector, IDb stateDb,
-            IDb codeDb)
+        public WitnessingStore(IKeyValueStoreWithBatching? wrapped, IWitnessCollector? witnessCollector)
         {
             _wrapped = wrapped ?? throw new ArgumentNullException(nameof(wrapped));
             _witnessCollector = witnessCollector ?? throw new ArgumentNullException(nameof(witnessCollector));
-            _stateDb = stateDb ?? throw new ArgumentNullException(nameof(stateDb));
-            _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
         }
 
         public byte[]? this[byte[] key]
@@ -58,16 +56,12 @@ namespace Nethermind.State.Witnesses
                 {
                     throw new NotSupportedException($"{nameof(WitnessingStore)} requires 32 bytes long keys.");
                 }
-                
-                Touch(key);
-                if (_wrapped[key] is not null)
-                {
-                    return _stateDb.KeyExists(_wrapped[key])
-                        ? _stateDb[_wrapped[key]]
-                        : (_codeDb.KeyExists(_wrapped[key]) ? _codeDb[_wrapped[key]] : null);
-                }
 
-                return null;
+                byte[] value = _wrapped[key];
+                // string key_s = key.ToHexString();
+                // string val_s = value.ToHexString();
+                Touch(key);
+                return value;
             }
             set => _wrapped[key] = value;
         }
@@ -79,7 +73,8 @@ namespace Nethermind.State.Witnesses
 
         public void Touch(byte[] key)
         {
-            _witnessCollector.Add(new Keccak(key));
+            byte[] value = _wrapped[key];
+            _witnessCollector.Add(new Keccak(key), value);
         }
     }
 }

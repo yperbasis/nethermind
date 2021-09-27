@@ -16,7 +16,9 @@
 // 
 
 using System.Collections.Generic;
+using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Resettables;
 
 namespace Nethermind.State
 {
@@ -25,9 +27,9 @@ namespace Nethermind.State
     /// </summary>
     public interface IWitnessCollector
     {
-        IReadOnlyCollection<Keccak> Collected { get; }
+        ResettableDictionary<Keccak, byte[]> Collected { get; }
         
-        void Add(Keccak hash);
+        void Add(Keccak hash, byte[] value);
 
         void Reset();
         

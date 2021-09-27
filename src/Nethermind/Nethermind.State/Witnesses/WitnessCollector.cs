@@ -21,9 +21,10 @@ using System.Linq;
 using Nethermind.Core;
 using Nethermind.Core.Caching;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Core.Resettables;
 using Nethermind.Logging;
-using Nethermind.Trie;
+using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.State.Witnesses
 {
@@ -34,8 +35,7 @@ namespace Nethermind.State.Witnesses
     {
         private readonly LruCache<Keccak, Keccak[]> _witnessCache
             = new(256, "Witnesses");
-        
-        public IReadOnlyCollection<Keccak> Collected => _collected;
+        public ResettableDictionary<Keccak, byte[]> Collected => _collected;
 
         public WitnessCollector(IKeyValueStore? keyValueStore, ILogManager? logManager)
         {
@@ -43,9 +43,9 @@ namespace Nethermind.State.Witnesses
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
         }
 
-        public void Add(Keccak hash)
+        public void Add(Keccak hash, byte[] value)
         {
-            _collected.Add(hash);
+            _collected[hash] = value;
         }
 
         public void Reset()
@@ -55,23 +55,11 @@ namespace Nethermind.State.Witnesses
 
         public void Persist(Keccak blockHash)
         {
-            if(_logger.IsDebug) _logger.Debug($"Persisting {blockHash} witness ({_collected.Count})");
-            
-
             if (_collected.Count > 0)
             {
-                Keccak[] collected = _collected.ToArray();
+                Keccak[] collected = _collected.Keys.ToArray();
                 byte[] witness = new byte[collected.Length * Keccak.Size];
-                Span<byte> witnessSpan = witness;
-
-                int i = 0;
-                for (var index = 0; index < collected.Length; index++)
-                {
-                    Keccak keccak = collected[index];
-                    keccak.Bytes.AsSpan().CopyTo(witnessSpan.Slice(i * Keccak.Size, Keccak.Size));
-                    i++;
-                }
-
+                
                 _keyValueStore[blockHash.Bytes] = witness;
                 _witnessCache.Set(blockHash, collected);
             }
@@ -79,41 +67,46 @@ namespace Nethermind.State.Witnesses
             {
                 _witnessCache.Set(blockHash, Array.Empty<Keccak>());
             }
+
+            if (_logger.IsDebug)
+                _logger.Debug($"Persisting {blockHash} witness ({_collected.Count})");
         }
+
+        public List<int> counter = new List<int>();
 
         public Keccak[]? Load(Keccak blockHash)
         {
             if (_witnessCache.TryGet(blockHash, out Keccak[]? witness))
             {
-                if(_logger.IsTrace) _logger.Trace($"Loading cached witness for {blockHash} ({witness!.Length})");
+                if (_logger.IsTrace) _logger.Trace($"Loading cached witness for {blockHash} ({witness!.Length})");
             }
             else // not cached
             {
                 byte[]? witnessData = _keyValueStore[blockHash.Bytes];
                 if (witnessData is null)
                 {
-                    if(_logger.IsTrace) _logger.Trace($"Missing witness for {blockHash}");
+                    if (_logger.IsTrace) _logger.Trace($"Missing witness for {blockHash}");
                     witness = null;
                 }
                 else // missing from the DB
                 {
                     Span<byte> witnessDataSpan = witnessData.AsSpan();
                     int itemCount = witnessData.Length / Keccak.Size;
-                    if(_logger.IsTrace) _logger.Trace($"Loading non-cached witness for {blockHash} ({itemCount})");
-                    
+                    if (_logger.IsTrace) _logger.Trace($"Loading non-cached witness for {blockHash} ({itemCount})");
+
                     Keccak[] writableWitness = new Keccak[itemCount];
                     for (int i = 0; i < itemCount; i++)
                     {
                         byte[] keccakBytes = witnessDataSpan.Slice(i * Keccak.Size, Keccak.Size).ToArray();
                         writableWitness[i] = new Keccak(keccakBytes);
                     }
-                
+
                     _witnessCache.Set(blockHash, writableWitness);
-                    witness = writableWitness;   
+                    witness = writableWitness;
                 }
             }
 
-            return witness;
+            return Array.Empty<Keccak>();
         }
 
         public void Delete(Keccak blockHash)
@@ -122,10 +115,10 @@ namespace Nethermind.State.Witnesses
             _keyValueStore[blockHash.Bytes] = null;
         }
 
-        private readonly ResettableHashSet<Keccak> _collected = new();
+        private readonly ResettableDictionary<Keccak, byte[]> _collected = new();
 
         private readonly IKeyValueStore _keyValueStore;
-        
+
         private readonly ILogger _logger;
     }
 }

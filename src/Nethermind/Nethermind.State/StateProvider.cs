@@ -50,10 +50,11 @@ namespace Nethermind.State
         private int _capacity = StartCapacity;
         private Change?[] _changes = new Change?[StartCapacity];
         private int _currentPosition = Resettable.EmptyPosition;
-        
+
         public StateProvider(ITrieStore? trieStore, IKeyValueStore? codeDb, ILogManager? logManager)
         {
-            _logger = logManager?.GetClassLogger<StateProvider>() ?? throw new ArgumentNullException(nameof(logManager));
+            _logger = logManager?.GetClassLogger<StateProvider>() ??
+                      throw new ArgumentNullException(nameof(logManager));
             _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
             _tree = new StateTree(trieStore, logManager);
         }
@@ -111,7 +112,7 @@ namespace Nethermind.State
             {
                 throw new InvalidOperationException($"Account {address} is null when checking if empty");
             }
-            
+
             return account.IsEmpty;
         }
 
@@ -139,7 +140,7 @@ namespace Nethermind.State
             {
                 throw new InvalidOperationException($"Account {address} is null when accessing storage root");
             }
-            
+
             return account.StorageRoot;
         }
 
@@ -157,7 +158,7 @@ namespace Nethermind.State
             {
                 throw new InvalidOperationException($"Account {address} is null when updating code hash");
             }
-            
+
             if (account.CodeHash != codeHash)
             {
                 if (_logger.IsTrace) _logger.Trace($"  Update {address} C {account.CodeHash} -> {codeHash}");
@@ -174,7 +175,8 @@ namespace Nethermind.State
             }
         }
 
-        private void SetNewBalance(Address address, in UInt256 balanceChange, IReleaseSpec releaseSpec, bool isSubtracting)
+        private void SetNewBalance(Address address, in UInt256 balanceChange, IReleaseSpec releaseSpec,
+            bool isSubtracting)
         {
             _needsStateRootUpdate = true;
 
@@ -216,7 +218,9 @@ namespace Nethermind.State
             UInt256 newBalance = isSubtracting ? account.Balance - balanceChange : account.Balance + balanceChange;
 
             Account changedAccount = account.WithChangedBalance(newBalance);
-            if (_logger.IsTrace) _logger.Trace($"  Update {address} B {account.Balance} -> {newBalance} ({(isSubtracting ? "-" : "+")}{balanceChange})");
+            if (_logger.IsTrace)
+                _logger.Trace(
+                    $"  Update {address} B {account.Balance} -> {newBalance} ({(isSubtracting ? "-" : "+")}{balanceChange})");
             PushUpdate(address, changedAccount);
         }
 
@@ -246,7 +250,7 @@ namespace Nethermind.State
             {
                 throw new InvalidOperationException($"Account {address} is null when updating storage hash");
             }
-            
+
             if (account.StorageRoot != storageRoot)
             {
                 if (_logger.IsTrace) _logger.Trace($"  Update {address} S {account.StorageRoot} -> {storageRoot}");
@@ -263,7 +267,7 @@ namespace Nethermind.State
             {
                 throw new InvalidOperationException($"Account {address} is null when incrementing nonce");
             }
-            
+
             Account changedAccount = account.WithChangedNonce(nonce);
             if (_logger.IsTrace) _logger.Trace($"  Update {address} N {account.Nonce} -> {changedAccount.Nonce}");
             PushUpdate(address, changedAccount);
@@ -277,7 +281,7 @@ namespace Nethermind.State
             {
                 throw new InvalidOperationException($"Account {address} is null when incrementing nonce");
             }
-            
+
             Account changedAccount = account.WithChangedNonce(account.Nonce + 1);
             if (_logger.IsTrace) _logger.Trace($"  Update {address} N {account.Nonce} -> {changedAccount.Nonce}");
             PushUpdate(address, changedAccount);
@@ -291,7 +295,7 @@ namespace Nethermind.State
             {
                 throw new InvalidOperationException($"Account {address} is null when decrementing nonce.");
             }
-            
+
             Account changedAccount = account.WithChangedNonce(account.Nonce - 1);
             if (_logger.IsTrace) _logger.Trace($"  Update {address} N {account.Nonce} -> {changedAccount.Nonce}");
             PushUpdate(address, changedAccount);
@@ -314,7 +318,7 @@ namespace Nethermind.State
             }
 
             Keccak codeHash = Keccak.Compute(code.Span);
-            
+
             _codeDb[codeHash.Bytes] = code.ToArray();
 
             return codeHash;
@@ -364,7 +368,8 @@ namespace Nethermind.State
         {
             if (snapshot > _currentPosition)
             {
-                throw new InvalidOperationException($"{nameof(StateProvider)} tried to restore snapshot {snapshot} beyond current position {_currentPosition}");
+                throw new InvalidOperationException(
+                    $"{nameof(StateProvider)} tried to restore snapshot {snapshot} beyond current position {_currentPosition}");
             }
 
             if (_logger.IsTrace) _logger.Trace($"Restoring state snapshot {snapshot}");
@@ -383,7 +388,8 @@ namespace Nethermind.State
                         int actualPosition = _intraBlockCache[change.Address].Pop();
                         if (actualPosition != _currentPosition - i)
                         {
-                            throw new InvalidOperationException($"Expected actual position {actualPosition} to be equal to {_currentPosition} - {i}");
+                            throw new InvalidOperationException(
+                                $"Expected actual position {actualPosition} to be equal to {_currentPosition} - {i}");
                         }
 
                         _keptInCache.Add(change);
@@ -396,7 +402,8 @@ namespace Nethermind.State
                 int forChecking = _intraBlockCache[change.Address].Pop();
                 if (forChecking != _currentPosition - i)
                 {
-                    throw new InvalidOperationException($"Expected checked value {forChecking} to be equal to {_currentPosition} - {i}");
+                    throw new InvalidOperationException(
+                        $"Expected checked value {forChecking} to be equal to {_currentPosition} - {i}");
                 }
 
                 if (_intraBlockCache[change.Address].Count == 0)
@@ -423,13 +430,15 @@ namespace Nethermind.State
             Account account = balance.IsZero ? Account.TotallyEmpty : new Account(balance);
             PushNew(address, account);
         }
-        
-        
+
+
         public void CreateAccount(Address address, in UInt256 balance, in UInt256 nonce)
         {
             _needsStateRootUpdate = true;
             if (_logger.IsTrace) _logger.Trace($"Creating account: {address} with balance {balance} and nonce {nonce}");
-            Account account = (balance.IsZero && nonce.IsZero) ? Account.TotallyEmpty : new Account(nonce, balance, Keccak.EmptyTreeHash, Keccak.OfAnEmptyString);
+            Account account = (balance.IsZero && nonce.IsZero)
+                ? Account.TotallyEmpty
+                : new Account(nonce, balance, Keccak.EmptyTreeHash, Keccak.OfAnEmptyString);
             PushNew(address, account);
         }
 
@@ -467,12 +476,14 @@ namespace Nethermind.State
             if (_logger.IsTrace) _logger.Trace($"Committing state changes (at {_currentPosition})");
             if (_changes[_currentPosition] is null)
             {
-                throw new InvalidOperationException($"Change at current position {_currentPosition} was null when commiting {nameof(StateProvider)}");
+                throw new InvalidOperationException(
+                    $"Change at current position {_currentPosition} was null when commiting {nameof(StateProvider)}");
             }
 
             if (_changes[_currentPosition + 1] != null)
             {
-                throw new InvalidOperationException($"Change after current position ({_currentPosition} + 1) was not null when commiting {nameof(StateProvider)}");
+                throw new InvalidOperationException(
+                    $"Change after current position ({_currentPosition} + 1) was not null when commiting {nameof(StateProvider)}");
             }
 
             bool isTracing = stateTracer.IsTracingState;
@@ -510,7 +521,8 @@ namespace Nethermind.State
                 int forAssertion = _intraBlockCache[change.Address].Pop();
                 if (forAssertion != _currentPosition - i)
                 {
-                    throw new InvalidOperationException($"Expected checked value {forAssertion} to be equal to {_currentPosition} - {i}");
+                    throw new InvalidOperationException(
+                        $"Expected checked value {forAssertion} to be equal to {_currentPosition} - {i}");
                 }
 
                 _committedThisRound.Add(change.Address);
@@ -526,7 +538,9 @@ namespace Nethermind.State
                     {
                         if (releaseSpec.IsEip158Enabled && change.Account.IsEmpty && !isGenesis)
                         {
-                            if (_logger.IsTrace) _logger.Trace($"  Commit remove empty {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce}");
+                            if (_logger.IsTrace)
+                                _logger.Trace(
+                                    $"  Commit remove empty {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce}");
                             SetState(change.Address, null);
                             if (isTracing)
                             {
@@ -535,7 +549,9 @@ namespace Nethermind.State
                         }
                         else
                         {
-                            if (_logger.IsTrace) _logger.Trace($"  Commit update {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce} C = {change.Account.CodeHash}");
+                            if (_logger.IsTrace)
+                                _logger.Trace(
+                                    $"  Commit update {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce} C = {change.Account.CodeHash}");
                             SetState(change.Address, change.Account);
                             if (isTracing)
                             {
@@ -549,7 +565,9 @@ namespace Nethermind.State
                     {
                         if (!releaseSpec.IsEip158Enabled || !change.Account.IsEmpty || isGenesis)
                         {
-                            if (_logger.IsTrace) _logger.Trace($"  Commit create {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce}");
+                            if (_logger.IsTrace)
+                                _logger.Trace(
+                                    $"  Commit create {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce}");
                             SetState(change.Address, change.Account);
                             if (isTracing)
                             {

@@ -17,7 +17,9 @@
 
 using System;
 using System.Collections.Generic;
+using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Resettables;
 
 namespace Nethermind.State
 {
@@ -26,18 +28,21 @@ namespace Nethermind.State
         private NullWitnessCollector() { }
 
         public static NullWitnessCollector Instance { get; } = new();
-        
-        public IReadOnlyCollection<Keccak> Collected => Array.Empty<Keccak>();
 
-        public void Add(Keccak hash)
+        public string Name { get; set; }
+        public ResettableDictionary<Keccak, byte[]> Collected => new();
+
+        public void Add(Keccak hash, byte[] value)
         {
             throw new InvalidOperationException(
                 $"{nameof(NullWitnessCollector)} is not expected to receive {nameof(Add)} calls.");
         }
 
         public void Reset() { }
-        
-        public void Persist(Keccak blockHash) { }
+        public void Persist(Keccak blockHash)
+        {
+            throw new NotImplementedException();
+        }
 
         public Keccak[]? Load(Keccak blockHash)
         {
