@@ -25,6 +25,8 @@ using Nethermind.Blockchain.Validators;
 using Nethermind.Core.Specs;
 using Nethermind.Db;
 using Nethermind.Logging;
+using Nethermind.State;
+using Nethermind.State.Witnesses;
 using Nethermind.Trie.Pruning;
 using Newtonsoft.Json;
 
@@ -69,8 +71,9 @@ namespace Nethermind.JsonRpc.Modules.Trace
 
         public override ITraceRpcModule Create()
         {
+            IWitnessCollector witness =new WitnessCollector(_dbProvider.BeamTempDb, _logManager);
             ReadOnlyTxProcessingEnv txProcessingEnv =
-                new(_dbProvider, _trieNodeResolver, _blockTree, _specProvider, _logManager);
+                new(_dbProvider, _trieNodeResolver, _blockTree, _specProvider, _logManager, witness);
             
             IRewardCalculator rewardCalculator = _rewardCalculatorSource.Get(txProcessingEnv.TransactionProcessor);
             
@@ -82,7 +85,8 @@ namespace Nethermind.JsonRpc.Modules.Trace
                 _receiptStorage,
                 _dbProvider,
                 _specProvider,
-                _logManager);
+                _logManager, 
+                witness);
             
             Tracer tracer = new(chainProcessingEnv.StateProvider, chainProcessingEnv.ChainProcessor);
 

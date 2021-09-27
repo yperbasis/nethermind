@@ -26,6 +26,7 @@ using Nethermind.Core.Specs;
 using Nethermind.Db;
 using Nethermind.JsonRpc.Data;
 using Nethermind.Logging;
+using Nethermind.State;
 using Nethermind.Trie.Pruning;
 using Newtonsoft.Json;
 
@@ -62,10 +63,10 @@ namespace Nethermind.JsonRpc.Modules.Proof
         public override IProofRpcModule Create()
         {
             ReadOnlyTxProcessingEnv txProcessingEnv = new(
-                _dbProvider, _trieStore, _blockTree, _specProvider, _logManager);
+                _dbProvider, _trieStore, _blockTree, _specProvider, _logManager, NullWitnessCollector.Instance);
             
             ReadOnlyChainProcessingEnv chainProcessingEnv = new(
-                txProcessingEnv, Always.Valid, _recoveryStep, NoBlockRewards.Instance, new InMemoryReceiptStorage(), _dbProvider, _specProvider, _logManager);
+                txProcessingEnv, Always.Valid, _recoveryStep, NoBlockRewards.Instance, new InMemoryReceiptStorage(), _dbProvider, _specProvider, _logManager, NullWitnessCollector.Instance);
 
             Tracer tracer = new(
                 txProcessingEnv.StateProvider,
