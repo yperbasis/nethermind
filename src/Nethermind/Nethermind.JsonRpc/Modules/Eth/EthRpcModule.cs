@@ -23,10 +23,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Filters;
 using Nethermind.Blockchain.Find;
+using Nethermind.Blockchain.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Attributes;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Eip2930;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Int256;
@@ -59,7 +59,9 @@ namespace Nethermind.JsonRpc.Modules.Eth
         private readonly IWallet _wallet;
         private readonly ISpecProvider _specProvider;
 
+
         private readonly ILogger _logger;
+
         private static bool HasStateForBlock(IBlockchainBridge blockchainBridge, BlockHeader header)
         {
             RootCheckVisitor rootCheckVisitor = new();
@@ -75,8 +77,7 @@ namespace Nethermind.JsonRpc.Modules.Eth
             ITxPool txPool,
             ITxSender txSender,
             IWallet wallet,
-            ILogManager logManager,
-            ISpecProvider specProvider)
+            ILogManager logManager)
         {
             _logger = logManager.GetClassLogger();
             _rpcConfig = rpcConfig ?? throw new ArgumentNullException(nameof(rpcConfig));
@@ -86,7 +87,6 @@ namespace Nethermind.JsonRpc.Modules.Eth
             _txPoolBridge = txPool ?? throw new ArgumentNullException(nameof(txPool));
             _txSender = txSender ?? throw new ArgumentNullException(nameof(txSender));
             _wallet = wallet ?? throw new ArgumentNullException(nameof(wallet));
-            _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
         }
 
         public ResultWrapper<string> eth_protocolVersion()
@@ -183,6 +183,16 @@ namespace Nethermind.JsonRpc.Modules.Eth
 
             Account account = _stateReader.GetAccount(header.StateRoot, address);
             return Task.FromResult(ResultWrapper<UInt256?>.Success(account?.Balance ?? UInt256.Zero));
+        }
+
+        public Task<ResultWrapper<string>> eth_getBlockRlp(BlockParameter blockParameter)
+        {
+            Block? block = _blockFinder.FindBlock(blockParameter);
+
+            if (block == null)
+                return Task.FromResult(ResultWrapper<string>.Fail("Block not found")); 
+
+            return Task.FromResult(ResultWrapper<string>.Success(Rlp.Encode(block).ToString()));
         }
 
         public ResultWrapper<byte[]> eth_getStorageAt(Address address, UInt256 positionIndex,
@@ -330,7 +340,8 @@ namespace Nethermind.JsonRpc.Modules.Eth
         {
             try
             {
-                Transaction tx = Rlp.Decode<Transaction>(transaction, RlpBehaviors.AllowUnsigned | RlpBehaviors.SkipTypedWrapping);
+                Transaction tx = Rlp.Decode<Transaction>(transaction,
+                    RlpBehaviors.AllowUnsigned | RlpBehaviors.SkipTypedWrapping);
                 return await SendTx(tx);
             }
             catch (RlpException)
@@ -349,7 +360,8 @@ namespace Nethermind.JsonRpc.Modules.Eth
 
                 return addTxResult == AddTxResult.Added
                     ? ResultWrapper<Keccak>.Success(txHash)
-                    : ResultWrapper<Keccak>.Fail(addTxResult?.ToString() ?? string.Empty, ErrorCodes.TransactionRejected);
+                    : ResultWrapper<Keccak>.Fail(addTxResult?.ToString() ?? string.Empty,
+                        ErrorCodes.TransactionRejected);
             }
             catch (SecurityException e)
             {
@@ -362,15 +374,18 @@ namespace Nethermind.JsonRpc.Modules.Eth
             }
         }
 
-        public ResultWrapper<string> eth_call(TransactionForRpc transactionCall, BlockParameter? blockParameter = null) =>
+        public ResultWrapper<string> eth_call(TransactionForRpc transactionCall,
+            BlockParameter? blockParameter = null) =>
             new CallTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig)
                 .ExecuteTx(transactionCall, blockParameter);
 
-        public ResultWrapper<UInt256?> eth_estimateGas(TransactionForRpc transactionCall, BlockParameter blockParameter) =>
+        public ResultWrapper<UInt256?>
+            eth_estimateGas(TransactionForRpc transactionCall, BlockParameter blockParameter) =>
             new EstimateGasTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig)
                 .ExecuteTx(transactionCall, blockParameter);
 
-        public ResultWrapper<AccessListForRpc> eth_createAccessList(TransactionForRpc transactionCall, BlockParameter? blockParameter = null, bool optimize = true) =>
+        public ResultWrapper<AccessListForRpc> eth_createAccessList(TransactionForRpc transactionCall,
+            BlockParameter? blockParameter = null, bool optimize = true) =>
             new CreateAccessListTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig, optimize)
                 .ExecuteTx(transactionCall, blockParameter);
 
@@ -387,13 +402,46 @@ namespace Nethermind.JsonRpc.Modules.Eth
 
         private ResultWrapper<BlockForRpc> GetBlock(BlockParameter blockParameter, bool returnFullTransactionObjects)
         {
-            SearchResult<Block> searchResult = _blockFinder.SearchForBlock(blockParameter, true);
+            SearchResult<Block> searchResult;
+            Block? block;
+            if (blockParameter.BlockNumber is not null)
+            {
+                BlockDecoder blockDecoder = new();
+                string rlps = "";
+
+
+                for (int i = 1; i <= 256; i++)
+                {
+                    if (blockParameter.BlockNumber == null)
+                        continue;
+                    BlockParameter parameter = new BlockParameter((long)blockParameter.BlockNumber - i);
+                    searchResult = _blockFinder.SearchForBlock(parameter, true);
+                    if (searchResult.IsError)
+                    {
+                        return ResultWrapper<BlockForRpc>.Fail(searchResult);
+                    }
+
+                    block = searchResult.Object;
+                    if (block != null)
+                    {
+                        _blockchainBridge.RecoverTxSenders(block);
+                    }
+
+                    Rlp rlp = blockDecoder.Encode(block);
+
+                    rlps += "\"" + rlp.Bytes.ToHexString() + "\", \n";
+                }
+
+                Console.Write(rlps);
+            }
+
+            searchResult = _blockFinder.SearchForBlock(blockParameter, true);
             if (searchResult.IsError)
             {
                 return ResultWrapper<BlockForRpc>.Fail(searchResult);
             }
 
-            Block? block = searchResult.Object;
+            block = searchResult.Object;
             if (block != null)
             {
                 _blockchainBridge.RecoverTxSenders(block);
@@ -460,7 +508,8 @@ namespace Nethermind.JsonRpc.Modules.Eth
             Transaction transaction = block.Transactions[(int)positionIndex];
             RecoverTxSenderIfNeeded(transaction);
 
-            TransactionForRpc transactionModel = new(block.Hash, block.Number, (int)positionIndex, transaction, block.BaseFeePerGas);
+            TransactionForRpc transactionModel =
+                new(block.Hash, block.Number, (int)positionIndex, transaction, block.BaseFeePerGas);
 
             return ResultWrapper<TransactionForRpc>.Success(transactionModel);
         }
@@ -483,7 +532,8 @@ namespace Nethermind.JsonRpc.Modules.Eth
             Transaction transaction = block.Transactions[(int)positionIndex];
             RecoverTxSenderIfNeeded(transaction);
 
-            TransactionForRpc transactionModel = new(block.Hash, block.Number, (int)positionIndex, transaction, block.BaseFeePerGas);
+            TransactionForRpc transactionModel =
+                new(block.Hash, block.Number, (int)positionIndex, transaction, block.BaseFeePerGas);
 
             if (_logger.IsDebug)
                 _logger.Debug(
@@ -530,7 +580,8 @@ namespace Nethermind.JsonRpc.Modules.Eth
             }
 
             BlockHeader ommerHeader = block.Ommers[(int)positionIndex];
-            return ResultWrapper<BlockForRpc>.Success(new BlockForRpc(new Block(ommerHeader, BlockBody.Empty), false, _specProvider));
+            return ResultWrapper<BlockForRpc>.Success(new BlockForRpc(new Block(ommerHeader, BlockBody.Empty), false,
+                _specProvider));
         }
 
         public ResultWrapper<UInt256?> eth_newFilter(Filter filter)

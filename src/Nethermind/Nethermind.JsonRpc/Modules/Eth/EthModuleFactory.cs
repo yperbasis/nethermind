@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using Nethermind.Blockchain;
+using Nethermind.Blockchain.Processing;
 using Nethermind.Core.Specs;
 using Nethermind.Db;
 using Nethermind.Facade;
@@ -62,7 +63,7 @@ namespace Nethermind.JsonRpc.Modules.Eth
             _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
             _blockTree = blockTree.AsReadOnly();
         }
-        
+
         public override IEthRpcModule Create()
         {
             return new EthRpcModule(
@@ -73,15 +74,10 @@ namespace Nethermind.JsonRpc.Modules.Eth
                 _txPool,
                 _txSender,
                 _wallet,
-                _logManager,
-                _specProvider);
+                _logManager);
         }
 
-        public static List<JsonConverter> Converters = new()
-        {
-            new SyncingResultConverter(),
-            new ProofConverter()
-        };
+        public static List<JsonConverter> Converters = new() {new SyncingResultConverter(), new ProofConverter()};
 
         public override IReadOnlyCollection<JsonConverter> GetConverters() => Converters;
     }

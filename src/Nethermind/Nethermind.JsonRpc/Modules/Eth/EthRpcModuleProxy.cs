@@ -94,6 +94,9 @@ namespace Nethermind.JsonRpc.Modules.Eth
         public async Task<ResultWrapper<UInt256?>> eth_getBalance(Address address, BlockParameter blockParameter)
             => ResultWrapper<UInt256?>.From(await _proxy.eth_getBalance(address, MapBlockParameter(blockParameter)));
 
+        public async Task<ResultWrapper<string>> eth_getBlockRlp(BlockParameter blockParameter) 
+            => ResultWrapper<string?>.From(await _proxy.eth_getBlockRlp(MapBlockParameter(blockParameter)));
+
         public ResultWrapper<byte[]> eth_getStorageAt(Address address, UInt256 positionIndex,
             BlockParameter blockParameter)
         {
