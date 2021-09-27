@@ -85,7 +85,8 @@ namespace Nethermind.Consensus.Ethash
                 getFromApi.ReadOnlyTrieStore,
                 readOnlyBlockTree,
                 getFromApi.SpecProvider,
-                getFromApi.LogManager);
+                getFromApi.LogManager, 
+                NullWitnessCollector.Instance);
 
             BlockProcessor producerProcessor = new(
                 getFromApi!.SpecProvider,
