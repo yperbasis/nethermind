@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -40,13 +41,14 @@ namespace Nethermind.Facade.Proxy
 
         public Task<RpcResult<UInt256?>> eth_getBalance(Address address, BlockParameterModel blockParameter = null)
             => _proxy.SendAsync<UInt256?>(nameof(eth_getBalance), address, MapBlockParameter(blockParameter));
-
-        public Task<RpcResult<UInt256?>> eth_getTransactionCount(Address address, BlockParameterModel blockParameter = null)
+        
+        public Task<RpcResult<UInt256?>> eth_getTransactionCount(Address address,
+            BlockParameterModel blockParameter = null)
             => _proxy.SendAsync<UInt256?>(nameof(eth_getTransactionCount), address, MapBlockParameter(blockParameter));
 
         public Task<RpcResult<ReceiptModel>> eth_getTransactionReceipt(Keccak transactionHash)
             => _proxy.SendAsync<ReceiptModel>(nameof(eth_getTransactionReceipt), transactionHash);
-        
+
         public Task<RpcResult<byte[]>> eth_call(CallTransactionModel transaction,
             BlockParameterModel blockParameter = null)
             => _proxy.SendAsync<byte[]>(nameof(eth_call), transaction, MapBlockParameter(blockParameter));
@@ -56,7 +58,7 @@ namespace Nethermind.Facade.Proxy
 
         public Task<RpcResult<TransactionModel>> eth_getTransactionByHash(Keccak transactionHash)
             => _proxy.SendAsync<TransactionModel>(nameof(eth_getTransactionByHash), transactionHash);
-        
+
         public Task<RpcResult<TransactionModel[]>> eth_pendingTransactions()
             => _proxy.SendAsync<TransactionModel[]>(nameof(eth_pendingTransactions));
 
@@ -65,24 +67,31 @@ namespace Nethermind.Facade.Proxy
 
         public Task<RpcResult<Keccak>> eth_sendTransaction(TransactionModel transaction)
             => _proxy.SendAsync<Keccak>(nameof(eth_sendTransaction), transaction);
-        
-        public Task<RpcResult<byte[]>> eth_estimateGas(TransactionModel transaction,  BlockParameterModel blockParameter = null)
+
+        public Task<RpcResult<byte[]>> eth_estimateGas(TransactionModel transaction,
+            BlockParameterModel blockParameter = null)
             => _proxy.SendAsync<byte[]>(nameof(eth_estimateGas), transaction);
 
         public Task<RpcResult<BlockModel<Keccak>>> eth_getBlockByHash(Keccak blockHash,
             bool returnFullTransactionObjects = false)
-            => _proxy.SendAsync<BlockModel<Keccak>>(nameof(eth_getBlockByHash), blockHash, returnFullTransactionObjects);
+            => _proxy.SendAsync<BlockModel<Keccak>>(nameof(eth_getBlockByHash), blockHash,
+                returnFullTransactionObjects);
 
         public Task<RpcResult<BlockModel<Keccak>>> eth_getBlockByNumber(BlockParameterModel blockParameter,
             bool returnFullTransactionObjects = false)
             => _proxy.SendAsync<BlockModel<Keccak>>(nameof(eth_getBlockByNumber), MapBlockParameter(blockParameter),
                 returnFullTransactionObjects);
-        
-        public Task<RpcResult<BlockModel<TransactionModel>>> eth_getBlockByNumberWithTransactionDetails(BlockParameterModel blockParameter,
+
+        public Task<RpcResult<string>> eth_getBlockRlp(BlockParameterModel blockParameter)
+            => _proxy.SendAsync<string>(nameof(eth_getBlockRlp), MapBlockParameter(blockParameter));
+
+        public Task<RpcResult<BlockModel<TransactionModel>>> eth_getBlockByNumberWithTransactionDetails(
+            BlockParameterModel blockParameter,
             bool returnFullTransactionObjects = false)
-            => _proxy.SendAsync<BlockModel<TransactionModel>>(nameof(eth_getBlockByNumber), MapBlockParameter(blockParameter),
+            => _proxy.SendAsync<BlockModel<TransactionModel>>(nameof(eth_getBlockByNumber),
+                MapBlockParameter(blockParameter),
                 returnFullTransactionObjects);
-        
+
         public Task<RpcResult<string>> net_version()
             => _proxy.SendAsync<string>(nameof(net_version));
 
