@@ -41,7 +41,6 @@ namespace Nethermind.State
         public void Reset() { }
         public void Persist(Keccak blockHash)
         {
-            throw new NotImplementedException();
         }
 
         public Keccak[]? Load(Keccak blockHash)
