@@ -16,6 +16,7 @@
 // 
 
 using System;
+using System.Threading.Tasks;
 using Nethermind.Blockchain;
 using Nethermind.Consensus;
 using Nethermind.Core;
@@ -26,7 +27,6 @@ namespace Nethermind.Merge.Plugin.Handlers
     {
         private readonly IBlockProducer _eth1BlockProducer;
         private readonly IBlockProducer _eth2BlockProducer;
-        private readonly IBlockTree _blockTree;
         private readonly ITransitionProcessHandler _transitionProcessHandler;
 
         public ConsensusSwitcher(
@@ -37,20 +37,18 @@ namespace Nethermind.Merge.Plugin.Handlers
         {
             _eth1BlockProducer = eth1BlockProducer;
             _eth2BlockProducer = eth2BlockProducer;
-            _blockTree = blockTree;
             _transitionProcessHandler = transitionProcessHandler;
 
-            _blockTree.NewHeadBlock += OnNewHeadBlock;
+            blockTree.NewHeadBlock += OnNewHeadBlock;
         }
 
         private void OnNewHeadBlock(object? sender, BlockEventArgs e)
         {
-            if (e.Block.TotalDifficulty >= _transitionProcessHandler.
-        }
-
-        public void Switch()
-        {
-
+            if (e.Block.TotalDifficulty >= _transitionProcessHandler.TerminalTotalDifficulty)
+            {
+                _eth1BlockProducer.StopAsync();
+                _eth2BlockProducer.Start();
+            }    
         }
     }
 }
