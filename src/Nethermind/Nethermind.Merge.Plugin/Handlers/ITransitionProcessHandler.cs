@@ -22,7 +22,7 @@ namespace Nethermind.Merge.Plugin.Handlers
 {
     public interface ITransitionProcessHandler
     {
-        void SetTerminalTotalDifficulty(UInt256 totalDifficulty);
+        UInt256? TerminalTotalDifficulty { get; set; }
 
         void SetTerminalPoWHash(Keccak blockHash);
     }

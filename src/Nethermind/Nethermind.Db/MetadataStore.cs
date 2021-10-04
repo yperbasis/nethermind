@@ -15,22 +15,15 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-using Nethermind.Config;
-using Nethermind.Int256;
-
-namespace Nethermind.Merge.Plugin
+namespace Nethermind.Db
 {
-    public interface IMergeConfig : IConfig
+    public class MetadataStore
     {
-        [ConfigItem(
-            Description = "Defines whether the Merge plugin is enabled bundles are allowed.",
-            DefaultValue = "false")]
-        bool Enabled { get; set; }
-        
-        [ConfigItem(Description = "Account to be used by the block author / coinbase.", DefaultValue = "")]
-        public string BlockAuthorAccount { get; set; }
-        
-        [ConfigItem(Description = "Terminal total difficulty used for transition process.", DefaultValue = "")]
-        public UInt256? TerminalTotalDifficulty { get; set; }
+        private readonly IDb _db;
+
+        public MetadataStore(IDb db)
+        {
+            _db = db;
+        }
     }
 }
