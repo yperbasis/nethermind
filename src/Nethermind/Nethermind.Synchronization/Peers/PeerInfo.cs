@@ -58,7 +58,8 @@ namespace Nethermind.Synchronization.Peers
         public bool CanBeAllocated(AllocationContexts contexts)
         {
             return !IsAsleep(contexts) &&
-                   !IsAllocated(contexts);
+                   !IsAllocated(contexts) &&
+                   SyncPeer.ClientType != NodeClientType.OpenEthereum;
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
