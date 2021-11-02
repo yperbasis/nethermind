@@ -18,6 +18,7 @@ using System;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Int256;
+using Nethermind.Logging;
 
 namespace Nethermind.Serialization.Rlp
 {
@@ -27,6 +28,8 @@ namespace Nethermind.Serialization.Rlp
         // This would help with EIP1559 as well and could generally setup proper coders automatically, hmm
         // but then RLP would have to be passed into so many places
         public static long Eip1559TransitionBlock = long.MaxValue;
+
+        public static ILogger? Logger = null; 
 
         public BlockHeader? Decode(ref Rlp.ValueDecoderContext decoderContext,
             RlpBehaviors rlpBehaviors = RlpBehaviors.None)

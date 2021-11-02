@@ -20,6 +20,7 @@ using System.Linq;
 using Nethermind.Core.Caching;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
+using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.Db
@@ -203,5 +204,48 @@ namespace Nethermind.Db
 
             return item;
         }
+        
+        // public static BlockHeader? Get<BlockHeader>(this IDb db, long key, IRlpStreamDecoder<BlockHeader>? decoder, ILogger logger, ICache<long, HeaderDecoder>? cache = null, bool shouldCache = true) where BlockHeader : class
+        // {
+        //     BlockHeader? item = cache?.Get(key);
+        //     if (item is null)
+        //     {
+        //         if (db is IDbWithSpan spanDb && decoder is IRlpValueDecoder<BlockHeader> valueDecoder)
+        //         {
+        //             Span<byte> data = spanDb.GetSpan(key);
+        //             if (data.IsNullOrEmpty())
+        //             {
+        //                 return null;
+        //             }
+        //
+        //             try
+        //             {
+        //                 var rlpValueContext = data.AsRlpValueContext();
+        //                 item = valueDecoder.Decode(ref rlpValueContext, RlpBehaviors.AllowExtraData);
+        //             }
+        //             finally
+        //             {
+        //                 spanDb.DangerousReleaseMemory(data);
+        //             }
+        //         }
+        //         else
+        //         {
+        //             byte[]? data = db.Get(key);
+        //             if (data is null)
+        //             {
+        //                 return null;
+        //             }
+        //
+        //             item = decoder.Decode(data.AsRlpStream(), RlpBehaviors.AllowExtraData);
+        //         }
+        //     }
+        //     
+        //     if (shouldCache && cache != null && item != null)
+        //     {
+        //         cache.Set(key, item);
+        //     }
+        //
+        //     return item;
+        // }
     }
 }

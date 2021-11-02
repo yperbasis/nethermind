@@ -266,6 +266,7 @@ namespace Nethermind.Blockchain
 
                 foreach (BlockInfo blockInfo in level.BlockInfos)
                 {
+                    if (_logger.IsInfo) _logger.Info($"Searching for header of blockHash {blockInfo.BlockHash}");
                     if (FindHeader(blockInfo.BlockHash, BlockTreeLookupOptions.None) is not null)
                     {
                         return true;
