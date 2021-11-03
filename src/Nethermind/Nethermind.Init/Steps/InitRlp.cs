@@ -39,10 +39,15 @@ namespace Nethermind.Init.Steps
         public virtual Task Execute(CancellationToken _)
         {
             if (_api.SpecProvider == null) throw new StepDependencyException(nameof(_api.SpecProvider));
+            if (_api.LogManager == null) throw new StepDependencyException(nameof(_api.LogManager));
+
+            var logger = _api.LogManager.GetClassLogger();
+            logger.Info("Start InitRLP");
             
            Rlp.RegisterDecoders(Assembly.GetAssembly(typeof(NetworkNodeDecoder)));
+           logger.Info($"InitRLP, HeaderDecoder: {HeaderDecoder.Eip1559TransitionBlock} GenesisSpec: {_api.SpecProvider.GenesisSpec.Eip1559TransitionBlock}");
            HeaderDecoder.Eip1559TransitionBlock = _api.SpecProvider.GenesisSpec.Eip1559TransitionBlock;
-           
+           logger.Info($"End InitRLP, HeaderDecoder: {HeaderDecoder.Eip1559TransitionBlock}");
            return Task.CompletedTask;
         }
     }

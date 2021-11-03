@@ -71,6 +71,7 @@ namespace Nethermind.Runner.Ethereum.Api
             nethermindApi.SpecProvider = new ChainSpecBasedSpecProvider(chainSpec);
             nethermindApi.GasLimitCalculator = new FollowOtherMiners(nethermindApi.SpecProvider);
             nethermindApi.ChainSpec = chainSpec;
+            if(_logger.IsInfo) _logger.Info($" Chainspec loader: Eip1559Transition {chainSpec.Parameters.Eip1559Transition}, Genesis spec EIP1559:{nethermindApi.SpecProvider.GenesisSpec.Eip1559TransitionBlock}");
 
             SetLoggerVariables(chainSpec);
 

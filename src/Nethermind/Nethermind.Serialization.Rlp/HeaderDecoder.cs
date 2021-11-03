@@ -29,7 +29,9 @@ namespace Nethermind.Serialization.Rlp
         // but then RLP would have to be passed into so many places
         public static long Eip1559TransitionBlock = long.MaxValue;
 
-        public static ILogger? Logger = null; 
+        public static ILogger? Logger = null;
+
+        public static bool StopLogger = false;
 
         public BlockHeader? Decode(ref Rlp.ValueDecoderContext decoderContext,
             RlpBehaviors rlpBehaviors = RlpBehaviors.None)
@@ -86,6 +88,7 @@ namespace Nethermind.Serialization.Rlp
                 blockHeader.AuRaSignature = decoderContext.DecodeByteArray();
             }
 
+            if (StopLogger == false && Logger != null && Logger.IsInfo) Logger.Info($"BlockNumber: {blockHeader.Number} EIP1559TransitionBlock: {Eip1559TransitionBlock}"); 
             if (blockHeader.Number >= Eip1559TransitionBlock)
             {
                 blockHeader.BaseFeePerGas = decoderContext.DecodeUInt256();

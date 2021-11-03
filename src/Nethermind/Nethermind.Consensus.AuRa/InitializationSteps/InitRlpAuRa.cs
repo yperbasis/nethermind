@@ -24,10 +24,17 @@ namespace Nethermind.Consensus.AuRa.InitializationSteps
 {
     public class InitRlpAuRa : InitRlp
     {
-        public InitRlpAuRa(AuRaNethermindApi context) : base(context) { }
+        private readonly AuRaNethermindApi _context;
+        public InitRlpAuRa(AuRaNethermindApi context) : base(context) {
+            _context = context;
+        }
 
         public override Task Execute(CancellationToken cancellationToken)
         {
+            if (_context.LogManager == null) throw new StepDependencyException(nameof(_context.LogManager));
+
+            var logger = _context.LogManager.GetClassLogger();
+            logger.Info("Start InitRLPAuRa");
             Rlp.Decoders[typeof(BlockInfo)] = new BlockInfoDecoder(true);
             return base.Execute(cancellationToken);
         }
