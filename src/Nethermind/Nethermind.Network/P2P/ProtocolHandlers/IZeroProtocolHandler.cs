@@ -17,7 +17,7 @@
 
 using Nethermind.Network.Rlpx;
 
-namespace Nethermind.Network.P2P
+namespace Nethermind.Network.P2P.ProtocolHandlers
 {
     public interface IZeroProtocolHandler : IProtocolHandler
     {

@@ -13,23 +13,35 @@
 // 
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
+// 
 
-using System;
+using DotNetty.Common.Utilities;
+using Nethermind.Logging;
 using Nethermind.Network.Rlpx;
-using Nethermind.Stats.Model;
+using Nethermind.Stats;
 
-namespace Nethermind.Network.P2P
+namespace Nethermind.Network.P2P.ProtocolHandlers
 {
-    public interface IProtocolHandler : IDisposable
+    public abstract class ZeroProtocolHandlerBase : ProtocolHandlerBase
     {
-        string Name { get; }
-        byte ProtocolVersion { get; }
-        string ProtocolCode { get; }
-        int MessageIdSpaceSize { get; }
-        void Init();
-        void HandleMessage(Packet message);
-        void DisconnectProtocol(DisconnectReason disconnectReason, string details);
-        event EventHandler<ProtocolInitializedEventArgs> ProtocolInitialized;
-        event EventHandler<ProtocolEventArgs> SubprotocolRequested;
+        protected ZeroProtocolHandlerBase(ISession session, INodeStatsManager nodeStats, IMessageSerializationService serializer, ILogManager logManager) 
+            : base(session, nodeStats, serializer, logManager)
+        {
+        }
+
+        public override void HandleMessage(Packet message)
+        {
+            ZeroPacket zeroPacket = new(message);
+            try
+            {
+                HandleMessage(zeroPacket);
+            }
+            finally
+            {
+                zeroPacket.SafeRelease();
+            }
+        }
+
+        public abstract void HandleMessage(ZeroPacket message);
     }
 }

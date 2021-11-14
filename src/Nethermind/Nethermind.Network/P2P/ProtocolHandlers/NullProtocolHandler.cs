@@ -18,7 +18,7 @@ using System;
 using Nethermind.Network.Rlpx;
 using Nethermind.Stats.Model;
 
-namespace Nethermind.Network.P2P
+namespace Nethermind.Network.P2P.ProtocolHandlers
 {
     public class NullProtocolHandler : IProtocolHandler
     {

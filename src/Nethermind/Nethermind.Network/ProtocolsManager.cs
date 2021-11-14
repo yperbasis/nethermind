@@ -25,12 +25,14 @@ using Nethermind.Core.Specs;
 using Nethermind.Logging;
 using Nethermind.Network.Discovery;
 using Nethermind.Network.P2P;
+using Nethermind.Network.P2P.ProtocolHandlers;
 using Nethermind.Network.P2P.Subprotocols.Eth.V62;
 using Nethermind.Network.P2P.Subprotocols.Eth.V63;
 using Nethermind.Network.P2P.Subprotocols.Eth.V64;
 using Nethermind.Network.P2P.Subprotocols.Eth.V65;
 using Nethermind.Network.P2P.Subprotocols.Eth.V66;
 using Nethermind.Network.P2P.Subprotocols.Les;
+using Nethermind.Network.P2P.Subprotocols.Snap;
 using Nethermind.Network.P2P.Subprotocols.Wit;
 using Nethermind.Network.Rlpx;
 using Nethermind.Stats;
@@ -203,6 +205,17 @@ namespace Nethermind.Network
 
                     InitSyncPeerProtocol(session, ethHandler);
                     return ethHandler;
+                },
+                [Protocol.Snap] = (session, version) =>
+                {
+                    var handler = version switch
+                    {
+                        1 => new SnapProtocolHandler(session, _stats, _serializer, _logManager),
+                        _ => throw new NotSupportedException($"{Protocol.Snap}.{version} is not supported.")
+                    };
+                    InitSatelliteProtocol(session, handler);
+
+                    return handler;
                 },
                 [Protocol.Wit] = (session, version) =>
                 {

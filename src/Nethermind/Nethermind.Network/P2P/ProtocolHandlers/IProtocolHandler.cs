@@ -14,23 +14,22 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
-using Nethermind.Core.Crypto;
-using Nethermind.Int256;
-using Nethermind.Network.P2P.ProtocolHandlers;
+using System;
+using Nethermind.Network.Rlpx;
+using Nethermind.Stats.Model;
 
-namespace Nethermind.Network.P2P
+namespace Nethermind.Network.P2P.ProtocolHandlers
 {
-    public class SyncPeerProtocolInitializedEventArgs : ProtocolInitializedEventArgs
+    public interface IProtocolHandler : IDisposable
     {
-        public string Protocol { get; set; }
-        public byte ProtocolVersion { get; set; }
-        public ulong ChainId { get; set; }
-        public UInt256 TotalDifficulty { get; set; }
-        public Keccak BestHash { get; set; }
-        public Keccak GenesisHash { get; set; }
-
-        public SyncPeerProtocolInitializedEventArgs(SyncPeerProtocolHandlerBase protocolHandler) : base(protocolHandler)
-        {
-        }
+        string Name { get; }
+        byte ProtocolVersion { get; }
+        string ProtocolCode { get; }
+        int MessageIdSpaceSize { get; }
+        void Init();
+        void HandleMessage(Packet message);
+        void DisconnectProtocol(DisconnectReason disconnectReason, string details);
+        event EventHandler<ProtocolInitializedEventArgs> ProtocolInitialized;
+        event EventHandler<ProtocolEventArgs> SubprotocolRequested;
     }
 }

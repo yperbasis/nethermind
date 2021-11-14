@@ -24,7 +24,7 @@ using Nethermind.Network.Rlpx;
 using Nethermind.Stats;
 using Nethermind.Stats.Model;
 
-namespace Nethermind.Network.P2P
+namespace Nethermind.Network.P2P.ProtocolHandlers
 {
     public abstract class ProtocolHandlerBase : IProtocolHandler
     {

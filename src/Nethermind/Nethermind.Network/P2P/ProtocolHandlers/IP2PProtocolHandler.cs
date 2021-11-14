@@ -18,7 +18,7 @@
 using System.Collections.Generic;
 using Nethermind.Stats.Model;
 
-namespace Nethermind.Network.P2P
+namespace Nethermind.Network.P2P.ProtocolHandlers
 {
     public interface IP2PProtocolHandler : IProtocolHandler
     {

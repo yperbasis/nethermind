@@ -26,6 +26,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Network.P2P.ProtocolHandlers;
 using Nethermind.Network.Rlpx;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Stats;
@@ -37,7 +38,7 @@ using CancellationToken = System.Threading.CancellationToken;
 
 namespace Nethermind.Network.P2P.Subprotocols.Les
 {
-    public class LesProtocolHandler : SyncPeerProtocolHandlerBase, IZeroProtocolHandler, ISyncPeer
+    public class LesProtocolHandler : SyncPeerProtocolHandlerBase, ISyncPeer
     {
         public override string Name => "les3";
         public override bool IncludeInTxPool => false;

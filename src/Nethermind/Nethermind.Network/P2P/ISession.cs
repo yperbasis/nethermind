@@ -17,6 +17,7 @@
 using System;
 using DotNetty.Transport.Channels;
 using Nethermind.Core.Crypto;
+using Nethermind.Network.P2P.ProtocolHandlers;
 using Nethermind.Network.Rlpx;
 using Nethermind.Stats.Model;
 

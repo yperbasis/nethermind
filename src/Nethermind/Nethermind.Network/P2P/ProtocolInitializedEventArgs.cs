@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using Nethermind.Network.P2P.ProtocolHandlers;
 
 namespace Nethermind.Network.P2P
 {

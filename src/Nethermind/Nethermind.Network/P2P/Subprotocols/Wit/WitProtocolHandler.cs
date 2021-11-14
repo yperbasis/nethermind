@@ -21,6 +21,7 @@ using DotNetty.Common.Utilities;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core.Crypto;
 using Nethermind.Logging;
+using Nethermind.Network.P2P.ProtocolHandlers;
 using Nethermind.Network.Rlpx;
 using Nethermind.Stats;
 using Nethermind.Stats.Model;
@@ -28,7 +29,7 @@ using Nethermind.Synchronization;
 
 namespace Nethermind.Network.P2P.Subprotocols.Wit
 {
-    public class WitProtocolHandler : ProtocolHandlerBase, IZeroProtocolHandler, IWitnessPeer
+    public class WitProtocolHandler : ZeroProtocolHandlerBase, IWitnessPeer
     {
         private readonly ISyncServer _syncServer;
 
@@ -68,20 +69,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Wit
             // GetBlockWitnessHashes(Keccak.Zero, CancellationToken.None);
         }
 
-        public override void HandleMessage(Packet message)
-        {
-            ZeroPacket zeroPacket = new ZeroPacket(message);
-            try
-            {
-                HandleMessage(zeroPacket);
-            }
-            finally
-            {
-                zeroPacket.SafeRelease();
-            }
-        }
-
-        public void HandleMessage(ZeroPacket message)
+        public override void HandleMessage(ZeroPacket message)
         {
             int size = message.Content.ReadableBytes;
             int packetType = message.PacketType;
