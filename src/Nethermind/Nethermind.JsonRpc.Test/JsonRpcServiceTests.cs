@@ -60,7 +60,7 @@ namespace Nethermind.JsonRpc.Test
             RpcModuleProvider moduleProvider = new(new FileSystem(), _configurationProvider.GetConfig<IJsonRpcConfig>(), LimboLogs.Instance);
             moduleProvider.Register(new SingletonModulePool<T>(new SingletonFactory<T>(module), true));
             _jsonRpcService = new JsonRpcService(moduleProvider, _logManager);
-            JsonRpcRequest request = RpcTest.GetJsonRequest(method, parameters);
+            JsonRpcRequest request = RpcTest.GetJsonRequest(method, 67, parameters);
             JsonRpcResponse response = _jsonRpcService.SendRequestAsync(request, JsonRpcContext.Http).Result;
             Assert.AreEqual(request.Id, response.Id);
             return response;
