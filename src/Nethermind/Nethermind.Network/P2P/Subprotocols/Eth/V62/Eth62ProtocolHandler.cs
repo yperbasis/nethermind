@@ -31,7 +31,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V62
 {
     public class Eth62ProtocolHandler : SyncPeerProtocolHandlerBase, IZeroProtocolHandler
     {
-        private bool _statusReceived;
+        public bool StatusReceived { get; private set; }
         private readonly TxFloodController _floodController;
         protected readonly ITxPool _txPool;
 
@@ -101,7 +101,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V62
         public override void HandleMessage(ZeroPacket message)
         {
             int packetType = message.PacketType;
-            if (!_statusReceived && packetType != Eth62MessageCode.Status)
+            if (!StatusReceived && packetType != Eth62MessageCode.Status)
             {
                 throw new SubprotocolException(
                     $"No {nameof(StatusMessage)} received prior to communication with {Node:c}.");
@@ -165,12 +165,12 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V62
         private void Handle(StatusMessage status)
         {
             Metrics.StatusesReceived++;
-            if (_statusReceived)
+            if (StatusReceived)
             {
                 throw new SubprotocolException($"{nameof(StatusMessage)} has already been received in the past");
             }
 
-            _statusReceived = true;
+            StatusReceived = true;
             _remoteHeadBlockHash = status.BestHash;
 
             ReceivedProtocolInitMsg(status);
