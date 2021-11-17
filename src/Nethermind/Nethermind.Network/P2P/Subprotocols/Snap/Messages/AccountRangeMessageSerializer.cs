@@ -1,4 +1,4 @@
-//  Copyright (c) 2021 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -15,28 +15,25 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-using Nethermind.Network.P2P.Messages;
+using DotNetty.Buffers;
 
-namespace Nethermind.Network.P2P.Subprotocols.Eth.V66.Messages
+namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
 {
-    public abstract class Eth66Message<T> : P2PMessage where T : P2PMessage
+    public class AccountRangeMessageSerializer : IZeroInnerMessageSerializer<AccountRangeMessage>
     {
-        public override int PacketType => EthMessage.PacketType;
-        public override string Protocol => EthMessage.Protocol;
-        public long RequestId { get; set; } = MessageConstants.Random.NextLong();
-        public T EthMessage { get; set; }
-
-        protected Eth66Message() 
+        public void Serialize(IByteBuffer byteBuffer, AccountRangeMessage message)
         {
+            throw new System.NotImplementedException();
         }
 
-        protected Eth66Message(long requestId, T ethMessage)
+        public AccountRangeMessage Deserialize(IByteBuffer byteBuffer)
         {
-            RequestId = requestId;
-            EthMessage = ethMessage;
+            throw new System.NotImplementedException();
         }
-        
-        public override string ToString()
-            => $"{GetType().Name}Eth66({RequestId},{EthMessage})";
+
+        public int GetLength(AccountRangeMessage message, out int contentLength)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

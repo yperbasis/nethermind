@@ -15,6 +15,9 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
+using DotNetty.Common.Utilities;
+using Nethermind.Network.P2P.Messages;
+
 namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
 {
     public abstract class SnapMessageBase : P2PMessage
@@ -25,5 +28,9 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
         /// Request ID to match up responses with
         /// </summary>
         public long RequestId { get; set; }
+
+        protected SnapMessageBase()
+        {
+        }
     }
 }

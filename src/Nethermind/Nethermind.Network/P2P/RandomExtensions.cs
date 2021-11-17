@@ -17,7 +17,7 @@
 
 using System;
 
-namespace Nethermind.Network.P2P.Subprotocols.Eth.V66
+namespace Nethermind.Network.P2P
 {
     internal static class RandomExtensions
     {

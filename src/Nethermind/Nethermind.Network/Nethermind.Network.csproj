@@ -50,4 +50,7 @@
   <ItemGroup>
     <None Remove="Whisper\**" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="P2P\Subprotocols\Snap\Serializers" />
+  </ItemGroup>
 </Project>

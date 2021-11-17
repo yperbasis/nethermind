@@ -17,9 +17,9 @@
 
 using System;
 
-namespace Nethermind.Network.P2P.Subprotocols.Eth.V66
+namespace Nethermind.Network.P2P
 {
-    internal class Eth66MessageConstants
+    internal class MessageConstants
     {
         public static readonly Random Random = new Random();
     }

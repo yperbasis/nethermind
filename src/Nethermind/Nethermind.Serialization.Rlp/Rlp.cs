@@ -1555,6 +1555,17 @@ namespace Nethermind.Serialization.Rlp
             return item is null ? 1 : 33;
         }
 
+        public static int LengthOf(IList<Keccak> keccaks)
+        {
+            int value = 0;
+            for (int i = 0; i < keccaks.Count; i++)
+            {
+                value += LengthOf(keccaks[i]);
+            }
+            
+            return value;
+        }
+        
         public static int LengthOf(Address? item)
         {
             return item is null ? 1 : 21;

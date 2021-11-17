@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
 using Nethermind.Core;
@@ -189,6 +190,14 @@ namespace Nethermind.Serialization.Rlp
             }
         }
 
+        public void Encode(IList<Keccak> keccaks)
+        {
+            for (int i = 0; i < keccaks.Count; i++)
+            {
+                Encode(keccaks[i]);
+            }
+        }
+        
         public void Encode(Address? address)
         {
             if (address == null)
