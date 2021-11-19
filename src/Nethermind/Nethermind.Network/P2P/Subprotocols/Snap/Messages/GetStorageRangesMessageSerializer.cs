@@ -28,7 +28,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
             rlpStream.ReadSequenceLength();
 
             message.RequestId = rlpStream.DecodeLong();
-            var t = rlpStream.DecodeArray(_ => rlpStream.DecodeKeccak(), false);
+            var t = rlpStream.DecodeArray(_ => rlpStream.DecodeKeccak());
             message.AccountHashes = t;
             message.RootHash = rlpStream.DecodeKeccak();
             message.StartingHash = rlpStream.DecodeKeccak();
@@ -62,7 +62,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
         public int GetLength(GetStorageRangesMessage message, out int contentLength)
         {
             contentLength = Rlp.LengthOf(message.RequestId);
-            contentLength += Rlp.LengthOf(message.AccountHashes);
+            contentLength += Rlp.LengthOf(message.AccountHashes, true);
             contentLength += Rlp.LengthOf(message.RootHash);
             contentLength += Rlp.LengthOf(message.StartingHash);
             contentLength += Rlp.LengthOf(message.LimitHash);

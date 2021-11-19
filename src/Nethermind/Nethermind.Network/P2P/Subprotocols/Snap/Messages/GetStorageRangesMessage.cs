@@ -33,7 +33,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
         /// <summary>
         /// Account hashes of the storage tries to serve
         /// </summary>
-        public IList<Keccak> AccountHashes { get; set; }
+        public Keccak[] AccountHashes { get; set; }
         
         /// <summary>
         /// Storage slot hash of the first to retrieve

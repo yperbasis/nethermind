@@ -190,11 +190,20 @@ namespace Nethermind.Serialization.Rlp
             }
         }
 
-        public void Encode(IList<Keccak> keccaks)
+        public void Encode(Keccak[] keccaks)
         {
-            for (int i = 0; i < keccaks.Count; i++)
+            if (keccaks == null)
             {
-                Encode(keccaks[i]);
+                EncodeNullObject();
+            }
+            else
+            {
+                var length = Rlp.LengthOf(keccaks);
+                StartSequence(length);
+                for (int i = 0; i < keccaks.Length; i++)
+                {
+                    Encode(keccaks[i]);
+                }
             }
         }
         
