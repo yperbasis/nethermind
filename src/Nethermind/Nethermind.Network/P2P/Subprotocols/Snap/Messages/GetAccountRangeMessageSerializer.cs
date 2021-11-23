@@ -20,9 +20,9 @@ using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
 {
-    public class GetAccountRangeMessageSerializer : IZeroInnerMessageSerializer<GetAccountRangeMessage>
+    public class GetAccountRangeMessageSerializer : SnapSerializerBase<GetAccountRangeMessage>
     {
-        public static GetAccountRangeMessage Deserialize(RlpStream rlpStream)
+        protected override GetAccountRangeMessage Deserialize(RlpStream rlpStream)
         {
             GetAccountRangeMessage message = new ();
             rlpStream.ReadSequenceLength();
@@ -36,12 +36,9 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
             return message;
         }
 
-        public void Serialize(IByteBuffer byteBuffer, GetAccountRangeMessage message)
+        public override void Serialize(IByteBuffer byteBuffer, GetAccountRangeMessage message)
         {
-            int length = GetLength(message, out int contentLength);
-            byteBuffer.EnsureWritable(length, true);
-            RlpStream rlpStream = new NettyRlpStream(byteBuffer);
-            rlpStream.StartSequence(contentLength);
+            NettyRlpStream rlpStream = GetRlpStreamAndStartSequence(byteBuffer, message);
             
             rlpStream.Encode(message.RequestId);
             rlpStream.Encode(message.RootHash);
@@ -50,13 +47,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
             rlpStream.Encode(message.ResponseBytes);
         }
 
-        public GetAccountRangeMessage Deserialize(IByteBuffer byteBuffer)
-        {
-            NettyRlpStream rlpStream = new (byteBuffer);
-            return Deserialize(rlpStream);
-        }
-
-        public int GetLength(GetAccountRangeMessage message, out int contentLength)
+        public override int GetLength(GetAccountRangeMessage message, out int contentLength)
         {
             contentLength = Rlp.LengthOf(message.RequestId);
             contentLength += Rlp.LengthOf(message.RootHash);

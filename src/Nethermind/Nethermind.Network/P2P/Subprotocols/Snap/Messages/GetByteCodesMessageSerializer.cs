@@ -20,44 +20,34 @@ using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
 {
-    public class GetStorageRangesMessageSerializer : SnapSerializerBase<GetStorageRangesMessage>
+    public class GetByteCodesMessageSerializer : SnapSerializerBase<GetByteCodesMessage>
     {
-                
-        public override void Serialize(IByteBuffer byteBuffer, GetStorageRangesMessage message)
+        public override void Serialize(IByteBuffer byteBuffer, GetByteCodesMessage message)
         {
             NettyRlpStream rlpStream = GetRlpStreamAndStartSequence(byteBuffer, message);
             
             rlpStream.Encode(message.RequestId);
-            rlpStream.Encode(message.AccountHashes);
-            rlpStream.Encode(message.RootHash);
-            rlpStream.Encode(message.StartingHash);
-            rlpStream.Encode(message.LimitHash);
-            rlpStream.Encode(message.ResponseBytes);
+            rlpStream.Encode(message.Hashes);
+            rlpStream.Encode(message.Bytes);
         }
-        
-        protected override GetStorageRangesMessage Deserialize(RlpStream rlpStream)
+
+        protected override GetByteCodesMessage Deserialize(RlpStream rlpStream)
         {
-            GetStorageRangesMessage message = new ();
+            GetByteCodesMessage message = new ();
             rlpStream.ReadSequenceLength();
 
             message.RequestId = rlpStream.DecodeLong();
-            message.AccountHashes = rlpStream.DecodeArray(_ => rlpStream.DecodeKeccak());
-            message.RootHash = rlpStream.DecodeKeccak();
-            message.StartingHash = rlpStream.DecodeKeccak();
-            message.LimitHash = rlpStream.DecodeKeccak();
-            message.ResponseBytes = rlpStream.DecodeLong();
+            message.Hashes = rlpStream.DecodeArray(_ => rlpStream.DecodeKeccak());
+            message.Bytes = rlpStream.DecodeLong();
 
             return message;
         }
 
-        public override int GetLength(GetStorageRangesMessage message, out int contentLength)
+        public override int GetLength(GetByteCodesMessage message, out int contentLength)
         {
             contentLength = Rlp.LengthOf(message.RequestId);
-            contentLength += Rlp.LengthOf(message.AccountHashes, true);
-            contentLength += Rlp.LengthOf(message.RootHash);
-            contentLength += Rlp.LengthOf(message.StartingHash);
-            contentLength += Rlp.LengthOf(message.LimitHash);
-            contentLength += Rlp.LengthOf(message.ResponseBytes);
+            contentLength += Rlp.LengthOf(message.Hashes, true);
+            contentLength += Rlp.LengthOf(message.Bytes);
 
             return Rlp.LengthOfSequence(contentLength);
         }

@@ -27,10 +27,9 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
         
         /// <summary>
         /// List of consecutive accounts from the trie
-        /// TODO: change from Account to AccountSlim
         /// </summary>
-        public IList<Account> Accounts { get; set; }
+        public Account[] Accounts { get; set; }
         
-        //TODO: add Proofs
+        //TODO: add Proofs, only node hashes or whole nodes ?
     }
 }

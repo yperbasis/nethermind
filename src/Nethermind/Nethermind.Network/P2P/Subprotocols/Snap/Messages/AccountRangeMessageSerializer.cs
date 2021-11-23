@@ -16,24 +16,64 @@
 // 
 
 using DotNetty.Buffers;
+using Nethermind.Core;
+using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
 {
-    public class AccountRangeMessageSerializer : IZeroInnerMessageSerializer<AccountRangeMessage>
+    public class AccountRangeMessageSerializer : IZeroMessageSerializer<AccountRangeMessage>
     {
+        private readonly AccountDecoder _decoder = new (true);
+
         public void Serialize(IByteBuffer byteBuffer, AccountRangeMessage message)
         {
-            throw new System.NotImplementedException();
+            (int contentLength, int accountsLength) = GetLength(message);
+            byteBuffer.EnsureWritable(Rlp.LengthOfSequence(contentLength), true);
+            NettyRlpStream stream = new (byteBuffer);
+            stream.StartSequence(contentLength);
+            
+            stream.Encode(message.RequestId);
+            if (message.Accounts == null || message.Accounts.Length == 0)
+            {
+                stream.EncodeNullObject();
+            }
+            else
+            {
+                stream.StartSequence(accountsLength);
+                for (int i = 0; i < message.Accounts.Length; i++)
+                {
+                    _decoder.Encode(message.Accounts[i], stream);
+                }
+            }
+            
+            //TODO: proofs
         }
 
         public AccountRangeMessage Deserialize(IByteBuffer byteBuffer)
         {
-            throw new System.NotImplementedException();
+            AccountRangeMessage message = new();
+            NettyRlpStream rlpStream = new (byteBuffer);
+            
+            rlpStream.ReadSequenceLength();
+
+            message.RequestId = rlpStream.DecodeLong();
+            message.Accounts = Rlp.DecodeArray(rlpStream, _decoder);
+            
+            // TODO: proofs
+
+            return message;
+        }
+        
+        private (int contentLength, int accountsLength) GetLength(AccountRangeMessage message)
+        {
+            int contentLength = Rlp.LengthOf(message.RequestId);
+            int accountsLength = _decoder.GetLength(message.Accounts);
+            contentLength += Rlp.LengthOfSequence(accountsLength);
+
+            return (contentLength, accountsLength);
         }
 
-        public int GetLength(AccountRangeMessage message, out int contentLength)
-        {
-            throw new System.NotImplementedException();
-        }
+
+
     }
 }
