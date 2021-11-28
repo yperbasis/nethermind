@@ -15,19 +15,24 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-using System;
+using Nethermind.Network.P2P.Subprotocols.Snap.Messages;
+using NUnit.Framework;
 
-namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
+namespace Nethermind.Network.Test.P2P.Subprotocols.Snap.Messages
 {
-    public class TrieNodesMessage : SnapMessageBase
+    [TestFixture, Parallelizable(ParallelScope.All)]
+    public class TrieNodesMessageSerializerTests
     {
-        public TrieNodesMessage(byte[][]? data)
+        [Test]
+        public void Roundtrip()
         {
-            Nodes = data ?? Array.Empty<byte[]>();
-        }
-        
-        public override int PacketType => SnapMessageCode.TrieNodes;
+            byte[][] data = {new byte[]{0xde, 0xad, 0xc0, 0xde}, new byte[]{0xfe, 0xed}};
 
-        public byte[][] Nodes { get; set; }
+            TrieNodesMessage message = new (data);
+            
+            TrieNodesMessageSerializer serializer = new ();
+            
+            SerializerTester.TestZero(serializer, message);
+        }
     }
 }
