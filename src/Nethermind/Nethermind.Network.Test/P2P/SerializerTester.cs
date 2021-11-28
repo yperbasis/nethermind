@@ -14,10 +14,13 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System;
 using DotNetty.Buffers;
 using FluentAssertions;
+using FluentAssertions.Equivalency;
 using Nethermind.Core.Extensions;
 using Nethermind.Network.P2P.Messages;
+using Nethermind.Network.P2P.Subprotocols.Snap.Messages;
 using NUnit.Framework;
 
 namespace Nethermind.Network.Test.P2P
@@ -46,7 +49,9 @@ namespace Nethermind.Network.Test.P2P
             {
                 serializer.Serialize(buffer, message);
                 T deserialized = serializer.Deserialize(buffer);
-                deserialized.Should().BeEquivalentTo(message);
+                
+                // RlpLength is calculated explicitly when serializing an object by Calculate method. It's null after deserialization.
+                deserialized.Should().BeEquivalentTo(message, options => options.Excluding(c => c.Name == "RlpLength"));
                 
                 Assert.AreEqual(0, buffer.ReadableBytes, "readable bytes");
                 

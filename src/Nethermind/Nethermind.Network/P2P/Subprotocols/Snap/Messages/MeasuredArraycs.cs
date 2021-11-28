@@ -15,26 +15,22 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-using System.Collections;
 using System.Collections.Generic;
-using Nethermind.Core;
-using Nethermind.Core.Crypto;
 
 namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
 {
-    public class AccountRangeMessage : SnapMessageBase
+    public class MeasuredArray<T>
     {
-        public override int PacketType => SnapMessageCode.AccountRange;
+        public MeasuredArray(T[] array)
+        {
+            Array = array;
+        }
+        public  T[] Array { get; }
+        public int Length => Array?.Length ?? 0; 
         
         /// <summary>
-        /// List of consecutive accounts from the trie
-        /// TODO: add address hashes
+        /// Length of RLP content. Value has to be calculated explicitly
         /// </summary>
-        public Account[] Accounts { get; set; }
-
-        /// <summary>
-        /// List of trie nodes proving the account range
-        /// </summary>
-        public Keccak[] Proofs { get; set; }
+        public int? RlpLength { get; set; }
     }
 }

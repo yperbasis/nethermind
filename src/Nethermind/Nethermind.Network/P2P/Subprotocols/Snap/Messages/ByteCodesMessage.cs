@@ -15,11 +15,20 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
+using System;
+using Nethermind.Core.Crypto;
+
 namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
 {
     public class ByteCodesMessage : SnapMessageBase
     {
+        public ByteCodesMessage(byte[][]? data)
+        {
+            Codes = data ?? Array.Empty<byte[]>();
+        }
+        
         public override int PacketType => SnapMessageCode.ByteCodes;
-        //TODO: Add Codes
+        
+        public byte[][] Codes { get; }
     }
 }

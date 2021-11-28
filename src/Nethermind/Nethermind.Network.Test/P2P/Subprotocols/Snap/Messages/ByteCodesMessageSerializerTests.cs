@@ -15,26 +15,24 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-using System.Collections;
-using System.Collections.Generic;
-using Nethermind.Core;
-using Nethermind.Core.Crypto;
+using Nethermind.Network.P2P.Subprotocols.Snap.Messages;
+using NUnit.Framework;
 
-namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
+namespace Nethermind.Network.Test.P2P.Subprotocols.Snap.Messages
 {
-    public class AccountRangeMessage : SnapMessageBase
+    [TestFixture, Parallelizable(ParallelScope.All)]
+    public class ByteCodesMessageSerializerTests
     {
-        public override int PacketType => SnapMessageCode.AccountRange;
-        
-        /// <summary>
-        /// List of consecutive accounts from the trie
-        /// TODO: add address hashes
-        /// </summary>
-        public Account[] Accounts { get; set; }
+        [Test]
+        public void Roundtrip()
+        {
+            byte[][] data = {new byte[]{0xde, 0xad, 0xc0, 0xde}, new byte[]{0xfe, 0xed}};
 
-        /// <summary>
-        /// List of trie nodes proving the account range
-        /// </summary>
-        public Keccak[] Proofs { get; set; }
+            ByteCodesMessage message = new (data);
+            
+            ByteCodesMessageSerializer serializer = new ();
+            
+            SerializerTester.TestZero(serializer, message);
+        }
     }
 }

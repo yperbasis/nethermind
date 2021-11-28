@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
+using System;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -32,10 +33,15 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Snap.Messages
         public static readonly byte[] Code1 = { 0, 1 };
 
         [Test]
-        public void Roundtrip_NoAccounts()
+        public void Roundtrip_NoAccountsNoProofs()
         {
 
-            AccountRangeMessage msg = new() { RequestId = MessageConstants.Random.NextLong(), Accounts = System.Array.Empty<Account>()};
+            AccountRangeMessage msg = new()
+            {
+                RequestId = MessageConstants.Random.NextLong(), 
+                Accounts = System.Array.Empty<Account>(),
+                Proofs = Array.Empty<Keccak>()
+            };
 
             AccountRangeMessageSerializer serializer = new();
 
@@ -56,7 +62,12 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Snap.Messages
                 .WithStorageRoot(new Keccak("0x20d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"))
                 .TestObject;
 
-            AccountRangeMessage msg = new() { RequestId = MessageConstants.Random.NextLong(), Accounts = new[] { acc01, acc02 }, };
+            AccountRangeMessage msg = new()
+            {
+                RequestId = MessageConstants.Random.NextLong(), 
+                Accounts = new[] { acc01, acc02 },
+                Proofs = TestItem.Keccaks
+            };
 
             AccountRangeMessageSerializer serializer = new();
 
@@ -72,7 +83,12 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Snap.Messages
                 .WithStorageRoot(Keccak.EmptyTreeHash)
                 .TestObject;
 
-            AccountRangeMessage msg = new() { RequestId = MessageConstants.Random.NextLong(), Accounts = new[] { acc01 }, };
+            AccountRangeMessage msg = new()
+            {
+                RequestId = MessageConstants.Random.NextLong(), 
+                Accounts = new[] { acc01 },
+                Proofs = TestItem.Keccaks
+            };
 
             AccountRangeMessageSerializer serializer = new();
 
@@ -87,7 +103,11 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Snap.Messages
                 .WithStorageRoot(new Keccak("0x10d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"))
                 .TestObject;
 
-            AccountRangeMessage msg = new() { RequestId = MessageConstants.Random.NextLong(), Accounts = new[] { acc01 }, };
+            AccountRangeMessage msg = new() { 
+                RequestId = MessageConstants.Random.NextLong(), 
+                Accounts = new[] { acc01 }, 
+                Proofs = TestItem.Keccaks
+            };
 
             AccountRangeMessageSerializer serializer = new();
 

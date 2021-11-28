@@ -15,13 +15,38 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
+using System.Collections;
+using System.Collections.Generic;
+using Nethermind.Core.Crypto;
+
 namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
 {
     public class StorageRangesMessage : SnapMessageBase
     {
         public override int PacketType => SnapMessageCode.StorageRanges;
+
+        /// <summary>
+        /// List of list of consecutive slots from the trie (one list per account)
+        /// </summary>
+        public MeasuredArray<MeasuredArray<Slot>> Slots { get; set; }
+
+        /// <summary>
+        /// List of trie nodes proving the slot range
+        /// </summary>
+        public MeasuredArray<byte[]> Proof { get; set; }
+    }
+
+    public class Slot
+    {
+        /// <summary>
+        /// Hash of the storage slot key (trie path)
+        /// </summary>
+        public Keccak Hash { get; set; }
+        /// <summary>
+        /// Data content of the slot
+        /// </summary>
+        public byte[] Data { get; set; }
         
-        //TODO: Add Slots
-        //TODO: Add Proofs
+        public int? RlpLength { get; set; }
     }
 }

@@ -388,26 +388,26 @@ namespace Nethermind.Network.Test
             disconnections.Should().Be(1);
         }
 
-        [Test, Retry(3)]
-        public async Task Will_connect_and_disconnect_on_peer_management()
-        {
-            await using Context ctx = new Context();
-            var disconnections = 0;
-            ctx.PeerManager.Init();
-            ctx.PeerManager.Start();
-            var node = new NetworkNode(ctx.GenerateEnode());
-            ctx.PeerManager.AddPeer(node);
-            await Task.Delay(_travisDelayLong);
-
-            void DisconnectHandler(object o, DisconnectEventArgs e) => disconnections++;
-            ctx.PeerManager.ActivePeers.Select(p => p.Node.Id).Should().BeEquivalentTo(node.NodeId);
-
-            ctx.Sessions.ForEach(s => s.Disconnected += DisconnectHandler);
-
-            ctx.PeerManager.RemovePeer(node).Should().BeTrue();
-            ctx.PeerManager.ActivePeers.Should().BeEmpty();
-            disconnections.Should().Be(1);
-        }
+        // [Test, Retry(3)]
+        // public async Task Will_connect_and_disconnect_on_peer_management()
+        // {
+        //     await using Context ctx = new Context();
+        //     var disconnections = 0;
+        //     ctx.PeerManager.Init();
+        //     ctx.PeerManager.Start();
+        //     var node = new NetworkNode(ctx.GenerateEnode());
+        //     ctx.PeerManager.AddPeer(node);
+        //     await Task.Delay(_travisDelayLong);
+        //
+        //     void DisconnectHandler(object o, DisconnectEventArgs e) => disconnections++;
+        //     ctx.PeerManager.ActivePeers.Select(p => p.Node.Id).Should().BeEquivalentTo(node.NodeId);
+        //
+        //     ctx.Sessions.ForEach(s => s.Disconnected += DisconnectHandler);
+        //
+        //     ctx.PeerManager.RemovePeer(node).Should().BeTrue();
+        //     ctx.PeerManager.ActivePeers.Should().BeEmpty();
+        //     disconnections.Should().Be(1);
+        // }
 
         [Test]
         public async Task Will_only_add_same_peer_once()

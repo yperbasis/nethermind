@@ -46,7 +46,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
                 }
             }
             
-            //TODO: proofs
+            stream.Encode(message.Proofs);
         }
 
         public AccountRangeMessage Deserialize(IByteBuffer byteBuffer)
@@ -58,8 +58,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
 
             message.RequestId = rlpStream.DecodeLong();
             message.Accounts = Rlp.DecodeArray(rlpStream, _decoder);
-            
-            // TODO: proofs
+            message.Proofs = rlpStream.DecodeArray(_ => rlpStream.DecodeKeccak());
 
             return message;
         }
@@ -69,6 +68,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
             int contentLength = Rlp.LengthOf(message.RequestId);
             int accountsLength = _decoder.GetLength(message.Accounts);
             contentLength += Rlp.LengthOfSequence(accountsLength);
+            contentLength += Rlp.LengthOf(message.Proofs, true);
 
             return (contentLength, accountsLength);
         }
