@@ -27,8 +27,11 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
         /// Root hash of the account trie to serve
         /// </summary>
         public Keccak RootHash { get; set; }
-        
-        //TODO: Add Paths
+
+        /// <summary>
+        /// Trie paths to retrieve the nodes for, grouped by account
+        /// </summary>
+        public MeasuredArray<MeasuredArray<byte[]>> Paths { get; set; }
         
         /// <summary>
         /// Soft limit at which to stop returning data
