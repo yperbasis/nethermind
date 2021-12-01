@@ -17,6 +17,7 @@
 
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Nethermind.Core.Specs;
 using Nethermind.Logging;
 using Nethermind.Network.P2P.EventArg;
@@ -30,11 +31,12 @@ using Nethermind.Network.Rlpx;
 using Nethermind.Stats;
 using Nethermind.Stats.Model;
 using Nethermind.Synchronization;
+using Nethermind.Synchronization.SnapSync;
 using Nethermind.TxPool;
 
 namespace Nethermind.Network.P2P.Subprotocols.Snap
 {
-    public class SnapProtocolHandler : ZeroProtocolHandlerBase
+    public class SnapProtocolHandler : ZeroProtocolHandlerBase, ISnapSyncPeer
     {
         public override string Name => "snap1";
         protected override TimeSpan InitTimeout => Timeouts.Eth;
@@ -181,6 +183,11 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         public override void DisconnectProtocol(DisconnectReason disconnectReason, string details)
         {
             Dispose();
+        }
+
+        public Task<int> GetAccountRange()
+        {
+            return Task.FromResult(0);
         }
     }
 }

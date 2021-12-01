@@ -34,6 +34,7 @@ using Nethermind.Network.P2P.Subprotocols.Eth.V64;
 using Nethermind.Network.P2P.Subprotocols.Eth.V65;
 using Nethermind.Network.P2P.Subprotocols.Eth.V66;
 using Nethermind.Network.P2P.Subprotocols.Les;
+using Nethermind.Network.P2P.Subprotocols.Snap;
 using Nethermind.Network.P2P.Subprotocols.Wit;
 using Nethermind.Network.Rlpx;
 using Nethermind.Stats;
@@ -206,6 +207,13 @@ namespace Nethermind.Network
 
                     InitSyncPeerProtocol(session, ethHandler);
                     return ethHandler;
+                },
+                [Protocol.Snap] = (session, version) =>
+                {
+                    SnapProtocolHandler handler = new (session, _stats, _serializer, _logManager);
+                    InitSatelliteProtocol(session, handler);
+
+                    return handler;
                 },
                 [Protocol.Wit] = (session, version) =>
                 {
