@@ -22,32 +22,45 @@ using Nethermind.Core;
 using Nethermind.Logging;
 using Nethermind.Synchronization.ParallelSync;
 using Nethermind.Synchronization.Peers;
+using Nethermind.Synchronization.SnapSync.State;
 
 namespace Nethermind.Synchronization.SnapSync
 {
     public class SnapSyncFeed : SyncFeed<AccountsSyncBatch?>, IDisposable
     {
         private readonly ISyncModeSelector _syncModeSelector;
-        private readonly ILogger _logger;
+        private readonly ISnapStateProvider _stateProvider;
         private readonly IBlockTree _blockTree;
+        private readonly ILogger _logger;
         public override bool IsMultiFeed => true;
         public override AllocationContexts Contexts => AllocationContexts.State;
         
-        public SnapSyncFeed(ISyncModeSelector syncModeSelector, IBlockTree blockTree, ILogManager logManager)
+        public SnapSyncFeed(ISyncModeSelector syncModeSelector, ISnapStateProvider stateProvider, IBlockTree blockTree, ILogManager logManager)
         {
-            _syncModeSelector = syncModeSelector;
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
+            _syncModeSelector = syncModeSelector ?? throw new ArgumentNullException(nameof(syncModeSelector));
+            _stateProvider = stateProvider ?? throw new ArgumentNullException(nameof(stateProvider));
             _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
         }
         
-        public override Task<AccountsSyncBatch?> PrepareRequest()
+        public override async Task<AccountsSyncBatch?> PrepareRequest()
         {
-            throw new NotImplementedException();
+            AccountsSyncBatch request = new AccountsSyncBatch() { Request = _stateProvider.GetNextAccountRange() };
+            return await Task.FromResult(request);
         }
 
-        public override SyncResponseHandlingResult HandleResponse(AccountsSyncBatch? response)
+        public override SyncResponseHandlingResult HandleResponse(AccountsSyncBatch? batch)
         {
-            throw new NotImplementedException();
+            if (batch.Response == null)
+            {
+                if(_logger.IsError) _logger.Error("Received empty response");
+                return SyncResponseHandlingResult.InternalError;
+            }
+            else
+            {
+                _stateProvider.AddAccounts(batch.Response);
+                return SyncResponseHandlingResult.OK;
+            }
         }
 
         public void Dispose()
@@ -59,7 +72,7 @@ namespace Nethermind.Synchronization.SnapSync
         {
             if (CurrentState == SyncFeedState.Dormant)
             {
-                if ((e.Current & SyncMode.StateNodes) == SyncMode.StateNodes)
+                if ((e.Current & SyncMode.SnapSync) == SyncMode.SnapSync)
                 {
                     BlockHeader bestSuggested = _blockTree.BestSuggestedHeader;
                     if (bestSuggested == null || bestSuggested.Number == 0)

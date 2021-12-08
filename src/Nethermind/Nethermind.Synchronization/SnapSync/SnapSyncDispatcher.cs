@@ -35,7 +35,7 @@ namespace Nethermind.Synchronization.SnapSync
         protected override async Task Dispatch(PeerInfo peerInfo, AccountsSyncBatch request, CancellationToken cancellationToken)
         {
             ISyncPeer peer = peerInfo.SyncPeer;
-            //TODO: constant
+            //TODO: constant "snap"
             peer.TryGetSatelliteProtocol<ISnapSyncPeer>("snap", out var handler);
             Task<int> task = handler.GetAccountRange();
             // var getNodeDataTask = peer.GetNodeData(request.RequestedNodes.Select(n => n.Hash).ToArray(), cancellationToken);

@@ -15,13 +15,13 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-using Nethermind.Synchronization.SnapSync.State;
+using Nethermind.Core;
 
-namespace Nethermind.Synchronization.SnapSync
+namespace Nethermind.Synchronization.SnapSync.State
 {
-    public class AccountsSyncBatch
+    public class AccountsAndProofs
     {
-        public AccountRange Request { get; set; }
-        public AccountsAndProofs Response { get; set; }
+        public Account[] Accounts { get; set; }
+        public byte[][] Proofs { get; set; }
     }
 }

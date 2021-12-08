@@ -34,6 +34,7 @@ using Nethermind.Synchronization.ParallelSync;
 using Nethermind.Synchronization.Peers;
 using Nethermind.Synchronization.Reporting;
 using Nethermind.Synchronization.SnapSync;
+using Nethermind.Synchronization.SnapSync.State;
 using Nethermind.Synchronization.StateSync;
 
 namespace Nethermind.Synchronization
@@ -168,7 +169,8 @@ namespace Nethermind.Synchronization
 
         private void StartSnapSyncComponents()
         {
-            _snapSyncFeed = new SnapSyncFeed(_syncMode, _blockTree, _logManager);
+            // TODO: pass an instance of ISnapStateProvider
+            _snapSyncFeed = new SnapSyncFeed(_syncMode, null, _blockTree, _logManager);
             SnapSyncDispatcher dispatcher = new(_snapSyncFeed!, _syncPeerPool, new SnapSyncAllocationStrategyFactory<AccountsSyncBatch>(), _logManager);
             
             Task _ = dispatcher.Start(_syncCancellation.Token).ContinueWith(t =>

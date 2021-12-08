@@ -15,13 +15,14 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-using Nethermind.Synchronization.SnapSync.State;
+using Nethermind.Core.Crypto;
 
-namespace Nethermind.Synchronization.SnapSync
+namespace Nethermind.Synchronization.SnapSync.State
 {
-    public class AccountsSyncBatch
+    public class AccountRange
     {
-        public AccountRange Request { get; set; }
-        public AccountsAndProofs Response { get; set; }
+        public Keccak RootHash { get; set; }
+        public Keccak StartingHash { get; set; }
+        public Keccak? LimitHash { get; set; }
     }
 }
