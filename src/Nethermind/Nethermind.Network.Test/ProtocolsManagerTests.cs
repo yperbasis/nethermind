@@ -56,7 +56,7 @@ namespace Nethermind.Network.Test
         {
         }
 
-        public static Context When => new Context();
+        public static Context When => new();
 
         public class Context
         {
@@ -179,7 +179,7 @@ namespace Nethermind.Network.Test
 
             public Context ReceiveDisconnect()
             {
-                DisconnectMessage message = new DisconnectMessage(DisconnectReason.Other);
+                DisconnectMessage message = new(DisconnectReason.Other);
                 _currentSession.ReceiveMessage(new Packet("p2p", P2PMessageCode.Disconnect, _serializer.Serialize(message)));
                 return this;
             }
@@ -204,7 +204,7 @@ namespace Nethermind.Network.Test
 
             public Context ReceiveStatus()
             {
-                StatusMessage msg = new StatusMessage();
+                StatusMessage msg = new();
                 msg.TotalDifficulty = 1;
                 msg.ChainId = 1;
                 msg.GenesisHash = _blockTree.Genesis.Hash;
@@ -242,8 +242,8 @@ namespace Nethermind.Network.Test
 
             public Context ReceiveHello(byte p2pVersion = 5)
             {
-                HelloMessage msg = new HelloMessage();
-                msg.Capabilities = new List<Capability> {new Capability("eth", 62)};
+                HelloMessage msg = new();
+                msg.Capabilities = new List<Capability> {new("eth", 62)};
                 msg.NodeId = TestItem.PublicKeyB;
                 msg.ClientId = "other client v1";
                 msg.P2PVersion = p2pVersion;
@@ -254,7 +254,7 @@ namespace Nethermind.Network.Test
             
             public Context ReceiveHelloNoEth()
             {
-                HelloMessage msg = new HelloMessage();
+                HelloMessage msg = new();
                 msg.Capabilities = new List<Capability> { };
                 msg.NodeId = TestItem.PublicKeyB;
                 msg.ClientId = "other client v1";
@@ -266,8 +266,8 @@ namespace Nethermind.Network.Test
             
             public Context ReceiveHelloEth(int protocolVersion)
             {
-                HelloMessage msg = new HelloMessage();
-                msg.Capabilities = new List<Capability> {new Capability("eth", protocolVersion)};
+                HelloMessage msg = new();
+                msg.Capabilities = new List<Capability> {new("eth", protocolVersion)};
                 msg.NodeId = TestItem.PublicKeyB;
                 msg.ClientId = "other client v1";
                 msg.P2PVersion = 5;
@@ -284,7 +284,7 @@ namespace Nethermind.Network.Test
 
             public Context ReceiveStatusWrongChain()
             {
-                StatusMessage msg = new StatusMessage();
+                StatusMessage msg = new();
                 msg.TotalDifficulty = 1;
                 msg.ChainId = 2;
                 msg.GenesisHash = TestItem.KeccakA;
@@ -296,7 +296,7 @@ namespace Nethermind.Network.Test
 
             public Context ReceiveStatusWrongGenesis()
             {
-                StatusMessage msg = new StatusMessage();
+                StatusMessage msg = new();
                 msg.TotalDifficulty = 1;
                 msg.ChainId = 1;
                 msg.GenesisHash = TestItem.KeccakB;
