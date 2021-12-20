@@ -68,12 +68,12 @@ namespace Nethermind.Merge.Plugin.Handlers
             _logger = logManager.GetClassLogger();
         }
 
-        public async Task<byte[]> StartPreparingPayload(BlockHeader parentHeader, PayloadAttributes payloadAttributes)
+        public byte[] StartPreparingPayload(BlockHeader parentHeader, PayloadAttributes payloadAttributes)
         {
             byte[] payloadId = ComputeNextPayloadId(parentHeader, payloadAttributes);
             payloadAttributes.SuggestedFeeRecipient = payloadAttributes.SuggestedFeeRecipient == Address.Zero ? _sealer.Address : payloadAttributes.SuggestedFeeRecipient;
             using CancellationTokenSource cts = new(_timeout);
-            var blockProductionTask = PreparePayload(payloadId, parentHeader, payloadAttributes);
+            Task blockProductionTask = PreparePayload(payloadId, parentHeader, payloadAttributes);
             _taskQueue.Enqueue(() => blockProductionTask);
             return payloadId;
         }
@@ -86,18 +86,18 @@ namespace Nethermind.Merge.Plugin.Handlers
             return GeneratePayload(payloadId, parentHeader, payloadAttributes, emptyBlock);
         }
         
-        private Task GeneratePayload(byte[] payloadId, BlockHeader parentHeader, PayloadAttributes payloadAttributes, Block emptyBlock)
+        private async Task GeneratePayload(byte[] payloadId, BlockHeader parentHeader, PayloadAttributes payloadAttributes, Block emptyBlock)
         {
             using CancellationTokenSource cts = new(_timeout);
             
-            return ProduceIdealBlock(payloadId, parentHeader, payloadAttributes, emptyBlock, cts);
+            await ProduceIdealBlock(payloadId, parentHeader, payloadAttributes, emptyBlock, cts);
             
-            // await Task.Delay(TimeSpan.FromSeconds(_cleanupDelay), CancellationToken.None)
-            //     .ContinueWith(_ =>
-            //     {
-            //         if (_logger.IsDebug) _logger.Debug($"Cleaning up payload {payloadId}");
-            //     });
-            // await CleanupOldPayloadWithDelay(payloadId, TimeSpan.FromSeconds(_cleanupDelay));
+            await Task.Delay(TimeSpan.FromSeconds(_cleanupDelay), CancellationToken.None)
+                .ContinueWith(_ =>
+                {
+                    if (_logger.IsDebug) _logger.Debug($"Cleaning up payload {payloadId}");
+                });
+            await CleanupOldPayloadWithDelay(payloadId, TimeSpan.FromSeconds(_cleanupDelay));
         }
         
         private Task ProduceIdealBlock(byte[] payloadId, BlockHeader parentHeader, PayloadAttributes payloadAttributes, Block emptyBlock, CancellationTokenSource cts)
@@ -108,10 +108,10 @@ namespace Nethermind.Merge.Plugin.Handlers
                     // ToDo investigate why it is needed, because we should have processing blocks in BlockProducerBase
                     .ContinueWith((x) => Process(x.Result, parentHeader, _idealBlockContext.BlockProducerEnv), cts.Token) 
                     .ContinueWith(LogProductionResult, cts.Token);
-            
-            _payloadStorage[payloadId.ToHexString()] = new IdealBlockContext(emptyBlock, idealBlockTask, cts);
+            IdealBlockContext idealBlockContext = new IdealBlockContext(emptyBlock, idealBlockTask, cts);
+            _payloadStorage[payloadId.ToHexString()] = idealBlockContext;
             if (_logger.IsTrace) _logger.Trace($"Prepared ideal block from payload {payloadId} block result: {idealBlockTask.Result}");
-            return idealBlockTask;
+            return idealBlockContext.Task;
         }
         
         private Block? LogProductionResult(Task<Block?> t)
@@ -219,7 +219,7 @@ namespace Nethermind.Merge.Plugin.Handlers
         {
             if (idealBlockContext is not null && !idealBlockContext.Task.IsCompleted)
             {
-//                idealBlockContext.CancellationTokenSource.Cancel();
+                idealBlockContext.CancellationTokenSource.Cancel();
             }
         }
 

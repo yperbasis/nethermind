@@ -150,7 +150,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             
             if ( payloadAttributes != null)
             {
-                payloadId = await _payloadService.StartPreparingPayload(newHeadBlock!.Header, payloadAttributes);
+                payloadId = _payloadService.StartPreparingPayload(newHeadBlock!.Header, payloadAttributes);
             }
 
 
