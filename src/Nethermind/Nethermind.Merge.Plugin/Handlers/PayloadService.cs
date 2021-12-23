@@ -50,7 +50,7 @@ namespace Nethermind.Merge.Plugin.Handlers
 
         private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(12);
 
-        // first BlockRequestResult is empty (without txs), second one is the ideal one
+        // build empty block first, while ideal block is being built in the background
         private readonly ConcurrentDictionary<string, IdealBlockContext> _payloadStorage = new();
         private TaskQueue _taskQueue = new();
 
@@ -149,7 +149,7 @@ namespace Nethermind.Merge.Plugin.Handlers
             {
                 _payloadStorage.TryRemove(payloadId.ToHexString(), out IdealBlockContext? blockContext);
                 StopBlockProduction(blockContext);
-                return blockContext.CurrentBestBlock;
+                return blockContext?.CurrentBestBlock;
             }
 
             return null;
