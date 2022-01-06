@@ -59,7 +59,7 @@ namespace Nethermind.Merge.Plugin.Handlers
         private readonly ILogger _logger;
         private SemaphoreSlim _blockValidationSemaphore;
         private readonly LruCache<Keccak, bool> _latestBlocks = new(50, "LatestBlocks");
-        private readonly ConcurrentDictionary<Keccak, Keccak> _lastValidHashes = new ();
+        private readonly ConcurrentDictionary<Keccak, Keccak> _lastValidHashes = new();
         private bool synced = false;
 
         public ExecutePayloadV1Handler(
@@ -103,6 +103,7 @@ namespace Nethermind.Merge.Plugin.Handlers
                 executePayloadResult.Status = Status.Syncing;
                 return ResultWrapper<ExecutePayloadV1Result>.Success(executePayloadResult);
             }
+
             Block? parent = _blockTree.FindBlock(request.ParentHash, BlockTreeLookupOptions.None);
             if (parent == null)
             {
@@ -110,7 +111,7 @@ namespace Nethermind.Merge.Plugin.Handlers
                 executePayloadResult.Status = Status.Syncing;
                 return ResultWrapper<ExecutePayloadV1Result>.Success(executePayloadResult);
             }
-            
+
             BlockHeader? parentHeader = parent.Header;
             if (_ethSyncingInfo.IsSyncing() && synced == false)
             {
@@ -126,19 +127,25 @@ namespace Nethermind.Merge.Plugin.Handlers
 
             if (parentHeader.TotalDifficulty < _mergeConfig.TerminalTotalDifficulty)
             {
-                ResultWrapper<ExecutePayloadV1Result>.Fail($"Invalid total difficulty: {parentHeader.TotalDifficulty} for block header: {parentHeader}", MergeErrorCodes.InvalidTerminalBlock);
+                ResultWrapper<ExecutePayloadV1Result>.Fail(
+                    $"Invalid total difficulty: {parentHeader.TotalDifficulty} for block header: {parentHeader}",
+                    MergeErrorCodes.InvalidTerminalBlock);
             }
-            
-            (ValidationResult ValidationResult, string? Message) result = ValidateRequestAndProcess(request, out Block? processedBlock, parentHeader);
-            if ((result.ValidationResult & ValidationResult.AlreadyKnown) != 0 || result.ValidationResult == ValidationResult.Invalid)
+
+            (ValidationResult ValidationResult, string? Message) result =
+                ValidateRequestAndProcess(request, out Block? processedBlock, parentHeader);
+            if ((result.ValidationResult & ValidationResult.AlreadyKnown) != 0 ||
+                result.ValidationResult == ValidationResult.Invalid)
             {
-                bool isValid = (result.ValidationResult & ValidationResult.Valid) !=   0;
-                return ResultWrapper<ExecutePayloadV1Result>.Success(BuildExecutePayloadResult(request, isValid, parentHeader, result.Message));
+                bool isValid = (result.ValidationResult & ValidationResult.Valid) != 0;
+                return ResultWrapper<ExecutePayloadV1Result>.Success(
+                    BuildExecutePayloadResult(request, isValid, parentHeader, result.Message));
             }
 
             if (processedBlock == null)
             {
-                return ResultWrapper<ExecutePayloadV1Result>.Success(BuildExecutePayloadResult(request, false, parentHeader, $"Processed block is null, request {request}"));
+                return ResultWrapper<ExecutePayloadV1Result>.Success(BuildExecutePayloadResult(request, false,
+                    parentHeader, $"Processed block is null, request {request}"));
             }
 
             processedBlock.Header.IsPostMerge = true;
@@ -149,7 +156,8 @@ namespace Nethermind.Merge.Plugin.Handlers
             return ResultWrapper<ExecutePayloadV1Result>.Success(executePayloadResult);
         }
 
-        private (ValidationResult ValidationResult, string? Message) ValidateRequestAndProcess(BlockRequestResult request, out Block? processedBlock, BlockHeader parent)
+        private (ValidationResult ValidationResult, string? Message) ValidateRequestAndProcess(
+            BlockRequestResult request, out Block? processedBlock, BlockHeader parent)
         {
             string? validationMessage = null;
             processedBlock = null;
@@ -164,19 +172,20 @@ namespace Nethermind.Merge.Plugin.Handlers
                         validationMessage = $"Invalid block {block} sent from latestBlock cache";
                         _logger.Warn(validationMessage);
                     }
-                    
+
                     return (ValidationResult.AlreadyKnown |
-                           (isValid ? ValidationResult.Valid : ValidationResult.Invalid), validationMessage);
+                            (isValid ? ValidationResult.Valid : ValidationResult.Invalid), validationMessage);
                 }
                 else
                 {
                     // during the fast sync we could find the header on canonical chain which means that this header is valid
-                    BlockHeader? headerOnCanonicalChain = _blockTree.FindHeader(request.BlockHash, BlockTreeLookupOptions.RequireCanonical);
+                    BlockHeader? headerOnCanonicalChain =
+                        _blockTree.FindHeader(request.BlockHash, BlockTreeLookupOptions.RequireCanonical);
                     if (headerOnCanonicalChain != null)
                     {
                         return (ValidationResult.Valid | ValidationResult.AlreadyKnown, validationMessage);
                     }
-                    
+
                     processedBlock = _blockTree.FindBlock(request.BlockHash, BlockTreeLookupOptions.None);
                     if (processedBlock != null)
                     {
@@ -197,30 +206,22 @@ namespace Nethermind.Merge.Plugin.Handlers
 
             return (ValidationResult.Invalid, validationMessage);
         }
-        
+
         private bool ValidateAndProcess(Block block, BlockHeader parent, out Block? processedBlock)
         {
             block.Header.TotalDifficulty = parent.TotalDifficulty + block.Difficulty;
             processedBlock = null;
-            try
+            if (_blockValidator.ValidateSuggestedBlock(block) == false)
             {
-                if (_blockValidator.ValidateSuggestedBlock(block) == false)
+                if (_logger.IsWarn)
                 {
-                    if (_logger.IsWarn)
-                    {
-                        _logger.Warn(
-                            $"Block validator rejected the block {block.ToString(Block.Format.FullHashAndNumber)}");
-                    }
-                    return false;
+                    _logger.Warn(
+                        $"Block validator rejected the block {block.ToString(Block.Format.FullHashAndNumber)}");
                 }
 
+                return false;
             }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-            
+
             processedBlock = _processor.Process(block, GetProcessingOptions(), NullBlockTracer.Instance);
             if (processedBlock == null)
             {
@@ -247,7 +248,8 @@ namespace Nethermind.Merge.Plugin.Handlers
             return options;
         }
 
-        private ExecutePayloadV1Result BuildExecutePayloadResult(BlockRequestResult request, bool isValid, BlockHeader? parent, string? validationMessage)
+        private ExecutePayloadV1Result BuildExecutePayloadResult(BlockRequestResult request, bool isValid,
+            BlockHeader? parent, string? validationMessage)
         {
             ExecutePayloadV1Result executePayloadResult = new();
             if (isValid)
@@ -263,7 +265,7 @@ namespace Nethermind.Merge.Plugin.Handlers
                 {
                     if (_lastValidHashes.TryRemove(request.ParentHash, out Keccak? lastValidHash))
                     {
-                        _lastValidHashes.TryAdd(request.BlockHash, lastValidHash);   
+                        _lastValidHashes.TryAdd(request.BlockHash, lastValidHash);
                     }
 
                     executePayloadResult.LatestValidHash = lastValidHash;
@@ -280,7 +282,6 @@ namespace Nethermind.Merge.Plugin.Handlers
                         executePayloadResult.LatestValidHash = _blockTree.HeadHash;
                     }
                 }
-
             }
 
             return executePayloadResult;

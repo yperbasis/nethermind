@@ -160,7 +160,7 @@
     },
     "kintsugi_fastSync": {
       "commandName": "Project",
-      "commandLineArgs": "--config kintsugi_fastsync.cfg  --Init.DiagnosticMode MemDb"
+      "commandLineArgs": "--config kintsugi_fastsync.cfg  --Init.DiagnosticMode None"
     },
     "xDai_themerge": {
       "commandName": "Project",
