@@ -474,6 +474,11 @@ namespace Nethermind.Init.Steps
                 _api.ProtocolsManager.AddSupportedCapability(new Capability(Protocol.Wit, 0));
             }
             
+            if (_syncConfig.SnapSyncProtocolEnabled)
+            {
+                _api.ProtocolsManager.AddSupportedCapability(new Capability(Protocol.Snap, 1));
+            }
+            
             _api.ProtocolValidator = protocolValidator;
 
             foreach (INethermindPlugin plugin in _api.Plugins)
