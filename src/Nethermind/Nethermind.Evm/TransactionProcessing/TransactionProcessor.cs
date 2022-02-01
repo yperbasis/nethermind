@@ -280,7 +280,12 @@ namespace Nethermind.Evm.TransactionProcessing
                 _stateProvider.IncrementNonce(caller);
             }
 
-            _stateProvider.SubtractFromBalance(caller, senderReservedGasPayment, spec);
+            if (!noValidation)
+            {
+                _stateProvider.SubtractFromBalance(caller, senderReservedGasPayment, spec);
+            }
+            
+
             if (commit)
             {
                 _stateProvider.Commit(spec, txTracer.IsTracingState ? txTracer : NullTxTracer.Instance);
@@ -290,7 +295,11 @@ namespace Nethermind.Evm.TransactionProcessing
             long spentGas = gasLimit;
 
             Snapshot snapshot = _worldState.TakeSnapshot();
-            _stateProvider.SubtractFromBalance(caller, value, spec);
+            if (!noValidation)
+            {
+                _stateProvider.SubtractFromBalance(caller, value, spec);
+            }
+
             byte statusCode = StatusCode.Failure;
             TransactionSubstate substate = null;
 
