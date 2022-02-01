@@ -204,8 +204,7 @@ namespace Nethermind.Facade
         {
             CallOutputTracer callOutputTracer = new();
             AccessTxTracer accessTxTracer = optimize 
-                ? new(tx.SenderAddress, 
-                    tx.GetRecipient(tx.IsContractCreation ? _stateReader.GetNonce(header.StateRoot, tx.SenderAddress) : 0)) 
+                ? new(tx.SenderAddress) 
                 : new();
 
             (bool Success, string Error) tryCallResult = TryCallAndRestore(header, header.Timestamp, tx, false,
