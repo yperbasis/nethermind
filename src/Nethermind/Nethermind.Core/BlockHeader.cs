@@ -75,7 +75,7 @@ namespace Nethermind.Core
                 _gasUsed = value;
                 if (value > GasLimit)
                 {
-                    ILogManager.DefaultLogger?.Error($"GasUsed > GasLimit: {GasUsed} > {GasLimit}{Environment.NewLine}{new StackTrace()}");
+                    ILogManager.DefaultLogger?.Error($"GasUsed > GasLimit: {GasUsed} > {GasLimit} on {Hash} {Number} from {Beneficiary}{Environment.NewLine}{new StackTrace()}");
                 }
             }
         }

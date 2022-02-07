@@ -130,15 +130,13 @@ namespace Nethermind.Serialization.Rlp
                 (long)number,
                 (long)gasLimit,
                 timestamp,
-                extraData)
-            {
-                StateRoot = stateRoot,
-                TxRoot = transactionsRoot,
-                ReceiptsRoot = receiptsRoot,
-                Bloom = bloom,
-                GasUsed = (long)gasUsed,
-                Hash = Keccak.Compute(headerRlp)
-            };
+                extraData);
+            blockHeader.StateRoot = stateRoot;
+            blockHeader.TxRoot = transactionsRoot;
+            blockHeader.ReceiptsRoot = receiptsRoot;
+            blockHeader.Bloom = bloom;
+            blockHeader.Hash = Keccak.Compute(headerRlp);
+            blockHeader.GasUsed = (long)gasUsed;
 
             if (rlpStream.PeekPrefixAndContentLength().ContentLength == Keccak.Size)
             {
