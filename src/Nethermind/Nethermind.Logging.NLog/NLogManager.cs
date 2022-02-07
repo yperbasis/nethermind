@@ -37,6 +37,7 @@ namespace Nethermind.Logging.NLog
             logDirectory = SetupLogDirectory(logDirectory);
             SetupLogFile(logFileName, logDirectory);
             SetupLogRules(logRules);
+            ILogManager.DefaultLogger = GetClassLogger();
         }
 
         private static void SetupLogFile(string logFileName, string logDirectory)

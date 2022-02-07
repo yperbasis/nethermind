@@ -24,7 +24,7 @@ namespace Nethermind.Logging
         ILogger GetClassLogger<T>();
         ILogger GetClassLogger();
         ILogger GetLogger(string loggerName);
-
         void SetGlobalVariable(string name, object value) { }
+        static ILogger DefaultLogger { get; set; }
     }
 }

@@ -22,12 +22,14 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Int256;
+using Nethermind.Logging;
 
 namespace Nethermind.Core
 {
     [DebuggerDisplay("{Hash} ({Number})")]
     public class BlockHeader
     {
+        private long _gasUsed;
         internal BlockHeader() { }
 
         public BlockHeader(
@@ -64,7 +66,20 @@ namespace Nethermind.Core
         public Bloom? Bloom { get; set; }
         public UInt256 Difficulty { get; set; }
         public long Number { get; set; }
-        public long GasUsed { get; set; }
+
+        public long GasUsed
+        {
+            get => _gasUsed;
+            set
+            {
+                _gasUsed = value;
+                if (value > GasLimit)
+                {
+                    ILogManager.DefaultLogger?.Error($"GasUsed > GasLimit: {GasUsed} > {GasLimit}{Environment.NewLine}{new StackTrace()}");
+                }
+            }
+        }
+
         public long GasLimit { get; set; }
         public UInt256 Timestamp { get; set; }
         public DateTime TimestampDate => DateTimeOffset.FromUnixTimeSeconds((long)Timestamp).LocalDateTime;
