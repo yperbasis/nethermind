@@ -101,5 +101,9 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
 
         [JsonRpcMethod(Description = "Insert receipts for the block after verifying receipts root correctness.")]
         Task<ResultWrapper<bool>> debug_insertReceipts(BlockParameter blockParameter, ReceiptForRpc[] receiptForRpc);
+
+        [JsonRpcMethod(Description = "Return list of invalid blocks.")]
+        ResultWrapper<Block[]> debug_getBadBlocks();
+
     }
 }

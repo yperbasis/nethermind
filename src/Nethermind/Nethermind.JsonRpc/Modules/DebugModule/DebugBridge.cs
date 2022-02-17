@@ -175,5 +175,10 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
         {
             return _configProvider.GetRawValue(category, name);
         }
+
+        public Block[] GetBadBlocks()
+        {
+            return _blockTree.GetInvalidBlocks();
+        }
     }
 }

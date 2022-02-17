@@ -148,6 +148,7 @@ namespace Nethermind.Blockchain
         event EventHandler<BlockEventArgs> NewSuggestedBlock;
         event EventHandler<BlockReplacementEventArgs> BlockAddedToMain;
         event EventHandler<BlockEventArgs> NewHeadBlock;
+        public Block[] GetInvalidBlocks();
         
         int DeleteChainSlice(in long startNumber, long? endNumber = null);
 

@@ -271,5 +271,11 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
             _debugBridge.UpdateHeadBlock(blockHash);
             return ResultWrapper<bool>.Success(true);
         }
+
+        public ResultWrapper<Block[]> debug_getBadBlocks()
+        {
+            Block[] badBlocks = _debugBridge.GetBadBlocks();
+            return ResultWrapper<Block[]>.Success(badBlocks);
+        }
     }
 }

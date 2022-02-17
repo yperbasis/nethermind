@@ -60,7 +60,7 @@ namespace Nethermind.Blockchain
         private readonly IDb _headerDb;
         private readonly IDb _blockInfoDb;
 
-        private ICache<long, HashSet<Keccak>> _invalidBlocks = new LruCache<long, HashSet<Keccak>>(128, 128, "invalid blocks");
+        private LruCache<long, HashSet<Keccak>> _invalidBlocks = new LruCache<long, HashSet<Keccak>>(128, 128, "invalid blocks");
         private readonly BlockDecoder _blockDecoder = new();
         private readonly HeaderDecoder _headerDecoder = new();
         private readonly ILogger _logger;
@@ -1588,6 +1588,21 @@ namespace Nethermind.Blockchain
                     _blockInfoDb.Set(StateHeadHashDbEntryAddress, Rlp.Encode(value.Value).Bytes);
                 }
             }
+        }
+        
+        public Block[] GetInvalidBlocks()
+        {
+            IList<Block> blockList = new List<Block>(); 
+            IDictionary<long, HashSet<Keccak>> tempDict = _invalidBlocks.Clone();
+            foreach (HashSet<Keccak> temp in tempDict.Values)
+            {
+                foreach (var hash in temp)
+                {
+                    blockList.Add(FindBlock(hash, BlockTreeLookupOptions.None));
+                }
+            }
+
+            return blockList.ToArray();
         }
     }
 }

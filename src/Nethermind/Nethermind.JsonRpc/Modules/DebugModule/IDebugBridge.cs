@@ -43,5 +43,6 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
         public void UpdateHeadBlock(Keccak blockHash);
         Task<bool> MigrateReceipts(long blockNumber);
         void InsertReceipts(BlockParameter blockParameter, TxReceipt[] receipts);
+        public Block[] GetBadBlocks();
     }
 }
