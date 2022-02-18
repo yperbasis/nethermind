@@ -139,10 +139,7 @@ namespace Nethermind.Blockchain
             remove { }
         }
 
-        public Block[] GetInvalidBlocks()
-        {
-            throw new NotImplementedException();
-        }
+        public Block[] GetInvalidBlocks() => _wrapped.GetInvalidBlocks();
 
         public int DeleteChainSlice(in long startNumber, long? endNumber = null)
         {
