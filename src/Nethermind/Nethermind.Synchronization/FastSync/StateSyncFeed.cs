@@ -214,17 +214,11 @@ namespace Nethermind.Synchronization.FastSync
             int requestLength = batch.RequestedNodes?.Length ?? 0;
             int responseLength = batch.Responses?.Length ?? 0;
 
-            void AddAgainAllItems()
-            {
-                for (int i = 0; i < requestLength; i++)
-                {
-                    AddNodeToPending(batch.RequestedNodes![i], null, "missing", true);
-                }
-            }
-
             try
             {
-                lock (_handleWatch)
+                Monitor.Enter(_handleWatch); 
+                // lock (_handleWatch)
+                try
                 {
                     if (DateTime.UtcNow - _lastReview > TimeSpan.FromSeconds(60))
                     {
@@ -238,20 +232,12 @@ namespace Nethermind.Synchronization.FastSync
                     bool isMissingRequestData = batch.RequestedNodes == null;
                     if (isMissingRequestData)
                     {
-                        _hintsToResetRoot++;
-
-                        AddAgainAllItems();
-                        if (_logger.IsWarn) _logger.Warn("Batch response had invalid format");
-                        Interlocked.Increment(ref _data.InvalidFormatCount);
-                        return isMissingRequestData ? SyncResponseHandlingResult.InternalError : SyncResponseHandlingResult.NotAssigned;
+                        if (MissingData(batch, requestLength, isMissingRequestData, out SyncResponseHandlingResult syncResponseHandlingResult)) return syncResponseHandlingResult;
                     }
 
                     if (batch.Responses == null)
                     {
-                        AddAgainAllItems();
-                        if (_logger.IsTrace) _logger.Trace("Batch was not assigned to any peer.");
-                        Interlocked.Increment(ref _data.NotAssignedCount);
-                        return SyncResponseHandlingResult.NotAssigned;
+                        if (ResponsesNull(batch, requestLength, out SyncResponseHandlingResult handleResponse)) return handleResponse;
                     }
 
                     if (_logger.IsTrace) _logger.Trace($"Received node data - {responseLength} items in response to {requestLength}");
@@ -259,101 +245,17 @@ namespace Nethermind.Synchronization.FastSync
                     int invalidNodes = 0;
                     for (int i = 0; i < batch.RequestedNodes!.Length; i++)
                     {
-                        StateSyncItem currentStateSyncItem = batch.RequestedNodes[i];
-
-                        /* if the peer has limit on number of requests in a batch then the response will possibly be
-                           shorter than the request */
-                        if (batch.Responses.Length < i + 1)
-                        {
-                            AddNodeToPending(currentStateSyncItem, null, "missing", true);
-                            continue;
-                        }
-
-                        /* if the peer does not have details of this particular node */
-                        byte[] currentResponseItem = batch.Responses[i];
-                        if (currentResponseItem == null)
-                        {
-                            AddNodeToPending(batch.RequestedNodes[i], null, "missing", true);
-                            continue;
-                        }
-
-                        /* node sent data that is not consistent with its hash - it happens surprisingly often */
-                        if (!ValueKeccak.Compute(currentResponseItem).BytesAsSpan.SequenceEqual(currentStateSyncItem.Hash.Bytes))
-                        {
-                            AddNodeToPending(currentStateSyncItem, null, "missing", true);
-                            if (_logger.IsTrace) _logger.Trace($"Peer sent invalid data (batch {requestLength}->{responseLength}) of length {batch.Responses[i]?.Length} of type {batch.RequestedNodes[i].NodeDataType} at level {batch.RequestedNodes[i].Level} of type {batch.RequestedNodes[i].NodeDataType} Keccak({batch.Responses[i].ToHexString()}) != {batch.RequestedNodes[i].Hash}");
-                            invalidNodes++;
-                            continue;
-                        }
-
-                        nonEmptyResponses++;
-                        NodeDataType nodeDataType = currentStateSyncItem.NodeDataType;
-                        if (nodeDataType == NodeDataType.Code)
-                        {
-                            SaveNode(currentStateSyncItem, currentResponseItem);
-                            continue;
-                        }
-
-                        HandleTrieNode(currentStateSyncItem, currentResponseItem, ref invalidNodes);
+                        invalidNodes = HandleOneResponse(batch, i, requestLength, responseLength, invalidNodes, ref nonEmptyResponses);
                     }
 
                     Interlocked.Add(ref _data.ConsumedNodesCount, nonEmptyResponses);
                     StoreProgressInDb();
 
-                    if (_logger.IsTrace) _logger.Trace($"After handling response (non-empty responses {nonEmptyResponses}) of {batch.RequestedNodes.Length} from ({_pendingItems.Description}) nodes");
-
-                    /* magic formula is ratio of our desired batch size - 1024 to Geth max batch size 384 times some missing nodes ratio */
-                    bool isEmptish = (decimal)nonEmptyResponses / Math.Max(requestLength, 1) < 384m / 1024m * 0.75m;
-                    if (isEmptish)
-                    {
-                        Interlocked.Increment(ref _hintsToResetRoot);
-                        Interlocked.Increment(ref _data.EmptishCount);
-                    }
-                    else
-                    {
-                        Interlocked.Exchange(ref _hintsToResetRoot, 0);
-                    }
-
-                    /* here we are very forgiving for Geth nodes that send bad data fast */
-                    bool isBadQuality = nonEmptyResponses > 64 && (decimal)invalidNodes / Math.Max(requestLength, 1) > 0.50m;
-                    if (isBadQuality) Interlocked.Increment(ref _data.BadQualityCount);
-
-                    bool isEmpty = nonEmptyResponses == 0 && !isBadQuality;
-                    if (isEmpty)
-                    {
-                        if (_logger.IsDebug) _logger.Debug($"Peer sent no data in response to a request of length {batch.RequestedNodes.Length}");
-                        return SyncResponseHandlingResult.NoProgress;
-                    }
-
-                    if (!isEmptish && !isBadQuality)
-                    {
-                        Interlocked.Increment(ref _data.OkCount);
-                    }
-
-                    SyncResponseHandlingResult result = isEmptish
-                        ? SyncResponseHandlingResult.Emptish
-                        : isBadQuality
-                            ? SyncResponseHandlingResult.LesserQuality
-                            : SyncResponseHandlingResult.OK;
-
-                    _data.DisplayProgressReport(_pendingRequests.Count, _branchProgress, _logger);
-
-                    long total = _handleWatch.ElapsedMilliseconds + _networkWatch.ElapsedMilliseconds;
-                    if (total != 0)
-                    {
-                        // calculate averages
-                        if (_logger.IsTrace) _logger.Trace($"Prepare batch {_networkWatch.ElapsedMilliseconds}ms ({(decimal)_networkWatch.ElapsedMilliseconds / total:P0}) - Handle {_handleWatch.ElapsedMilliseconds}ms ({(decimal)_handleWatch.ElapsedMilliseconds / total:P0})");
-                    }
-
-                    if (_handleWatch.ElapsedMilliseconds > 250)
-                    {
-                        if (_logger.IsDebug) _logger.Debug($"Handle watch {_handleWatch.ElapsedMilliseconds}, DB reads {_data.DbChecks - _data.LastDbReads}, ratio {(decimal)_handleWatch.ElapsedMilliseconds / Math.Max(1, _data.DbChecks - _data.LastDbReads)}");
-                    }
-
-                    _data.LastDbReads = _data.DbChecks;
-                    _data.AverageTimeInHandler = (_data.AverageTimeInHandler * (_data.ProcessedRequestsCount - 1) + _handleWatch.ElapsedMilliseconds) / _data.ProcessedRequestsCount;
-                    Interlocked.Add(ref _data.HandledNodesCount, nonEmptyResponses);
-                    return result;
+                    return EndJunk(batch, nonEmptyResponses, requestLength, invalidNodes);
+                }
+                finally
+                {
+                    Monitor.Exit(_handleWatch);
                 }
             }
             catch (Exception e)
@@ -364,6 +266,170 @@ namespace Nethermind.Synchronization.FastSync
             finally
             {
                 _handleWatch.Stop();
+            }
+        }
+
+        private SyncResponseHandlingResult EndJunk(StateSyncBatch? batch, int nonEmptyResponses, int requestLength, int invalidNodes)
+        {
+            if (_logger.IsTrace) _logger.Trace($"After handling response (non-empty responses {nonEmptyResponses}) of {batch.RequestedNodes.Length} from ({_pendingItems.Description}) nodes");
+
+            /* magic formula is ratio of our desired batch size - 1024 to Geth max batch size 384 times some missing nodes ratio */
+            bool isEmptish = (decimal)nonEmptyResponses / Math.Max(requestLength, 1) < 384m / 1024m * 0.75m;
+            if (isEmptish)
+            {
+                Interlocked.Increment(ref _hintsToResetRoot);
+                Interlocked.Increment(ref _data.EmptishCount);
+            }
+            else
+            {
+                Interlocked.Exchange(ref _hintsToResetRoot, 0);
+            }
+
+            /* here we are very forgiving for Geth nodes that send bad data fast */
+            bool isBadQuality = nonEmptyResponses > 64 && (decimal)invalidNodes / Math.Max(requestLength, 1) > 0.50m;
+            if (isBadQuality) Interlocked.Increment(ref _data.BadQualityCount);
+
+            bool isEmpty = nonEmptyResponses == 0 && !isBadQuality;
+            if (isEmpty)
+            {
+                if (_logger.IsDebug) _logger.Debug($"Peer sent no data in response to a request of length {batch.RequestedNodes.Length}");
+                {
+                    return SyncResponseHandlingResult.NoProgress;
+                }
+            }
+
+            if (!isEmptish && !isBadQuality)
+            {
+                Interlocked.Increment(ref _data.OkCount);
+            }
+
+            SyncResponseHandlingResult result = isEmptish
+                ? SyncResponseHandlingResult.Emptish
+                : isBadQuality
+                    ? SyncResponseHandlingResult.LesserQuality
+                    : SyncResponseHandlingResult.OK;
+
+            _data.DisplayProgressReport(_pendingRequests.Count, _branchProgress, _logger);
+
+            long total = _handleWatch.ElapsedMilliseconds + _networkWatch.ElapsedMilliseconds;
+            if (total != 0)
+            {
+                // calculate averages
+                if (_logger.IsTrace)
+                    _logger.Trace(
+                        $"Prepare batch {_networkWatch.ElapsedMilliseconds}ms ({(decimal)_networkWatch.ElapsedMilliseconds / total:P0}) - Handle {_handleWatch.ElapsedMilliseconds}ms ({(decimal)_handleWatch.ElapsedMilliseconds / total:P0})");
+            }
+
+            if (_handleWatch.ElapsedMilliseconds > 250)
+            {
+                if (_logger.IsDebug)
+                    _logger.Debug($"Handle watch {_handleWatch.ElapsedMilliseconds}, DB reads {_data.DbChecks - _data.LastDbReads}, ratio {(decimal)_handleWatch.ElapsedMilliseconds / Math.Max(1, _data.DbChecks - _data.LastDbReads)}");
+            }
+
+            _data.LastDbReads = _data.DbChecks;
+            _data.AverageTimeInHandler = (_data.AverageTimeInHandler * (_data.ProcessedRequestsCount - 1) + _handleWatch.ElapsedMilliseconds) / _data.ProcessedRequestsCount;
+            Interlocked.Add(ref _data.HandledNodesCount, nonEmptyResponses);
+            return result;
+        }
+
+        private int HandleOneResponse(StateSyncBatch? batch, int i, int requestLength, int responseLength, int invalidNodes, ref int nonEmptyResponses)
+        {
+            StateSyncItem currentStateSyncItem = batch.RequestedNodes[i];
+
+            if (SmallResponse(batch, i, currentStateSyncItem)) return invalidNodes;
+
+            if (MissingResponse(batch, i, out byte[] currentResponseItem)) return invalidNodes;
+
+            if (WrongResponse(batch, currentResponseItem, currentStateSyncItem, requestLength, responseLength, i, ref invalidNodes)) return invalidNodes;
+
+            if (CodeResponse(currentStateSyncItem, currentResponseItem, ref nonEmptyResponses)) return invalidNodes;
+
+            HandleTrieNode(currentStateSyncItem, currentResponseItem, ref invalidNodes);
+            return invalidNodes;
+        }
+
+        private bool CodeResponse(StateSyncItem currentStateSyncItem, byte[] currentResponseItem, ref int nonEmptyResponses)
+        {
+            nonEmptyResponses++;
+            NodeDataType nodeDataType = currentStateSyncItem.NodeDataType;
+            if (nodeDataType == NodeDataType.Code)
+            {
+                SaveNode(currentStateSyncItem, currentResponseItem);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool WrongResponse(StateSyncBatch? batch, byte[] currentResponseItem, StateSyncItem currentStateSyncItem, int requestLength, int responseLength, int i, ref int invalidNodes)
+        {
+            /* node sent data that is not consistent with its hash - it happens surprisingly often */
+            if (!ValueKeccak.Compute(currentResponseItem).BytesAsSpan.SequenceEqual(currentStateSyncItem.Hash.Bytes))
+            {
+                AddNodeToPending(currentStateSyncItem, null, "missing", true);
+                if (_logger.IsTrace)
+                    _logger.Trace(
+                        $"Peer sent invalid data (batch {requestLength}->{responseLength}) of length {batch.Responses[i]?.Length} of type {batch.RequestedNodes[i].NodeDataType} at level {batch.RequestedNodes[i].Level} of type {batch.RequestedNodes[i].NodeDataType} Keccak({batch.Responses[i].ToHexString()}) != {batch.RequestedNodes[i].Hash}");
+                invalidNodes++;
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool MissingResponse(StateSyncBatch? batch, int i, out byte[] currentResponseItem)
+        {
+            /* if the peer does not have details of this particular node */
+            currentResponseItem = batch.Responses[i];
+            if (currentResponseItem == null)
+            {
+                AddNodeToPending(batch.RequestedNodes[i], null, "missing", true);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool SmallResponse(StateSyncBatch? batch, int i, StateSyncItem currentStateSyncItem)
+        {
+            /* if the peer has limit on number of requests in a batch then the response will possibly be
+                           shorter than the request */
+            if (batch.Responses.Length < i + 1)
+            {
+                AddNodeToPending(currentStateSyncItem, null, "missing", true);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool ResponsesNull(StateSyncBatch? batch, int requestLength, out SyncResponseHandlingResult handleResponse)
+        {
+            AddAgainAllItems(requestLength, batch);
+            if (_logger.IsTrace) _logger.Trace("Batch was not assigned to any peer.");
+            Interlocked.Increment(ref _data.NotAssignedCount);
+            handleResponse = SyncResponseHandlingResult.NotAssigned;
+            return true;
+            return false;
+        }
+
+        private bool MissingData(StateSyncBatch? batch, int requestLength, bool isMissingRequestData, out SyncResponseHandlingResult syncResponseHandlingResult)
+        {
+            _hintsToResetRoot++;
+
+            AddAgainAllItems(requestLength, batch);
+            if (_logger.IsWarn) _logger.Warn("Batch response had invalid format");
+            Interlocked.Increment(ref _data.InvalidFormatCount);
+            syncResponseHandlingResult = isMissingRequestData ? SyncResponseHandlingResult.InternalError : SyncResponseHandlingResult.NotAssigned;
+            return true;
+            return false;
+        }
+
+        private void AddAgainAllItems(int requestLength, StateSyncBatch? batch)
+        {
+            for (int i = 0; i < requestLength; i++)
+            {
+                AddNodeToPending(batch.RequestedNodes![i], null, "missing", true);
             }
         }
 
