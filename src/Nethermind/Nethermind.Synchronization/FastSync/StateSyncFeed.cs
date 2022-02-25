@@ -19,6 +19,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain;
@@ -216,7 +217,7 @@ namespace Nethermind.Synchronization.FastSync
 
             try
             {
-                Monitor.Enter(_handleWatch); 
+                TakeLock();
                 // lock (_handleWatch)
                 try
                 {
@@ -240,6 +241,8 @@ namespace Nethermind.Synchronization.FastSync
                         if (ResponsesNull(batch, requestLength, out SyncResponseHandlingResult handleResponse)) return handleResponse;
                     }
 
+                    long validation = _handleWatch.ElapsedMilliseconds;
+
                     if (_logger.IsTrace) _logger.Trace($"Received node data - {responseLength} items in response to {requestLength}");
                     int nonEmptyResponses = 0;
                     int invalidNodes = 0;
@@ -247,11 +250,18 @@ namespace Nethermind.Synchronization.FastSync
                     {
                         invalidNodes = HandleOneResponse(batch, i, requestLength, responseLength, invalidNodes, ref nonEmptyResponses);
                     }
+                    
+                    long handleResponseItems = _handleWatch.ElapsedMilliseconds;
 
                     Interlocked.Add(ref _data.ConsumedNodesCount, nonEmptyResponses);
                     StoreProgressInDb();
+                    long storeProgress = _handleWatch.ElapsedMilliseconds;
 
-                    return EndJunk(batch, nonEmptyResponses, requestLength, invalidNodes);
+                    SyncResponseHandlingResult result = EndJunk(batch, nonEmptyResponses, requestLength, invalidNodes);
+                    
+                    long endJunk = _handleWatch.ElapsedMilliseconds;
+                    _logger.Info($"StateSyncReponse validation {validation:N2}, handleItems {handleResponseItems - validation:N2}, storeProgress {storeProgress - handleResponseItems:N2}, endJunk {endJunk - storeProgress:N2}");
+                    return result;
                 }
                 finally
                 {
@@ -269,6 +279,13 @@ namespace Nethermind.Synchronization.FastSync
             }
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void TakeLock()
+        {
+            Monitor.Enter(_handleWatch);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private SyncResponseHandlingResult EndJunk(StateSyncBatch? batch, int nonEmptyResponses, int requestLength, int invalidNodes)
         {
             if (_logger.IsTrace) _logger.Trace($"After handling response (non-empty responses {nonEmptyResponses}) of {batch.RequestedNodes.Length} from ({_pendingItems.Description}) nodes");
@@ -332,6 +349,7 @@ namespace Nethermind.Synchronization.FastSync
             return result;
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private int HandleOneResponse(StateSyncBatch? batch, int i, int requestLength, int responseLength, int invalidNodes, ref int nonEmptyResponses)
         {
             StateSyncItem currentStateSyncItem = batch.RequestedNodes[i];
