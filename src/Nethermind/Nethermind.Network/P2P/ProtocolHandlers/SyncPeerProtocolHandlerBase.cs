@@ -362,13 +362,13 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
             return new BlockBodiesMessage(blocks);
         }
         
-        protected virtual void Handle(BlockHeadersMessage message, long size)
+        protected void Handle(BlockHeadersMessage message, long size)
         {
             Metrics.Eth62BlockHeadersReceived++;
             _headersRequests.Handle(message.BlockHeaders, size);
         }
 
-        protected virtual void HandleBodies(BlockBodiesMessage blockBodiesMessage, long size)
+        protected void HandleBodies(BlockBodiesMessage blockBodiesMessage, long size)
         {
             Metrics.Eth62BlockBodiesReceived++;
             _bodiesRequests.Handle(blockBodiesMessage.Bodies, size);
