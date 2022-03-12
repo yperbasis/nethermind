@@ -61,7 +61,7 @@ namespace Nethermind.AccountAbstraction.Source
         private readonly ConcurrentDictionary<long, HashSet<UserOperation>> _removedUserOperations = new();
         private readonly UserOperationBroadcaster _broadcaster;
 
-        private readonly Channel<BlockReplacementEventArgs> _headBlocksChannel = Channel.CreateUnbounded<BlockReplacementEventArgs>(new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true });
+        private readonly Channel<BlockEventArgs> _headBlocksChannel = Channel.CreateUnbounded<BlockEventArgs>(new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true });
         private readonly ulong _chainId;
         public UserOperationPool(
             IAccountAbstractionConfig accountAbstractionConfig,
@@ -98,12 +98,12 @@ namespace Nethermind.AccountAbstraction.Source
 
             _broadcaster = new UserOperationBroadcaster(logger);
 
-            _blockTree.BlockAddedToMain += OnBlockAdded;
+            _blockTree.NewHeadBlock += OnBlockAdded;
 
             ProcessNewBlocks();
         }
 
-        private void OnBlockAdded(object? sender, BlockReplacementEventArgs e)
+        private void OnBlockAdded(object? sender, BlockEventArgs e)
         {
             try
             {
@@ -123,11 +123,14 @@ namespace Nethermind.AccountAbstraction.Source
             {
                 while (await _headBlocksChannel.Reader.WaitToReadAsync())
                 {
-                    while (_headBlocksChannel.Reader.TryRead(out BlockReplacementEventArgs? args))
+                    while (_headBlocksChannel.Reader.TryRead(out BlockEventArgs? args))
                     {
                         try
                         {
-                            ReAddReorganizedUserOperations(args.PreviousBlock);
+                            if (args.Block.Number > 1)
+                            {
+                                ReAddReorganizedUserOperations(args.Block.Number - 1);
+                            }
                             RemoveProcessedUserOperations(args.Block);
                         }
                         catch (Exception e)
@@ -145,11 +148,11 @@ namespace Nethermind.AccountAbstraction.Source
             });
         }
 
-        private void ReAddReorganizedUserOperations(Block? previousBlock)
+        private void ReAddReorganizedUserOperations(long previousBlockNumber)
         {
-            if (previousBlock is not null && _removedUserOperations.ContainsKey(previousBlock.Number))
+            if (_removedUserOperations.ContainsKey(previousBlockNumber))
             {
-                foreach (UserOperation op in _removedUserOperations[previousBlock.Number])
+                foreach (UserOperation op in _removedUserOperations[previousBlockNumber])
                 {
                     AddUserOperation(op);
                 }

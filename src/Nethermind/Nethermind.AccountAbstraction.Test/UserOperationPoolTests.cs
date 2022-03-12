@@ -304,11 +304,11 @@ namespace Nethermind.AccountAbstraction.Test
                         new[] {_userOperationEventTopic, Keccak.Zero, new Keccak(senderAddress.Bytes.PadLeft(32)), Keccak.Zero}))
             });
             //_receiptFinder.Get(block).Returns(new[]{receipt});
-            BlockReplacementEventArgs blockReplacementEventArgs = new(block, null);
+            BlockEventArgs blockEventArgs = new(block);
             
             ManualResetEvent manualResetEvent = new(false);
             _userOperationPool.RemoveUserOperation(Arg.Do<Keccak>(o => manualResetEvent.Set()));
-            _blockTree.BlockAddedToMain += Raise.EventWith(new object(), blockReplacementEventArgs);
+            _blockTree.NewHeadBlock += Raise.EventWith(new object(), blockEventArgs);
             manualResetEvent.WaitOne(500);
             
             _userOperationPool.GetUserOperations().Should().HaveCount(0);
