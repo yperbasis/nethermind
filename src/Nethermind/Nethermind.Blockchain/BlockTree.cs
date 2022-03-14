@@ -859,8 +859,12 @@ namespace Nethermind.Blockchain
 
             HashSet<Keccak>? invalidBlocksWithThisNumber = _invalidBlocks.Get(invalidBlock.Number) ?? new HashSet<Keccak>();
             invalidBlocksWithThisNumber.Add(invalidBlock.Hash);
-            
-            if (_logger.IsInfo) _logger.Info($"Deleting invalid block with Rlp {_headerDecoder.Encode(invalidBlock.Header)}");
+
+            if (_invalidBlocks.Size() == 0)
+            {
+                if (_logger.IsInfo) _logger.Info($"Deleting invalid block with Rlp {_blockDecoder.Encode(invalidBlock)}");
+
+            }
             
             _invalidBlocks.Set(invalidBlock.Number, invalidBlocksWithThisNumber);
 
