@@ -675,8 +675,10 @@ namespace Nethermind.Synchronization.Blocks
             {
                 throw new InvalidOperationException($"NULL received for dispatch in {nameof(BlockDownloader)}");
             }
-
+            
+            _logger.Info($"Allocating peers {request}");
             SyncPeerAllocation allocation = await base.Allocate(request);
+            _logger.Info($"Allocation result {allocation.Current}");
             CancellationTokenSource cancellation = new();
             _allocationWithCancellation = new AllocationWithCancellation(allocation, cancellation);
 

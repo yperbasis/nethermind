@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Nethermind.Blockchain;
 using Nethermind.Int256;
 using Nethermind.Stats;
@@ -53,95 +54,95 @@ namespace Nethermind.Synchronization.Blocks
 
         public PeerInfo? Allocate(PeerInfo? currentPeer, IEnumerable<PeerInfo> peers, INodeStatsManager nodeStatsManager, IBlockTree blockTree)
         {
-            int nullSpeed = -1;
-            decimal averageSpeed = 0M;
-            int peersCount = 0;
-
-            bool wasNull = currentPeer == null;
-
-            long currentSpeed = wasNull
-                ? nullSpeed :
-                GetSpeed(nodeStatsManager, currentPeer!) ?? nullSpeed;
-            (PeerInfo? Info, long TransferSpeed) fastestPeer = (currentPeer, currentSpeed);
-            (PeerInfo? Info, long TransferSpeed) bestDiffPeer = (currentPeer, currentSpeed);
-
-            UInt256 localTotalDiff = blockTree.BestSuggestedHeader?.TotalDifficulty ?? UInt256.Zero;
-
-            foreach (PeerInfo info in peers)
-            {
-                (this as IPeerAllocationStrategy).CheckAsyncState(info);
-                peersCount++;
-
-                if (_minBlocksAhead != null)
-                {
-                    if (info.HeadNumber < (blockTree.BestSuggestedHeader?.Number ?? 0) + _minBlocksAhead)
-                    {
-                        // we need to be able to download some blocks ahead
-                        continue;
-                    }
-                }
-
-                // TODO: this is not needed -> always wtapped
-                // if (info.TotalDifficulty <= localTotalDiff)
-                // {
-                //     // if we require higher difficulty then we need to discard peers with same diff as ours
-                //     continue;
-                // }
-
-                return info;
-                // if (info.TotalDifficulty - localTotalDiff <= 2 && (info.PeerClientType == NodeClientType.Parity || info.PeerClientType == NodeClientType.OpenEthereum))
-                // {
-                //     // Parity advertises a better block but never sends it back and then it disconnects after a few conversations like this
-                //     // Geth responds all fine here
-                //     // note this is only 2 difficulty difference which means that is just for the POA / Clique chains
-                //     continue;
-                // }
-                //
-                // long averageTransferSpeed = GetSpeed(nodeStatsManager, info) ?? 0;
-                //
-                // averageSpeed += averageTransferSpeed;
-                //
-                // if (averageTransferSpeed > fastestPeer.TransferSpeed)
-                // {
-                //     fastestPeer = (info, averageTransferSpeed);
-                // }
-                //
-                // if (info.TotalDifficulty >= (bestDiffPeer.Info?.TotalDifficulty ?? UInt256.Zero))
-                // {
-                //     bestDiffPeer = (info, averageTransferSpeed);
-                // }
-            }
-
-            if (peersCount == 0)
-            {
-                return currentPeer;
-            }
-
-            if (bestDiffPeer.Info == null)
-            {
-                return fastestPeer.Info;
-            }
-
-            averageSpeed /= peersCount;
-            
-            UInt256 difficultyDifference = bestDiffPeer.Info.TotalDifficulty - localTotalDiff;
-
-            // at least 1 diff times 16 blocks of diff
-            if (difficultyDifference > 0
-                && difficultyDifference < ((blockTree.Head?.Difficulty ?? 0) + 1) * 16
-                && bestDiffPeer.TransferSpeed > averageSpeed)
-            {
-                return bestDiffPeer.Info;
-            }
-
-            decimal speedRatio = fastestPeer.TransferSpeed / (decimal) Math.Max(1L, currentSpeed);
-            if (speedRatio > 1m + MinDiffPercentageForSpeedSwitch
-                && fastestPeer.TransferSpeed - currentSpeed > MinDiffForSpeedSwitch)
-            {
-                return fastestPeer.Info;
-            }
-
-            return currentPeer ?? fastestPeer.Info;
+            return currentPeer;
+            // int nullSpeed = -1;
+            // decimal averageSpeed = 0M;
+            // int peersCount = 0;
+            //
+            // bool wasNull = currentPeer == null;
+            //
+            // long currentSpeed = wasNull
+            //     ? nullSpeed :
+            //     GetSpeed(nodeStatsManager, currentPeer!) ?? nullSpeed;
+            // (PeerInfo? Info, long TransferSpeed) fastestPeer = (currentPeer, currentSpeed);
+            // (PeerInfo? Info, long TransferSpeed) bestDiffPeer = (currentPeer, currentSpeed);
+            //
+            // UInt256 localTotalDiff = blockTree.BestSuggestedHeader?.TotalDifficulty ?? UInt256.Zero;
+            //
+            // foreach (PeerInfo info in peers)
+            // {
+            //     (this as IPeerAllocationStrategy).CheckAsyncState(info);
+            //     peersCount++;
+            //
+            //     if (_minBlocksAhead != null)
+            //     {
+            //         if (info.HeadNumber < (blockTree.BestSuggestedHeader?.Number ?? 0) + _minBlocksAhead)
+            //         {
+            //             // we need to be able to download some blocks ahead
+            //             continue;
+            //         }
+            //     }
+            //
+            //     // TODO: this is not needed -> always wtapped
+            //     // if (info.TotalDifficulty <= localTotalDiff)
+            //     // {
+            //     //     // if we require higher difficulty then we need to discard peers with same diff as ours
+            //     //     continue;
+            //     // }
+            //     
+            //     if (info.TotalDifficulty - localTotalDiff <= 2 && (info.PeerClientType == NodeClientType.Parity || info.PeerClientType == NodeClientType.OpenEthereum))
+            //     {
+            //         // Parity advertises a better block but never sends it back and then it disconnects after a few conversations like this
+            //         // Geth responds all fine here
+            //         // note this is only 2 difficulty difference which means that is just for the POA / Clique chains
+            //         continue;
+            //     }
+            //     
+            //     long averageTransferSpeed = GetSpeed(nodeStatsManager, info) ?? 0;
+            //     
+            //     averageSpeed += averageTransferSpeed;
+            //     
+            //     if (averageTransferSpeed > fastestPeer.TransferSpeed)
+            //     {
+            //         fastestPeer = (info, averageTransferSpeed);
+            //     }
+            //     
+            //     if (info.TotalDifficulty >= (bestDiffPeer.Info?.TotalDifficulty ?? UInt256.Zero))
+            //     {
+            //         bestDiffPeer = (info, averageTransferSpeed);
+            //     }
+            // }
+            //
+            // if (peersCount == 0)
+            // {
+            //     return currentPeer;
+            // }
+            //
+            // if (bestDiffPeer.Info == null)
+            // {
+            //     return fastestPeer.Info;
+            // }
+            //
+            // averageSpeed /= peersCount;
+            //
+            // UInt256 difficultyDifference = bestDiffPeer.Info.TotalDifficulty - localTotalDiff;
+            //
+            // // at least 1 diff times 16 blocks of diff
+            // if (difficultyDifference > 0
+            //     && difficultyDifference < ((blockTree.Head?.Difficulty ?? 0) + 1) * 16
+            //     && bestDiffPeer.TransferSpeed > averageSpeed)
+            // {
+            //     return bestDiffPeer.Info;
+            // }
+            //
+            // decimal speedRatio = fastestPeer.TransferSpeed / (decimal) Math.Max(1L, currentSpeed);
+            // if (speedRatio > 1m + MinDiffPercentageForSpeedSwitch
+            //     && fastestPeer.TransferSpeed - currentSpeed > MinDiffForSpeedSwitch)
+            // {
+            //     return fastestPeer.Info;
+            // }
+            //
+            // return currentPeer ?? fastestPeer.Info;
         }
     }
 }
