@@ -157,6 +157,8 @@ namespace Nethermind.Synchronization.ParallelSync
                         {
                             bool anyPeers = peerBlock.Value > 0 &&
                                             peerDifficulty.Value >= _syncProgressResolver.ChainDifficulty;
+                            _logger.Info($"Any peers, peerBlock.Value: {peerBlock.Value} peer difficulty: {peerDifficulty.Value}, SynProgresssDifficulty: {_syncProgressResolver.ChainDifficulty}");
+                            anyPeers = peerBlock.Value > 0;
                             newModes = anyPeers ? SyncMode.Full : SyncMode.Disconnected;
                             reason = "No Useful Peers";
                         }
