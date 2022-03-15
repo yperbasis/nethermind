@@ -88,27 +88,28 @@ namespace Nethermind.Synchronization.Blocks
                 //     continue;
                 // }
 
-                if (info.TotalDifficulty - localTotalDiff <= 2 && (info.PeerClientType == NodeClientType.Parity || info.PeerClientType == NodeClientType.OpenEthereum))
-                {
-                    // Parity advertises a better block but never sends it back and then it disconnects after a few conversations like this
-                    // Geth responds all fine here
-                    // note this is only 2 difficulty difference which means that is just for the POA / Clique chains
-                    continue;
-                }
-
-                long averageTransferSpeed = GetSpeed(nodeStatsManager, info) ?? 0;
-
-                averageSpeed += averageTransferSpeed;
-
-                if (averageTransferSpeed > fastestPeer.TransferSpeed)
-                {
-                    fastestPeer = (info, averageTransferSpeed);
-                }
-
-                if (info.TotalDifficulty >= (bestDiffPeer.Info?.TotalDifficulty ?? UInt256.Zero))
-                {
-                    bestDiffPeer = (info, averageTransferSpeed);
-                }
+                return info;
+                // if (info.TotalDifficulty - localTotalDiff <= 2 && (info.PeerClientType == NodeClientType.Parity || info.PeerClientType == NodeClientType.OpenEthereum))
+                // {
+                //     // Parity advertises a better block but never sends it back and then it disconnects after a few conversations like this
+                //     // Geth responds all fine here
+                //     // note this is only 2 difficulty difference which means that is just for the POA / Clique chains
+                //     continue;
+                // }
+                //
+                // long averageTransferSpeed = GetSpeed(nodeStatsManager, info) ?? 0;
+                //
+                // averageSpeed += averageTransferSpeed;
+                //
+                // if (averageTransferSpeed > fastestPeer.TransferSpeed)
+                // {
+                //     fastestPeer = (info, averageTransferSpeed);
+                // }
+                //
+                // if (info.TotalDifficulty >= (bestDiffPeer.Info?.TotalDifficulty ?? UInt256.Zero))
+                // {
+                //     bestDiffPeer = (info, averageTransferSpeed);
+                // }
             }
 
             if (peersCount == 0)
@@ -122,6 +123,7 @@ namespace Nethermind.Synchronization.Blocks
             }
 
             averageSpeed /= peersCount;
+            
             UInt256 difficultyDifference = bestDiffPeer.Info.TotalDifficulty - localTotalDiff;
 
             // at least 1 diff times 16 blocks of diff
