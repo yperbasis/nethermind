@@ -34,7 +34,7 @@ public class MergeBlocksSyncPeerAllocationStrategyFactory : IPeerAllocationStrat
         }
             
         IPeerAllocationStrategy baseStrategy = new BlocksSyncPeerAllocationStrategy(request.NumberOfLatestBlocksToBeIgnored);
-        TotalDiffStrategy totalDiffStrategy = new(baseStrategy, TotalDiffStrategy.TotalDiffSelectionType.AtLeastTheSame);
+        TotalDiffStrategy totalDiffStrategy = new(baseStrategy, TotalDiffStrategy.TotalDiffSelectionType.CanBeSlightlyWorse);
         return totalDiffStrategy;
     }
 }
