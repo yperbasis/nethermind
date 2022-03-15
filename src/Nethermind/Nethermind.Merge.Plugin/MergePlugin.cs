@@ -83,7 +83,7 @@ namespace Nethermind.Merge.Plugin
                    _api.RewardCalculatorSource ?? NoBlockRewards.Instance,  _poSSwitcher);
                 _api.SealValidator = new MergeSealValidator(_poSSwitcher, _api.SealValidator);
 
-                _api.GossipPolicy = new MergeGossipPolicy(_api.GossipPolicy, _poSSwitcher, _blockFinalizationManager);
+                _api.GossipPolicy = ShouldGossip.Instance;
                 
                 _api.BlockPreprocessor.AddFirst(new MergeProcessingRecoveryStep(_poSSwitcher));
             }
