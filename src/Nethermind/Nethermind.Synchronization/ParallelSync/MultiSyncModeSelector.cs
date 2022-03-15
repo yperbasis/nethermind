@@ -541,6 +541,7 @@ namespace Nethermind.Synchronization.ParallelSync
         {
             UInt256? maxPeerDifficulty = null;
             long? number = 0;
+            _logger.Info($"Reloading data from peers {_syncPeerPool.InitializedPeers}");
 
             foreach (PeerInfo peer in _syncPeerPool.InitializedPeers)
             {
@@ -559,6 +560,7 @@ namespace Nethermind.Synchronization.ParallelSync
                 }
             }
 
+            _logger.Info($"Found {maxPeerDifficulty}, {number}");
             return (maxPeerDifficulty, number);
         }
 
