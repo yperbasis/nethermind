@@ -42,7 +42,7 @@ namespace Nethermind.Core
         {
             _logger = logManager.GetClassLogger();
             Timer timer = new();
-            timer.Interval = 60000;
+            timer.Interval = 1000;
             timer.Elapsed += (_, _) => DumpEvents(); 
             timer.Start();
         }
