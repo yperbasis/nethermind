@@ -487,13 +487,14 @@ namespace Nethermind.Synchronization.Peers
                 }
                 else if (peerInfo.HeadNumber > ourNumber + 1024L && peerInfo.TotalDifficulty < ourDifficulty)
                 {
-                    if (!CanBeUsefulForFastBlocks(MainnetSpecProvider.Instance.DaoBlockNumber ?? 0))
-                    {
-                        // probably Ethereum Classic nodes tht remain connected after we went pass the DAO
-                        // worth to find a better way to discard them at the right time
-                        peersDropped++;
-                        peerInfo.SyncPeer.Disconnect(DisconnectReason.UselessPeer, "STRAY PEER");
-                    }
+                    _logger.Warn($"Dropping useless peer {peerInfo.TotalDifficulty}, ourDifficulty {ourDifficulty}");
+                    // if (!CanBeUsefulForFastBlocks(MainnetSpecProvider.Instance.DaoBlockNumber ?? 0))
+                    // {
+                    //     // probably Ethereum Classic nodes tht remain connected after we went pass the DAO
+                    //     // worth to find a better way to discard them at the right time
+                    //     peersDropped++;
+                    //     peerInfo.SyncPeer.Disconnect(DisconnectReason.UselessPeer, "STRAY PEER");
+                    // }
                 }
             }
 

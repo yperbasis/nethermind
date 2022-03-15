@@ -707,11 +707,11 @@ namespace Nethermind.Synchronization.Blocks
         {
             if (e.Previous == null)
             {
-                if (_logger.IsDebug) _logger.Debug($"Allocating {e.Current} for the blocks sync allocation");
+                if (_logger.IsInfo) _logger.Info($"Allocating {e.Current} for the blocks sync allocation");
             }
             else
             {
-                if (_logger.IsDebug) _logger.Debug($"Replacing {e.Previous} with {e.Current} for the blocks sync allocation.");
+                if (_logger.IsInfo) _logger.Info($"Replacing {e.Previous} with {e.Current} for the blocks sync allocation.");
             }
 
             if (e.Previous != null)
@@ -722,10 +722,12 @@ namespace Nethermind.Synchronization.Blocks
 
             PeerInfo? newPeer = e.Current;
             BlockHeader? bestSuggested = _blockTree.BestSuggestedHeader;
-            if ((newPeer?.TotalDifficulty ?? 0) > (bestSuggested?.TotalDifficulty ?? 0))
-            {
-                Feed.Activate();
-            }
+            // if ((newPeer?.TotalDifficulty ?? 0) > (bestSuggested?.TotalDifficulty ?? 0))
+            // {
+            //     Feed.Activate();
+            // }
+            
+            Feed.Activate();
         }
 
         private struct AllocationWithCancellation : IDisposable
