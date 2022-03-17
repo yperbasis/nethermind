@@ -59,16 +59,18 @@ namespace Nethermind.Merge.Plugin.Synchronization
             long currentNumber = _beaconPivot.BeaconPivotExists()
                 ? Math.Max(0, Math.Min(_blockTree.BestSuggestedBody.Number, bestPeer.HeadNumber - 1))
                 : base.GetCurrentNumber(bestPeer);
-            if (_logger.IsTrace) _logger.Trace($"Merge block downloader: currentNumber {currentNumber}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}");
+            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader GetCurrentNumber: currentNumber {currentNumber}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}");
             return currentNumber;
         }
         
         protected override long GetUpperDownloadBoundary(PeerInfo bestPeer, BlocksRequest blocksRequest)
         {
             long preMergeUpperDownloadBoundary = base.GetUpperDownloadBoundary(bestPeer, blocksRequest);
-            return _beaconPivot.BeaconPivotExists()
+            long upperDownloadBoundary = _beaconPivot.BeaconPivotExists()
                 ? Math.Min(preMergeUpperDownloadBoundary, _beaconPivot.PivotNumber)
                 : preMergeUpperDownloadBoundary;
+            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader GetUpperDownloadBoundary: {upperDownloadBoundary}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}");
+            return upperDownloadBoundary;
         }
 
         protected override bool ImprovementRequirementSatisfied(PeerInfo? bestPeer)
@@ -76,8 +78,12 @@ namespace Nethermind.Merge.Plugin.Synchronization
             bool preMergeDifficultyRequirementSatisfied = base.ImprovementRequirementSatisfied(bestPeer);
             bool postMergeRequirementSatisfied = _beaconPivot.BeaconPivotExists() 
                                                  && Math.Min(bestPeer!.HeadNumber, _beaconPivot.PivotNumber) > (_blockTree.BestSuggestedBody?.Number ?? 0);
+            bool improvementRequirementSatisfied = _beaconPivot.BeaconPivotExists()
+                ? postMergeRequirementSatisfied
+                : preMergeDifficultyRequirementSatisfied;
             
-            return _beaconPivot.BeaconPivotExists() ? postMergeRequirementSatisfied : preMergeDifficultyRequirementSatisfied;
+            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader GetUpperDownloadBoundary: {improvementRequirementSatisfied}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}");
+            return improvementRequirementSatisfied;
         }
     }
 }
