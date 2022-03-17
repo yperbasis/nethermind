@@ -580,12 +580,12 @@ namespace Nethermind.Synchronization.Peers
                             if (parent != null)
                             {
                                 UInt256 newTotalDifficulty = (parent.TotalDifficulty ?? UInt256.Zero) + header.Difficulty;
-                                if (newTotalDifficulty >= syncPeer.TotalDifficulty)
-                                {
+                                // if (newTotalDifficulty >= syncPeer.TotalDifficulty)
+                                // {
                                     syncPeer.TotalDifficulty = newTotalDifficulty;
                                     syncPeer.HeadNumber = header.Number;
                                     syncPeer.HeadHash = header.Hash;
-                                }
+                              //  }
                             }
                             else if (header.Number > syncPeer.HeadNumber)
                             {
