@@ -625,7 +625,7 @@ namespace Nethermind.Blockchain
             if (isKnown && (BestSuggestedHeader?.Number ?? 0) >= header.Number)
             {
                 if (_logger.IsTrace) _logger.Trace($"Block {header.Hash} already known.");
-            //    return AddBlockResult.AlreadyKnown;
+                return AddBlockResult.AlreadyKnown;
             }
 
             if (!header.IsGenesis && !IsKnownBlock(header.Number - 1, header.ParentHash!))
