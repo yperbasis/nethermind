@@ -214,15 +214,15 @@ namespace Nethermind.Synchronization
 
         private void UpdatePeerInfoBasedOnBlockData(Block block, ISyncPeer syncPeer)
         {
-            if ((block.TotalDifficulty ?? 0) > syncPeer.TotalDifficulty)
-            {
-                if (_logger.IsTrace)
-                    _logger.Trace(
+            // if ((block.TotalDifficulty ?? 0) > syncPeer.TotalDifficulty)
+            // {
+                if (_logger.IsInfo)
+                    _logger.Info(
                         $"ADD NEW BLOCK Updating header of {syncPeer} from {syncPeer.HeadNumber} {syncPeer.TotalDifficulty} to {block.Number} {block.TotalDifficulty}");
                 syncPeer.HeadNumber = block.Number;
                 syncPeer.HeadHash = block.Hash;
                 syncPeer.TotalDifficulty = block.TotalDifficulty ?? syncPeer.TotalDifficulty;
-            }
+          //  }
         }
 
         private void SyncBlock(Block block, ISyncPeer? syncPeer)
