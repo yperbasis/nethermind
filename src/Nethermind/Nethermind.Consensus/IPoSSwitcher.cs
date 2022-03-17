@@ -40,6 +40,8 @@ namespace Nethermind.Consensus
         
         public long? ConfiguredTerminalBlockNumber { get; }
 
+        bool TransitionFinished { get; }
+
         // We can get TerminalBlock from three different points in the system:
         // 1) Block Processing - it is needed because we need to switch classes, for example, block production, during the transition
         // 2) forkchoice - it will handle reorgs in terminal blocks during the transition process

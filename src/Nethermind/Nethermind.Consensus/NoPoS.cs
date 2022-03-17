@@ -44,6 +44,7 @@ public class NoPoS : IPoSSwitcher
     public Keccak? TerminalBlockHash => null;
     public Keccak? ConfiguredTerminalBlockHash => null;
     public long? ConfiguredTerminalBlockNumber => null;
+    public bool TransitionFinished => false;
 
     public bool TryUpdateTerminalBlock(BlockHeader header, BlockHeader? parent = null)
     {

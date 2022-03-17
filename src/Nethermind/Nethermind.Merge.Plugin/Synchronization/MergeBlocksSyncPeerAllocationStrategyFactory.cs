@@ -48,9 +48,9 @@ public class MergeBlocksSyncPeerAllocationStrategyFactory : IPeerAllocationStrat
             
         IPeerAllocationStrategy baseStrategy = new BlocksSyncPeerAllocationStrategy(request.NumberOfLatestBlocksToBeIgnored);
         TotalDiffStrategy preMergeAllocationStrategy = new(baseStrategy);
-        BySpeedStrategy postMergeStrategy = new BySpeedStrategy(TransferSpeedType.Bodies, false);
+        BySpeedStrategy postMergeStrategy = new(TransferSpeedType.Bodies, false);
         MergePeerAllocationStrategy mergeStrategy =
-            new MergePeerAllocationStrategy(preMergeAllocationStrategy, postMergeStrategy, _poSSwitcher, _logManager);
+            new(preMergeAllocationStrategy, postMergeStrategy, _poSSwitcher, _logManager);
         
         return mergeStrategy;
     }
