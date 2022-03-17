@@ -82,7 +82,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
                 ? postMergeRequirementSatisfied
                 : preMergeDifficultyRequirementSatisfied;
             
-            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader GetUpperDownloadBoundary: {improvementRequirementSatisfied}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}");
+            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader ImprovementRequirementSatisfied: {improvementRequirementSatisfied}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}, BestPeer: {bestPeer!.HeadNumber}, BeaconPivot {_beaconPivot}");
             return improvementRequirementSatisfied;
         }
     }
