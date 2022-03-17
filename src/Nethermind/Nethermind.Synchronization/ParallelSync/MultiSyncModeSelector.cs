@@ -20,6 +20,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Timers;
 using Nethermind.Blockchain.Synchronization;
+using Nethermind.Core.Specs;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Synchronization.Peers;
@@ -42,6 +43,7 @@ namespace Nethermind.Synchronization.ParallelSync
         private readonly ISyncPeerPool _syncPeerPool;
         private readonly ISyncConfig _syncConfig;
         private readonly IBeaconSyncStrategy _beaconSyncStrategy;
+        private readonly ISpecProvider _specProvider;
         private readonly bool _needToWaitForHeaders;
         protected readonly ILogger _logger;
 
@@ -78,12 +80,14 @@ namespace Nethermind.Synchronization.ParallelSync
             ISyncPeerPool syncPeerPool,
             ISyncConfig syncConfig,
             IBeaconSyncStrategy beaconSyncStrategy,
+            ISpecProvider specProvider,
             ILogManager logManager,
             bool needToWaitForHeaders = false)
         {
             _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             _syncConfig = syncConfig ?? throw new ArgumentNullException(nameof(syncConfig));
             _beaconSyncStrategy = beaconSyncStrategy ?? throw new ArgumentNullException(nameof(beaconSyncStrategy));
+            _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
             _syncPeerPool = syncPeerPool ?? throw new ArgumentNullException(nameof(syncPeerPool));
             _syncProgressResolver = syncProgressResolver ?? throw new ArgumentNullException(nameof(syncProgressResolver));
             _needToWaitForHeaders = needToWaitForHeaders;

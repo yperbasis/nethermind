@@ -28,6 +28,6 @@ namespace Nethermind.Consensus.AuRa.InitializationSteps
         }
 
         protected override MultiSyncModeSelector CreateMultiSyncModeSelector(SyncProgressResolver syncProgressResolver)
-            => new AuRaMultiSyncModeSelector(syncProgressResolver, _api.SyncPeerPool, _syncConfig, _api.LogManager);
+            => new AuRaMultiSyncModeSelector(syncProgressResolver, _api.SyncPeerPool!, _syncConfig, _api.SpecProvider!, _api.LogManager);
     }
 }

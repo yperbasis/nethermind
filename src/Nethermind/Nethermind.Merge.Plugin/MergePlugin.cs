@@ -207,7 +207,7 @@ namespace Nethermind.Merge.Plugin
                 
                 _api.SyncModeSelector = new MultiSyncModeSelector(_api.SyncProgressResolver, _api.SyncPeerPool,
                     _syncConfig,
-                    _beaconSync, _api.LogManager);
+                    _beaconSync, _api.SpecProvider, _api.LogManager);
                 _api.Pivot = _beaconPivot;
                 _api.BlockDownloaderFactory = new MergeBlockDownloaderFactory(_poSSwitcher,_beaconPivot, _api.SpecProvider,
                     _api.BlockTree,

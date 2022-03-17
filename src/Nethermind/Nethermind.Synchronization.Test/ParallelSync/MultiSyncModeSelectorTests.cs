@@ -24,6 +24,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Specs;
 using Nethermind.Synchronization.ParallelSync;
 using Nethermind.Synchronization.Peers;
 using NSubstitute;
@@ -528,7 +529,7 @@ namespace Nethermind.Synchronization.Test.ParallelSync
             ISyncConfig syncConfig = new SyncConfig() {FastSyncCatchUpHeightDelta = 2};
             syncConfig.FastSync = true;
             
-            MultiSyncModeSelector selector = new(syncProgressResolver, syncPeerPool, syncConfig, No.BeaconSync, LimboLogs.Instance);
+            MultiSyncModeSelector selector = new(syncProgressResolver, syncPeerPool, syncConfig, No.BeaconSync, MainnetSpecProvider.Instance, LimboLogs.Instance);
             selector.DisableTimer();
             syncProgressResolver.FindBestProcessedBlock().Returns(Scenario.ChainHead.Number);
             selector.Update();

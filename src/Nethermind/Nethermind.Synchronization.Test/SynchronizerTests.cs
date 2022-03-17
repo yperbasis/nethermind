@@ -309,7 +309,7 @@ namespace Nethermind.Synchronization.Test
                     syncConfig,
                     _logManager);
                 MultiSyncModeSelector syncModeSelector = new(syncProgressResolver, SyncPeerPool,
-                    syncConfig, No.BeaconSync, _logManager);
+                    syncConfig, No.BeaconSync, MainnetSpecProvider.Instance, _logManager);
                 Pivot pivot = new (syncConfig);
                 BlockDownloaderFactory blockDownloaderFactory = new(MainnetSpecProvider.Instance,
                     BlockTree,
