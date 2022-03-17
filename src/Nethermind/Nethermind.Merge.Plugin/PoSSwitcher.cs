@@ -88,6 +88,7 @@ namespace Nethermind.Merge.Plugin
                 _hasEverReachedTerminalDifficulty = true;
             
             _specProvider.UpdateMergeTransitionInfo(_firstPoSBlockNumber, _mergeConfig.TerminalTotalDifficultyParsed);
+            if (_logger.IsInfo) _logger.Info($"Nethermind started with TerminalTotalDifficulty {_specProvider.TerminalTotalDifficulty}");
 
             if (_terminalBlockNumber == null)
                 _blockTree.NewHeadBlock += CheckIfTerminalBlockReached;
