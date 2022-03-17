@@ -563,7 +563,7 @@ namespace Nethermind.Synchronization.Blocks
         {
             static void UpdatePeerInfo(PeerInfo peerInfo, BlockHeader header)
             {
-                if (header.Hash is not null && header.TotalDifficulty is not null && header.TotalDifficulty > peerInfo.TotalDifficulty)
+                if (header.Hash is not null && header.TotalDifficulty is not null /*&& header.TotalDifficulty > peerInfo.TotalDifficulty*/)
                 {
                     peerInfo.SyncPeer.TotalDifficulty = header.TotalDifficulty.Value;
                     peerInfo.SyncPeer.HeadNumber = header.Number;
