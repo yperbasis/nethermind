@@ -69,7 +69,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
             long upperDownloadBoundary = _beaconPivot.BeaconPivotExists()
                 ? Math.Min(preMergeUpperDownloadBoundary, _beaconPivot.PivotNumber)
                 : preMergeUpperDownloadBoundary;
-            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader GetUpperDownloadBoundary: {upperDownloadBoundary}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}, PreMergeUpperDownloadBoundary: {preMergeUpperDownloadBoundary}");
+            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader GetUpperDownloadBoundary: {upperDownloadBoundary}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}, BestKnownNumber {_blockTree.BestKnownNumber}, PreMergeUpperDownloadBoundary: {preMergeUpperDownloadBoundary}");
             return upperDownloadBoundary;
         }
 
@@ -82,7 +82,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
                 ? postMergeRequirementSatisfied
                 : preMergeDifficultyRequirementSatisfied;
             
-            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader ImprovementRequirementSatisfied: {improvementRequirementSatisfied}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}, BestPeer: {bestPeer!.HeadNumber}, BeaconPivot {_beaconPivot.PivotNumber}");
+            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader ImprovementRequirementSatisfied: {improvementRequirementSatisfied}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}, BestPeer: {bestPeer!.HeadNumber}, BestKnownNumber {_blockTree.BestKnownNumber} BeaconPivot: {_beaconPivot.PivotNumber}");
             return improvementRequirementSatisfied;
         }
     }
