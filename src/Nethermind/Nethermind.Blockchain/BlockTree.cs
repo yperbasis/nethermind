@@ -60,7 +60,7 @@ namespace Nethermind.Blockchain
         private readonly IDb _headerDb;
         private readonly IDb _blockInfoDb;
 
-        private LruCache<long, HashSet<Keccak>> _invalidBlocks = new LruCache<long, HashSet<Keccak>>(128, 128, "invalid blocks");
+        private readonly LruCache<long, HashSet<Keccak>> _invalidBlocks = new(128, 128, "invalid blocks");
         private readonly BlockDecoder _blockDecoder = new();
         private readonly HeaderDecoder _headerDecoder = new();
         private readonly ILogger _logger;
@@ -860,12 +860,6 @@ namespace Nethermind.Blockchain
             HashSet<Keccak>? invalidBlocksWithThisNumber = _invalidBlocks.Get(invalidBlock.Number) ?? new HashSet<Keccak>();
             invalidBlocksWithThisNumber.Add(invalidBlock.Hash);
 
-            if (_invalidBlocks.Size() == 0)
-            {
-                if (_logger.IsInfo) _logger.Info($"Deleting invalid block with Rlp {_blockDecoder.Encode(invalidBlock)}");
-
-            }
-            
             _invalidBlocks.Set(invalidBlock.Number, invalidBlocksWithThisNumber);
 
             BestSuggestedHeader = Head?.Header;
@@ -1603,7 +1597,7 @@ namespace Nethermind.Blockchain
             IDictionary<long, HashSet<Keccak>> tempDict = _invalidBlocks.Clone();
             foreach (HashSet<Keccak> invalidBlockHashes in tempDict.Values)
             {
-                foreach (var hash in invalidBlockHashes)
+                foreach (Keccak? hash in invalidBlockHashes)
                 {
                     blockList.Add(FindBlock(hash, BlockTreeLookupOptions.None));
                 }
