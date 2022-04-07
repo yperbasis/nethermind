@@ -111,6 +111,7 @@ namespace Nethermind.Synchronization.ParallelSync
 
                     SyncPeerAllocation allocation = await Allocate(request);
                     PeerInfo? allocatedPeer = allocation.Current;
+                    if (Logger.IsInfo) Logger.Info($"Allocated peer: {allocatedPeer}");
                     if (allocatedPeer != null)
                     {
                         if (Logger.IsInfo) Logger.Info($"SyncDispatcher request: {request}, AllocatedPeer {allocation.Current}");
@@ -170,6 +171,7 @@ namespace Nethermind.Synchronization.ParallelSync
 
         protected virtual async Task<SyncPeerAllocation> Allocate(T request)
         {
+            if (Logger.IsInfo) Logger.Info($"Allocating peer: {request}, FeedContext: {Feed.Contexts}, PeerAllocationStrategy: {PeerAllocationStrategy}");
             SyncPeerAllocation allocation = await SyncPeerPool.Allocate(PeerAllocationStrategy.Create(request), Feed.Contexts, 1000);
             return allocation;
         }
