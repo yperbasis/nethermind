@@ -43,6 +43,7 @@ namespace Nethermind.Synchronization.FastBlocks
             ISyncPeer peer = peerInfo.SyncPeer;
             batch.ResponseSourcePeer = peerInfo;
             batch.MarkSent();
+            Logger.Info($"HeaderSync Dispatch: {batch} {batch.StartNumber}, {batch.RequestSize}, Peer: {peer}");
             Task<BlockHeader[]> getHeadersTask
                 = peer.GetBlockHeaders(batch.StartNumber, batch.RequestSize, 0, cancellationToken);
             

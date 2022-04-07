@@ -113,6 +113,7 @@ namespace Nethermind.Synchronization.ParallelSync
                     PeerInfo? allocatedPeer = allocation.Current;
                     if (allocatedPeer != null)
                     {
+                        if (Logger.IsInfo) Logger.Info($"SyncDispatcher request: {request}, AllocatedPeer {allocation.Current}");
                         Task task = Dispatch(allocatedPeer, request, cancellationToken).ContinueWith(t =>
                         {
                             if (t.IsFaulted)
