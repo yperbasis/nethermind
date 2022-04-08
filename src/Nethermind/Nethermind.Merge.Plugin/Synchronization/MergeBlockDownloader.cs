@@ -16,6 +16,7 @@
 // 
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain;
@@ -76,30 +77,40 @@ namespace Nethermind.Merge.Plugin.Synchronization
             long currentNumber = _beaconPivot.BeaconPivotExists()
                 ? Math.Max(0, Math.Min(_blockTree.BestSuggestedBody.Number, bestPeer.HeadNumber - 1))
                 : base.GetCurrentNumber(bestPeer);
-            if (_logger.IsTrace) _logger.Trace($"Merge block downloader: currentNumber {currentNumber}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}");
+            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader GetCurrentNumber: currentNumber {currentNumber}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}");
             return currentNumber;
         }
         
         protected override long GetUpperDownloadBoundary(PeerInfo bestPeer, BlocksRequest blocksRequest)
         {
             long preMergeUpperDownloadBoundary = base.GetUpperDownloadBoundary(bestPeer, blocksRequest);
-            return _beaconPivot.BeaconPivotExists()
-                ? Math.Min(preMergeUpperDownloadBoundary, _beaconPivot.PivotNumber)
+            long upperDownloadBoundary = _beaconPivot.BeaconPivotExists()
+                ? bestPeer.HeadNumber
                 : preMergeUpperDownloadBoundary;
+            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader GetUpperDownloadBoundary: {upperDownloadBoundary}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}, BestKnownNumber {_blockTree.BestKnownNumber}, PreMergeUpperDownloadBoundary: {preMergeUpperDownloadBoundary}");
+            return upperDownloadBoundary;
         }
 
         protected override bool ImprovementRequirementSatisfied(PeerInfo? bestPeer)
         {
             bool preMergeDifficultyRequirementSatisfied = base.ImprovementRequirementSatisfied(bestPeer);
             bool postMergeRequirementSatisfied = _beaconPivot.BeaconPivotExists() 
-                                                 && Math.Min(bestPeer!.HeadNumber, _beaconPivot.PivotNumber) > (_blockTree.BestSuggestedBody?.Number ?? 0);
+                                                 && bestPeer!.HeadNumber > (_blockTree.BestSuggestedBody?.Number ?? 0);
+            bool improvementRequirementSatisfied = _beaconPivot.BeaconPivotExists()
+                ? postMergeRequirementSatisfied
+                : preMergeDifficultyRequirementSatisfied;
             
-            return _beaconPivot.BeaconPivotExists() ? postMergeRequirementSatisfied : preMergeDifficultyRequirementSatisfied;
+            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader ImprovementRequirementSatisfied: {improvementRequirementSatisfied}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}, BestPeer: {bestPeer!.HeadNumber}, BestKnownNumber {_blockTree.BestKnownNumber} BeaconPivot: {_beaconPivot.PivotNumber}");
+            return improvementRequirementSatisfied;
         }
         
         public override async Task<long> DownloadBlocks(PeerInfo? bestPeer, BlocksRequest blocksRequest,
             CancellationToken cancellation)
         {
+            if (_beaconPivot.BeaconPivotExists() == false)
+                return await base.DownloadBlocks(bestPeer, blocksRequest, cancellation);
+            
+            
             if (bestPeer == null)
             {
                 string message = $"Not expecting best peer to be null inside the {nameof(BlockDownloader)}";
@@ -125,7 +136,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
             while(ImprovementRequirementSatisfied(bestPeer!) && HasMoreToSync())
             {
                 if (_logger.IsDebug) _logger.Debug($"Continue full sync with {bestPeer} (our best {_blockTree.BestKnownNumber})");
-
+                
                 long upperDownloadBoundary = GetUpperDownloadBoundary(bestPeer, blocksRequest);
                 long blocksLeft = upperDownloadBoundary - currentNumber;
                 int headersToRequest = (int) Math.Min(blocksLeft + 1, _syncBatchSize.Current);
@@ -203,7 +214,23 @@ namespace Nethermind.Merge.Plugin.Synchronization
                         }
                     }
 
-                    if (HandleAddResult(bestPeer, currentBlock.Header, blockIndex == 0, _blockTree.SuggestBlock(currentBlock, shouldProcess ? BlockTreeSuggestOptions.ShouldProcess : BlockTreeSuggestOptions.None)))
+                    bool blockExists = _blockTree.FindBlock(currentBlock.Hash, BlockTreeLookupOptions.TotalDifficultyNotNeeded) != null;
+                    bool isKnownBlock = _blockTree.IsKnownBlock(currentBlock.Number, currentBlock.Hash) != null;
+                    bool isOnMainChain = true;
+                    BlockTreeSuggestOptions suggestOptions = shouldProcess ? BlockTreeSuggestOptions.ShouldProcess : BlockTreeSuggestOptions.None;
+                    if (_logger.IsInfo) _logger.Info($"Current block {currentBlock}, BlockExists {blockExists} IsOnMainChain: {isOnMainChain} BeaconPivot: {_beaconPivot.PivotNumber}, IsKnwonBlock: {isKnownBlock}");
+                    if (blockExists && isOnMainChain == false)
+                    {
+                        currentNumber += 1;
+                        continue;
+                    }
+
+                    if (blockExists == false && isKnownBlock)
+                        _blockTree.Insert(currentBlock);
+                    if (isOnMainChain && isKnownBlock)
+                        suggestOptions |= BlockTreeSuggestOptions.TryProcessKnownBlock;
+
+                    if (HandleAddResult(bestPeer, currentBlock.Header, blockIndex == 0, _blockTree.SuggestBlock(currentBlock, suggestOptions)))
                     {
                         if (downloadReceipts)
                         {
@@ -245,15 +272,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
             }
 
             return blocksSynced;
-        }
-        protected override void UpdatePeerInfo(PeerInfo peerInfo, BlockHeader header)
-        {
-            if (header.Hash is not null && header.TotalDifficulty is not null && header.TotalDifficulty > peerInfo.TotalDifficulty)
-            {
-                peerInfo.SyncPeer.TotalDifficulty = header.TotalDifficulty.Value;
-                peerInfo.SyncPeer.HeadNumber = header.Number;
-                peerInfo.SyncPeer.HeadHash = header.Hash;
-            }
         }
     }
 }

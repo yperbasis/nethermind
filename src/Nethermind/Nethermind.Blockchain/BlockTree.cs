@@ -621,11 +621,11 @@ namespace Nethermind.Blockchain
             BlockTreeSuggestOptions options = BlockTreeSuggestOptions.ShouldProcess,
             bool? setAsMain = null)
         {
+            bool shouldProcess = (options & BlockTreeSuggestOptions.ShouldProcess) != 0;
+            bool tryProcessKnownBlock = (options & BlockTreeSuggestOptions.TryProcessKnownBlock) != 0;
             if (_logger.IsInfo)
                 _logger.Info(
-                    $"Starting suggesting a new block. BestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}");
-            bool shouldProcess = (options & BlockTreeSuggestOptions.ShouldProcess) != 0;
-
+                    $"Suggesting a new block. BestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}. ShouldProcess: {shouldProcess}, TryProcessKnownBlock: {tryProcessKnownBlock}");
 #if DEBUG
             /* this is just to make sure that we do not fall into this trap when creating tests */
             if (header.StateRoot is null && !header.IsGenesis)
@@ -651,17 +651,17 @@ namespace Nethermind.Blockchain
             }
 
             bool isKnown = IsKnownBlock(header.Number, header.Hash);
-            if (isKnown && (BestSuggestedHeader?.Number ?? 0) >= header.Number)
+            if (!tryProcessKnownBlock && isKnown && (BestSuggestedHeader?.Number ?? 0) >= header.Number)
             {
-                if (_logger.IsInfo) _logger.Info($"Block {header.Hash} already known.");
-                //          return AddBlockResult.AlreadyKnown;
+                if (_logger.IsInfo) _logger.Info($"Block {header.ToString(BlockHeader.Format.FullHashAndNumber)} already known.");
+                     return AddBlockResult.AlreadyKnown;
             }
 
             if (!header.IsGenesis && !IsKnownBlock(header.Number - 1, header.ParentHash!))
             {
                 if (_logger.IsInfo)
                     _logger.Info($"Could not find parent ({header.ParentHash}) of block {header.Hash}");
-            //    return AddBlockResult.UnknownParent;
+                return AddBlockResult.UnknownParent;
             }
 
             SetTotalDifficulty(header);
