@@ -47,7 +47,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
         private readonly IReceiptStorage _receiptStorage;
         private int _sinceLastTimeout;
         private long _currentForwardSyncLevel;
-        private bool currentNumberInitialized = false;
+        private bool _currentNumberInitialized;
 
         public MergeBlockDownloader(
             IPoSSwitcher posSwitcher,
@@ -119,10 +119,10 @@ namespace Nethermind.Merge.Plugin.Synchronization
             int blocksSynced = 0;
             int ancestorLookupLevel = 0;
 
-            if (currentNumberInitialized == false)
+            if (_currentNumberInitialized == false)
             {
                 _currentForwardSyncLevel = _blockTree.LowestInsertedBeaconHeader?.Number ?? 1;
-                currentNumberInitialized = true;
+                _currentNumberInitialized = true;
             }
             // pivot number - 6 for uncle validation
             // long currentNumber = Math.Max(Math.Max(0, pivotNumber - 6), Math.Min(_blockTree.BestKnownNumber, bestPeer.HeadNumber - 1));
