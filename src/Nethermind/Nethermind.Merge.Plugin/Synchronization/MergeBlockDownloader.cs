@@ -46,6 +46,8 @@ namespace Nethermind.Merge.Plugin.Synchronization
         private readonly ISyncReport _syncReport;
         private readonly IReceiptStorage _receiptStorage;
         private int _sinceLastTimeout;
+        private long _currentForwardSyncLevel;
+        private bool currentNumberInitialized = false;
 
         public MergeBlockDownloader(
             IPoSSwitcher posSwitcher,
@@ -64,21 +66,12 @@ namespace Nethermind.Merge.Plugin.Synchronization
         {
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
-            _blockValidator = blockValidator ?? throw new ArgumentNullException(nameof(blockValidator));
+            _blockValidator = blockValidator ?? throw new ArgumentNullException(nameof(blockValidator)); 
             _syncReport = syncReport ?? throw new ArgumentNullException(nameof(syncReport));
             _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
             _beaconPivot = beaconPivot;
             _receiptsRecovery = new ReceiptsRecovery(new EthereumEcdsa(specProvider.ChainId, logManager), specProvider);
             _logger = logManager.GetClassLogger();
-        }
-        
-        protected override long GetCurrentNumber(PeerInfo bestPeer)
-        {
-            long currentNumber = _beaconPivot.BeaconPivotExists()
-                ? Math.Max(0, Math.Min(_blockTree.BestSuggestedBody.Number, bestPeer.HeadNumber - 1))
-                : base.GetCurrentNumber(bestPeer);
-            if (_logger.IsInfo) _logger.Info($"MergeBlockDownloader GetCurrentNumber: currentNumber {currentNumber}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody.Number}");
-            return currentNumber;
         }
         
         protected override long GetUpperDownloadBoundary(PeerInfo bestPeer, BlocksRequest blocksRequest)
@@ -126,19 +119,23 @@ namespace Nethermind.Merge.Plugin.Synchronization
             int blocksSynced = 0;
             int ancestorLookupLevel = 0;
 
-            long currentNumber = GetCurrentNumber(bestPeer);
+            if (currentNumberInitialized == false)
+            {
+                _currentForwardSyncLevel = _blockTree.LowestInsertedBeaconHeader?.Number ?? 1;
+                currentNumberInitialized = true;
+            }
             // pivot number - 6 for uncle validation
             // long currentNumber = Math.Max(Math.Max(0, pivotNumber - 6), Math.Min(_blockTree.BestKnownNumber, bestPeer.HeadNumber - 1));
 
 
         bool HasMoreToSync()
-                => currentNumber <= bestPeer!.HeadNumber;
+                => _currentForwardSyncLevel <= bestPeer!.HeadNumber;
             while(ImprovementRequirementSatisfied(bestPeer!) && HasMoreToSync())
             {
                 if (_logger.IsDebug) _logger.Debug($"Continue full sync with {bestPeer} (our best {_blockTree.BestKnownNumber})");
                 
                 long upperDownloadBoundary = GetUpperDownloadBoundary(bestPeer, blocksRequest);
-                long blocksLeft = upperDownloadBoundary - currentNumber;
+                long blocksLeft = upperDownloadBoundary - _currentForwardSyncLevel;
                 int headersToRequest = (int) Math.Min(blocksLeft + 1, _syncBatchSize.Current);
                 if (headersToRequest <= 1)
                 {
@@ -146,10 +143,10 @@ namespace Nethermind.Merge.Plugin.Synchronization
                 }
 
                 headersToRequest = Math.Min(headersToRequest, bestPeer.MaxHeadersPerRequest());
-                if (_logger.IsTrace) _logger.Trace($"Full sync request {currentNumber}+{headersToRequest} to peer {bestPeer} with {bestPeer.HeadNumber} blocks. Got {currentNumber} and asking for {headersToRequest} more.");
+                if (_logger.IsTrace) _logger.Trace($"Full sync request {_currentForwardSyncLevel}+{headersToRequest} to peer {bestPeer} with {bestPeer.HeadNumber} blocks. Got {_currentForwardSyncLevel} and asking for {headersToRequest} more.");
 
                 if (cancellation.IsCancellationRequested) return blocksSynced; // check before every heavy operation
-                BlockHeader[] headers = await RequestHeaders(bestPeer, cancellation, currentNumber, headersToRequest);
+                BlockHeader[] headers = await RequestHeaders(bestPeer, cancellation, _currentForwardSyncLevel, headersToRequest);
                 BlockDownloadContext context = new(_specProvider, bestPeer, headers, downloadReceipts, _receiptsRecovery);
 
                 if (cancellation.IsCancellationRequested) return blocksSynced; // check before every heavy operation
@@ -182,7 +179,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
                         }
 
                         int ancestorJump = _ancestorJumps[ancestorLookupLevel] - _ancestorJumps[ancestorLookupLevel - 1];
-                        currentNumber = currentNumber >= ancestorJump ? (currentNumber - ancestorJump) : 0L;
+                        _currentForwardSyncLevel = _currentForwardSyncLevel >= ancestorJump ? (_currentForwardSyncLevel - ancestorJump) : 0L;
                         continue;
                     }
                 }
@@ -221,7 +218,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
                     if (_logger.IsInfo) _logger.Info($"Current block {currentBlock}, BlockExists {blockExists} IsOnMainChain: {isOnMainChain} BeaconPivot: {_beaconPivot.PivotNumber}, IsKnwonBlock: {isKnownBlock}");
                     if (blockExists && isOnMainChain == false)
                     {
-                        currentNumber += 1;
+                        _currentForwardSyncLevel += 1;
                         continue;
                     }
 
@@ -257,7 +254,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
                         _blockTree.UpdateMainChain(new[] {currentBlock}, false);
                     }
 
-                    currentNumber += 1;
+                    _currentForwardSyncLevel += 1;
                 }
 
                 if (blocksSynced > 0)
