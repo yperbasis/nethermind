@@ -340,6 +340,5 @@ public class BlockTreeTests
             .AssertBestSuggestedBody(6)
             .AssertLowestInsertedBeaconHeader(1);
     }
-    
 }
 
