@@ -89,24 +89,12 @@ namespace Nethermind.AccountAbstraction.Executor
 
             // use handleOp is only one op is used, handleOps if multiple
             UserOperation[] userOperationArray = userOperations.ToArray();
-            if (userOperationArray.Length == 1)
-            {
-                UserOperation userOperation = userOperationArray[0];
-
-                AbiSignature abiSignature = _entryPointContractAbi.Functions["handleOp"].GetCallInfo().Signature;
-                computedCallData = _abiEncoder.Encode(
-                    AbiEncodingStyle.IncludeSignature,
-                    abiSignature,
-                    userOperation.Abi, _signer.Address);
-            }
-            else
-            {
-                AbiSignature abiSignature = _entryPointContractAbi.Functions["handleOps"].GetCallInfo().Signature;
-                computedCallData = _abiEncoder.Encode(
-                    AbiEncodingStyle.IncludeSignature,
-                    abiSignature,
-                    userOperationArray.Select(op => op.Abi).ToArray(), _signer.Address);
-            }
+            
+            AbiSignature abiSignature = _entryPointContractAbi.Functions["handleOps"].GetCallInfo().Signature;
+            computedCallData = _abiEncoder.Encode(
+                AbiEncodingStyle.IncludeSignature,
+                abiSignature,
+                userOperationArray.Select(op => op.Abi).ToArray(), _signer.Address);
 
             Transaction transaction =
                 BuildTransaction(gasLimit, computedCallData, _signer.Address, parent, spec, nonce, false);
