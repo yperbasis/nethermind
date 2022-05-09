@@ -1389,25 +1389,6 @@ namespace Nethermind.Blockchain
             return preMergeImprovementRequirementSatisfied || postMergeImprovementRequirementSatisfied;
         }
 
-        private bool IsTerminalBlock(BlockHeader header)
-        {
-            bool isTerminalBlock = false;
-            bool ttdRequirement = header.TotalDifficulty >= _specProvider.TerminalTotalDifficulty;
-            if (ttdRequirement && header.IsGenesis)
-                return true;
-
-            if (ttdRequirement && header.IsPostMerge == false)
-            {
-                BlockHeader? parent = FindHeader(header.ParentHash, BlockTreeLookupOptions.None);
-                if (parent != null && parent.TotalDifficulty < _specProvider.TerminalTotalDifficulty)
-                {
-                    isTerminalBlock = true;
-                }
-            }
-
-            return isTerminalBlock;
-        }
-
         private void LoadStartBlock()
         {
             Block? startBlock = null;
