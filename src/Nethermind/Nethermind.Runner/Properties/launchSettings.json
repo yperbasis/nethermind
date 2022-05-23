@@ -154,14 +154,6 @@
       "commandName": "Project",
       "commandLineArgs": "--config configs\\sepolia.cfg --Init.DiagnosticMode MemDb"
     },
-    "Kiln_devnet": {
-      "commandName": "Project",
-      "commandLineArgs": "--config kiln_devnet.cfg  --Init.DiagnosticMode MemDb"
-    },
-    "kiln_fastSync": {
-      "commandName": "Project",
-      "commandLineArgs": "--config kiln_fastsync.cfg  --Init.DiagnosticMode MemDb"
-    },
     "TheMerge_Kiln_TestVectors" : {
       "commandName": "Project",
       "commandLineArgs": "--config themerge_kiln_testvectors.cfg --Init.DiagnosticMode MemDb"
