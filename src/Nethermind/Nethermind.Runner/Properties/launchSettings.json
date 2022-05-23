@@ -172,7 +172,7 @@
     },
     "KilnPreTTD": {
       "commandName": "Project",
-      "commandLineArgs": "--config kiln_pre_ttd_pivot.cfg  --Init.DiagnosticMode MemDb"
+      "commandLineArgs": "--config kiln_pre_ttd_pivot.cfg"
     },
     "Kiln_FastSync": {
       "commandName": "Project",
