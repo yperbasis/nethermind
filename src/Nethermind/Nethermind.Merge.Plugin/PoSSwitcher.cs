@@ -18,7 +18,6 @@
 using System;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Find;
-using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Int256;
@@ -51,24 +50,22 @@ namespace Nethermind.Merge.Plugin
     public class PoSSwitcher : IPoSSwitcher
     {
         private readonly IMergeConfig _mergeConfig;
-        private readonly ISyncConfig _syncConfig;
         private readonly IDb _metadataDb;
         private readonly IBlockTree _blockTree;
         private readonly ISpecProvider _specProvider;
         private readonly IBlockCacheService _blockCacheService;
         private readonly ILogger _logger;
         private Keccak? _terminalBlockHash;
-        
+
+        private long? _configuredTerminalBlockNumber;
         private long? _terminalBlockNumber;
         private long? _firstPoSBlockNumber;
         private bool _hasEverReachedTerminalDifficulty;
         private Keccak _finalizedBlockHash = Keccak.Zero;
         private bool _terminalBlockExplicitSpecified;
-        private UInt256? _finalTotalDifficulty;
 
         public PoSSwitcher(
             IMergeConfig mergeConfig,
-            ISyncConfig syncConfig,
             IDb metadataDb,
             IBlockTree blockTree,
             ISpecProvider specProvider,
@@ -76,7 +73,6 @@ namespace Nethermind.Merge.Plugin
             ILogManager logManager)
         {
             _mergeConfig = mergeConfig;
-            _syncConfig = syncConfig;
             _metadataDb = metadataDb;
             _blockTree = blockTree;
             _specProvider = specProvider;
@@ -90,10 +86,8 @@ namespace Nethermind.Merge.Plugin
         {
             LoadTerminalBlock();
             LoadFinalizedBlockHash();
-            LoadFinalTotalDifficulty();
-            LoadFinalTotalDifficulty();
 
-            if (_terminalBlockNumber != null || _finalTotalDifficulty != null)
+            if (_terminalBlockNumber != null)
                 _hasEverReachedTerminalDifficulty = true;
 
             _specProvider.UpdateMergeTransitionInfo(_firstPoSBlockNumber, _mergeConfig.TerminalTotalDifficultyParsed);
@@ -103,18 +97,7 @@ namespace Nethermind.Merge.Plugin
 
             if (_logger.IsInfo)
                 _logger.Info(
-                    $"Client started with TTD: {TerminalTotalDifficulty}, TTD reached: {_hasEverReachedTerminalDifficulty}, Terminal Block Number {_terminalBlockNumber}, FinalTotalDifficulty: {FinalTotalDifficulty}");
-        }
-
-        private void LoadFinalTotalDifficulty()
-        {
-            _finalTotalDifficulty = _mergeConfig.FinalTotalDifficultyParsed;
-
-            // pivot post TTD, so we know FinalTotalDifficulty
-            if (_syncConfig.PivotTotalDifficultyParsed >= TerminalTotalDifficulty)
-            {
-                _finalTotalDifficulty = _syncConfig.PivotTotalDifficultyParsed;
-            }
+                    $"Client started with TTD: {TerminalTotalDifficulty}, TTD reached: {_hasEverReachedTerminalDifficulty}, Terminal Block Number {_terminalBlockNumber}");
         }
 
         private void CheckIfTerminalBlockReached(object? sender, BlockEventArgs e)
@@ -191,7 +174,7 @@ namespace Nethermind.Merge.Plugin
             }
         }
 
-        public bool TransitionFinished => FinalTotalDifficulty != null || _finalizedBlockHash != Keccak.Zero || _blockCacheService.FinalizedHash != Keccak.Zero;
+        public bool TransitionFinished => _mergeConfig.FinalTotalDifficulty != null || _finalizedBlockHash != Keccak.Zero || _blockCacheService.FinalizedHash != Keccak.Zero;
 
         public (bool IsTerminal, bool IsPostMerge) GetBlockConsensusInfo(BlockHeader header)
         {
@@ -250,16 +233,15 @@ namespace Nethermind.Merge.Plugin
 
         public UInt256? TerminalTotalDifficulty => _specProvider.TerminalTotalDifficulty;
 
-        public UInt256? FinalTotalDifficulty => _finalTotalDifficulty;
-
         public Keccak ConfiguredTerminalBlockHash => _mergeConfig.TerminalBlockHashParsed;
 
-        public long? ConfiguredTerminalBlockNumber => _mergeConfig.TerminalBlockNumber;
+        public long? ConfiguredTerminalBlockNumber => _configuredTerminalBlockNumber;
 
         private void LoadTerminalBlock()
         {
-            _terminalBlockNumber = _mergeConfig.TerminalBlockNumber ??
-                                         _specProvider.MergeBlockNumber - 1;
+            _configuredTerminalBlockNumber = _mergeConfig.TerminalBlockNumber ??
+                                             _specProvider.MergeBlockNumber - 1;
+            _terminalBlockNumber = ConfiguredTerminalBlockNumber;
 
             _terminalBlockExplicitSpecified = _terminalBlockNumber != null;
             _terminalBlockNumber ??= LoadTerminalBlockNumberFromDb();
