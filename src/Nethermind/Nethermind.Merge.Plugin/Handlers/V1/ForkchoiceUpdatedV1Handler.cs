@@ -139,17 +139,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
                 return ForkchoiceUpdatedV1Result.Error(safeBlockErrorMsg, MergeErrorCodes.InvalidForkchoiceState);
             }
-
-            (Block[]? blocks, string? setHeadErrorMsg) =
-                EnsureNewHead(newHeadBlock);
-            if (setHeadErrorMsg != null)
-            {
-                if (_logger.IsWarn)
-                    _logger.Warn($"Invalid new head block {setHeadErrorMsg}. Request: {requestStr}");
-
-                return ForkchoiceUpdatedV1Result.Error(setHeadErrorMsg, ErrorCodes.InvalidParams);
-            }
-
+            
             if (_poSSwitcher.TerminalTotalDifficulty == null ||
                 newHeadBlock!.Header.TotalDifficulty < _poSSwitcher.TerminalTotalDifficulty)
             {
@@ -162,6 +152,15 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                 return ForkchoiceUpdatedV1Result.Invalid(Keccak.Zero);
             }
 
+            (Block[]? blocks, string? setHeadErrorMsg) =
+                EnsureNewHead(newHeadBlock);
+            if (setHeadErrorMsg != null)
+            {
+                if (_logger.IsWarn)
+                    _logger.Warn($"Invalid new head block {setHeadErrorMsg}. Request: {requestStr}");
+
+                return ForkchoiceUpdatedV1Result.Error(setHeadErrorMsg, ErrorCodes.InvalidParams);
+            }
 
             if (_blockTree.IsMainChain(forkchoiceState.HeadBlockHash) &&
                 newHeadBlock.Number < (_blockTree.Head?.Number ?? 0))
