@@ -12,6 +12,8 @@ sudo apt-get update; \
   sudo apt-get update && \
   sudo apt-get install -y dotnet-sdk-6.0
 sudo apt-get install -y jq libsnappy-dev libc6-dev libc6 moreutils
+#symlink fix for libdl on Ubuntu 22
+sudo ln -s /usr/lib/x86_64-linux-gnu/libdl.so.2 /usr/lib/x86_64-linux-gnu/libdl.so > /dev/null 2>&1 
 
 echo =======================================================
 echo Cloning repository / setting up scripts and folders
