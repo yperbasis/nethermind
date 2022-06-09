@@ -1,4 +1,4 @@
-name: '[RELEASE] Nethermind'
+name: '[RELEASE] TEMP Nethermind'
 
 on: 
   workflow_dispatch:
