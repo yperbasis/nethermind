@@ -188,7 +188,6 @@ namespace Nethermind.Core.Test.Builders
             }
 
             currentBlock.Header.AuRaStep = blockIndex;
-            currentBlock.Header.IsPostMerge = currentBlock.Header.IsPostTTD(_specProvider ?? MainnetSpecProvider.Instance);
 
             return currentBlock;
         }

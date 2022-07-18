@@ -62,17 +62,6 @@ namespace Nethermind.Core
             }
         }
         
-        
-        public bool IsBeaconHeader
-        {
-            get => (Metadata & BlockMetadata.BeaconHeader) != 0;
-        }
-
-        public bool IsBeaconBody
-        {
-            get => (Metadata & BlockMetadata.BeaconBody) != 0;
-        }
-        
         public bool IsBeaconInfo
         {
             get => (Metadata & (BlockMetadata.BeaconBody | BlockMetadata.BeaconHeader)) != 0;

@@ -108,7 +108,6 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             _invalidChainTracker.SetChildParent(blockHash, request.ParentHash);
             if (_invalidChainTracker.IsOnKnownInvalidChain(blockHash, out Keccak? lastValidHash))
             {
-                if (_logger.IsInfo) _logger.Info($"Invalid - block {request} is known to be a part of an invalid chain.");
                 return NewPayloadV1Result.Invalid(lastValidHash, $"Block {request} is known to be a part of an invalid chain.");
             }
 

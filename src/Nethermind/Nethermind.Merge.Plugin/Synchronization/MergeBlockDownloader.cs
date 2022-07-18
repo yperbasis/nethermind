@@ -50,11 +50,9 @@ namespace Nethermind.Merge.Plugin.Synchronization
         private readonly IChainLevelHelper _chainLevelHelper;
         private readonly IPoSSwitcher _poSSwitcher;
         private readonly IInvalidChainTracker _invalidChainTracker;
-        private readonly ISyncProgressResolver _syncProgressResolver;
         private int _sinceLastTimeout;
 
-        public MergeBlockDownloader(
-            IPoSSwitcher posSwitcher,
+        public MergeBlockDownloader(IPoSSwitcher posSwitcher,
             IBeaconPivot beaconPivot,
             ISyncFeed<BlocksRequest?>? feed,
             ISyncPeerPool? syncPeerPool,
@@ -67,7 +65,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
             IBetterPeerStrategy betterPeerStrategy,
             IChainLevelHelper chainLevelHelper,
             IInvalidChainTracker invalidChainTracker,
-            ISyncProgressResolver syncProgressResolver,
             ILogManager logManager)
             : base(feed, syncPeerPool, blockTree, blockValidator, sealValidator, syncReport, receiptStorage,
                 specProvider, new MergeBlocksSyncPeerAllocationStrategyFactory(posSwitcher, logManager),
@@ -83,7 +80,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
             _beaconPivot = beaconPivot;
             _receiptsRecovery = new ReceiptsRecovery(new EthereumEcdsa(specProvider.ChainId, logManager), specProvider);
             _invalidChainTracker = invalidChainTracker;
-            _syncProgressResolver = syncProgressResolver ?? throw new ArgumentNullException(nameof(syncProgressResolver));
             _logger = logManager.GetClassLogger();
         }
 
@@ -126,11 +122,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
                         $"Full sync request {currentNumber}+{headersToRequest} to peer {bestPeer} with {bestPeer.HeadNumber} blocks. Got {currentNumber} and asking for {headersToRequest} more.");
 
                 if (cancellation.IsCancellationRequested) return blocksSynced; // check before every heavy operation
-                Block[]? blocks = null;
-                TxReceipt[]?[]? receipts = null;
-                if (_logger.IsTrace)
-                    _logger.Trace(
-                        $"Downloading blocks from peer. CurrentNumber: {currentNumber}, BeaconPivot: {_beaconPivot.PivotNumber}, BestPeer: {bestPeer}, HeaderToRequest: {headersToRequest}");
+                if (_logger.IsTrace) _logger.Trace($"Downloading blocks from peer. CurrentNumber: {currentNumber}, BeaconPivot: {_beaconPivot.PivotNumber}, BestPeer: {bestPeer}, HeaderToRequest: {headersToRequest}");
 
                 BlockHeader[]? headers = _chainLevelHelper.GetNextHeaders(headersToRequest);
                 if (headers == null || headers.Length == 0)
@@ -154,8 +146,8 @@ namespace Nethermind.Merge.Plugin.Synchronization
                     _syncBatchSize.Expand();
                 }
 
-                blocks = context.Blocks;
-                receipts = context.ReceiptsForBlocks;
+                Block[]? blocks = context.Blocks;
+                TxReceipt[]?[]? receipts = context.ReceiptsForBlocks;
 
                 if (!(blocks?.Length > 0))
                 {
@@ -188,41 +180,30 @@ namespace Nethermind.Merge.Plugin.Synchronization
                         }
                     }
 
-                    if (shouldProcess)
+                    Keccak currentBlockHash = currentBlock.Hash!;
+                    bool blockExists = _blockTree.FindBlock(currentBlockHash, BlockTreeLookupOptions.TotalDifficultyNotNeeded) != null;
+                    bool isKnownBlock = _blockTree.IsKnownBlock(currentBlock.Number, currentBlockHash);
+
+                    BlockTreeSuggestOptions suggestOptions = shouldProcess ? BlockTreeSuggestOptions.ShouldProcess : BlockTreeSuggestOptions.None;
+                    if (_logger.IsTrace) _logger.Trace($"Current block {currentBlock}, BlockExists {blockExists} BeaconPivot: {_beaconPivot.PivotNumber}, IsKnownBlock: {isKnownBlock}");
+
+
+                    if (blockExists == false && isKnownBlock)
                     {
-                        // covering edge case during fastSyncTransition when we're trying to SuggestBlock without the state
-                        bool headIsGenesis = _blockTree.Head?.IsGenesis ?? false;
-                        bool toBeProcessedIsNotBlockOne = currentBlock.Number > 1;
-                        bool isFastSyncTransition = headIsGenesis && toBeProcessedIsNotBlockOne;
-                        if (isFastSyncTransition)
-                        {
-                            long bestFullState = _syncProgressResolver.FindBestFullState();
-                            shouldProcess = currentBlock.Number >= bestFullState && bestFullState!=0;
-                            if (!shouldProcess)
-                                if (_logger.IsInfo) _logger.Info($"Skipping processing during fastSyncTransition, currentBlock: {currentBlock}, bestFullState: {bestFullState}");
-                        }
+                        _blockTree.Insert(currentBlock);
                     }
 
-                    bool isKnownBeaconBlock = _blockTree.IsKnownBeaconBlock(currentBlock.Number, currentBlock.GetOrCalculateHash());
-                    BlockTreeSuggestOptions suggestOptions =
-                        shouldProcess ? BlockTreeSuggestOptions.ShouldProcess : BlockTreeSuggestOptions.None;
-                    if (_logger.IsTrace)
-                        _logger.Trace(
-                            $"Current block {currentBlock}, BeaconPivot: {_beaconPivot.PivotNumber}, IsKnownBeaconBlock: {isKnownBeaconBlock}");
-
-                    if (isKnownBeaconBlock)
+                    if (isKnownBlock && shouldProcess)
                     {
                         suggestOptions |= BlockTreeSuggestOptions.FillBeaconBlock;
                     }
 
-                    if (_logger.IsTrace)
-                        _logger.Trace(
-                            $"MergeBlockDownloader - SuggestBlock {currentBlock}, IsKnownBeaconBlock {isKnownBeaconBlock} ShouldProcess: {shouldProcess}");
+                    if (_logger.IsTrace) _logger.Trace($"MergeBlockDownloader - SuggestBlock {currentBlock}, IsKnownBlock {isKnownBlock} ShouldProcess: {shouldProcess}");
 
                     AddBlockResult addResult = _blockTree.SuggestBlock(currentBlock, suggestOptions);
                     if (addResult == AddBlockResult.InvalidBlock)
                     {
-                        _invalidChainTracker.OnInvalidBlock(currentBlock.GetOrCalculateHash(), currentBlock.ParentHash!);
+                        _invalidChainTracker.OnInvalidBlock(currentBlockHash, currentBlock.ParentHash);
                     }
 
                     if (HandleAddResult(bestPeer, currentBlock.Header, blockIndex == 0, addResult))
