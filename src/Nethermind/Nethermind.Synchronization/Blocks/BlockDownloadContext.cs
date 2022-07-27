@@ -34,7 +34,8 @@ namespace Nethermind.Synchronization.Blocks
         private readonly bool _downloadReceipts;
         private readonly IReceiptsRecovery _receiptsRecovery;
 
-        public BlockDownloadContext(ISpecProvider specProvider, PeerInfo syncPeer, BlockHeader?[] headers, bool downloadReceipts, IReceiptsRecovery receiptsRecovery)
+        public BlockDownloadContext(ISpecProvider specProvider, PeerInfo syncPeer, BlockHeader?[] headers,
+            bool downloadReceipts, IReceiptsRecovery receiptsRecovery, Dictionary<Keccak, Block>? existingBlocks = null)
         {
             _indexMapping = new Dictionary<int, int>();
             _downloadReceipts = downloadReceipts;
@@ -59,7 +60,11 @@ namespace Nethermind.Synchronization.Blocks
                     break;
                 }
 
-                if (header.HasBody)
+                if (existingBlocks?.TryGetValue(header.Hash, out Block existingBlock) ?? false)
+                {
+                    Blocks[i - 1] = existingBlock;
+                }
+                else if (header.HasBody)
                 {
                     Blocks[i - 1] = new Block(header);
                     _indexMapping.Add(currentBodyIndex, i - 1);

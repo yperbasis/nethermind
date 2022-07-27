@@ -75,22 +75,39 @@ public sealed class BeaconHeadersSyncFeed : HeadersSyncFeed
 
     public override void InitializeFeed()
     {
-        _pivotNumber = _pivot.PivotNumber;
         _chainMerged = false;
 
+        // First, we assume pivot
+        _pivotNumber = _pivot.PivotNumber;
+        _nextHeaderHash = _pivot.PivotHash ?? Keccak.Zero;
+        _nextHeaderDiff = _poSSwitcher.FinalTotalDifficulty;
+
+        // This is probably whats going to happen. We probably should just set the pivot directly to the parent of FcU head,
+        // but pivot underlying data is a Header, which we may not have. Maybe later we'll clean this up.
+        if (_pivot.PivotParentHash != null)
+        {
+            _pivotNumber = _pivotNumber - 1;
+            _nextHeaderHash = _pivot.PivotParentHash;
+        }
+
+        long startNumber = _pivotNumber;
+
+        // In case we already have beacon sync happened before
         BlockHeader? lowestInserted = LowestInsertedBlockHeader;
-        long startNumber = LowestInsertedBlockHeader?.Number ?? _pivotNumber;
-        Keccak startHeaderHash = lowestInserted?.Hash ?? _pivot.PivotHash ?? Keccak.Zero;
-        UInt256? startTotalDifficulty =
-            lowestInserted?.TotalDifficulty ?? _poSSwitcher.FinalTotalDifficulty ?? null;
+        if (lowestInserted != null && lowestInserted.Number <= _pivotNumber) {
+            _logger.Info("Using lowest inserted block header, which is beacon header");
+            startNumber = lowestInserted.Number - 1;
+            _nextHeaderHash = lowestInserted.ParentHash ?? Keccak.Zero;
+            _nextHeaderDiff = lowestInserted.TotalDifficulty - lowestInserted.Difficulty;
+        }
 
-        _nextHeaderHash = startHeaderHash;
-        _nextHeaderDiff = startTotalDifficulty;
+        _logger.Info($"Start number is {startNumber}");
 
+        // the base class with starts with _lowestRequestedHeaderNumber-1, so we offset it here.
         _lowestRequestedHeaderNumber = startNumber + 1;
 
         _logger.Info($"Initialized beacon headers sync. lowestRequestedHeaderNumber: {_lowestRequestedHeaderNumber}," +
-                     $"lowestInsertedBlockHeader: {LowestInsertedBlockHeader?.ToString(BlockHeader.Format.FullHashAndNumber)}, pivotNumber: {_pivotNumber}, pivotDestination: {_pivot.PivotDestinationNumber}");
+                     $"lowestInsertedBlockHeader: {lowestInserted?.ToString(BlockHeader.Format.FullHashAndNumber)}, pivotNumber: {_pivotNumber}, pivotDestination: {_pivot.PivotDestinationNumber}");
     }
 
     protected override void FinishAndCleanUp()

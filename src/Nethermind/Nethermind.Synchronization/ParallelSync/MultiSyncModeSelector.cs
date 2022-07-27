@@ -188,8 +188,7 @@ namespace Nethermind.Synchronization.ParallelSync
                         }
                         else
                         {
-                            bool anyPeers = peerBlock.Value > 0 && _betterPeerStrategy.IsBetterThanLocalChain((peerDifficulty.Value, peerBlock.Value), (best.ChainDifficulty, best.Block));
-                            if (anyPeers)
+                            if (ShouldBeInFullSyncMode(best))
                             {
                                 newModes = SyncMode.Full;
                             }

@@ -16,6 +16,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain;
@@ -41,6 +42,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
     {
         private readonly IBeaconPivot _beaconPivot;
         private readonly IBlockTree _blockTree;
+        private readonly IBlockCacheService _blockCacheService;
         private readonly ILogger _logger;
         private readonly IReceiptsRecovery _receiptsRecovery;
         private readonly IBlockValidator _blockValidator;
@@ -58,6 +60,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
             ISyncFeed<BlocksRequest?>? feed,
             ISyncPeerPool? syncPeerPool,
             IBlockTree? blockTree,
+            IBlockCacheService blockCacheService,
             IBlockValidator? blockValidator,
             ISealValidator? sealValidator,
             ISyncReport? syncReport,
@@ -69,7 +72,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
             ISyncProgressResolver syncProgressResolver,
             ILogManager logManager)
             : base(feed, syncPeerPool, blockTree, blockValidator, sealValidator, syncReport, receiptStorage,
-                specProvider, new MergeBlocksSyncPeerAllocationStrategyFactory(posSwitcher, logManager),
+                specProvider, new MergeBlocksSyncPeerAllocationStrategyFactory(posSwitcher, beaconPivot, logManager),
                 betterPeerStrategy, logManager)
         {
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
@@ -83,6 +86,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
             _receiptsRecovery = new ReceiptsRecovery(new EthereumEcdsa(specProvider.ChainId, logManager), specProvider);
             _invalidChainTracker = invalidChainTracker;
             _syncProgressResolver = syncProgressResolver ?? throw new ArgumentNullException(nameof(syncProgressResolver));
+            _blockCacheService = blockCacheService;
             _logger = logManager.GetClassLogger();
         }
 
@@ -110,19 +114,29 @@ namespace Nethermind.Merge.Plugin.Synchronization
                 _logger.Trace(
                     $"MergeBlockDownloader GetCurrentNumber: currentNumber {currentNumber}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody?.Number}, BestKnownNumber: {_blockTree.BestKnownNumber}, BestPeer: {bestPeer}, BestKnownBeaconNumber {_blockTree.BestKnownBeaconNumber}");
 
+            _logger.Trace($"Second condition {_blockTree.FindBlock(_beaconPivot.PivotHash!)}");
+
             bool HasMoreToSync()
-                => currentNumber < _blockTree.BestKnownBeaconNumber &&
-                   bestPeer.HeadNumber > _blockTree.BestKnownNumber;
+                => (currentNumber < _blockTree.BestKnownBeaconNumber &&
+                    bestPeer.HeadNumber > _blockTree.BestKnownNumber)
+                   || _beaconPivot.BeaconPivotExists();
 
             while (HasMoreToSync())
             {
                 if (_logger.IsDebug)
                     _logger.Debug($"Continue full sync with {bestPeer} (our best {_blockTree.BestKnownNumber})");
+                _logger.Info($"Current number is {currentNumber}");
 
                 int headersToRequest = Math.Min(_syncBatchSize.Current, bestPeer.MaxHeadersPerRequest());
                 if (_logger.IsTrace)
                     _logger.Trace(
                         $"Full sync request {currentNumber}+{headersToRequest} to peer {bestPeer} with {bestPeer.HeadNumber} blocks. Got {currentNumber} and asking for {headersToRequest} more.");
+                BlockHeader[]? headers = _chainLevelHelper.GetNextHeaders(headersToRequest);
+                if (headers == null || headers.Length == 0)
+                {
+                    _logger.Info("Chain level helper got nothing else");
+                    break;
+                }
 
                 if (cancellation.IsCancellationRequested) return blocksSynced; // check before every heavy operation
                 Block[]? blocks = null;
@@ -131,14 +145,29 @@ namespace Nethermind.Merge.Plugin.Synchronization
                     _logger.Trace(
                         $"Downloading blocks from peer. CurrentNumber: {currentNumber}, BeaconPivot: {_beaconPivot.PivotNumber}, BestPeer: {bestPeer}, HeaderToRequest: {headersToRequest}");
 
-                BlockHeader[]? headers = _chainLevelHelper.GetNextHeaders(headersToRequest);
-                if (headers == null || headers.Length == 0)
-                    break;
+                // Kind hacky way to forward process blocks that was sent via NewPayload but not available via sync.
+                // TODO: Probably should not do forward sync/processing in here in addition to having parallel download capability
+                Dictionary<Keccak, Block> knownBlocks = GetExistingBlocks(downloadReceipts, headers);
+                _logger.Info($"Known blocks {knownBlocks.Count}");
+                foreach (KeyValuePair<Keccak,Block> keyValuePair in knownBlocks)
+                {
+                    _logger.Info($"K {keyValuePair.Key}");
+                }
+                _logger.Info($"Headers");
+                foreach (BlockHeader blockHeader in headers)
+                {
+                    _logger.Info($"H {blockHeader.Hash}");
+                }
+
                 BlockDownloadContext context = new(_specProvider, bestPeer, headers, downloadReceipts,
-                    _receiptsRecovery);
+                    _receiptsRecovery, knownBlocks);
+
+                _logger.Info("After context " + cancellation.IsCancellationRequested + " and " + context.NonEmptyBlockHashes.Count);
 
                 if (cancellation.IsCancellationRequested) return blocksSynced; // check before every heavy operation
+
                 await RequestBodies(bestPeer, cancellation, context);
+                _logger.Info("Bodies requested " + cancellation.IsCancellationRequested);
 
                 if (downloadReceipts)
                 {
@@ -155,10 +184,26 @@ namespace Nethermind.Merge.Plugin.Synchronization
 
                 blocks = context.Blocks;
                 receipts = context.ReceiptsForBlocks;
+                _logger.Info($"Blocks " + blocks.Length);
 
                 if (!(blocks?.Length > 0))
                 {
+                    if (_logger.IsTrace)
+                        _logger.Trace("Break early due to no blocks.");
                     break;
+                }
+
+                for (int i = blocks.Length - 1; i >= 0; i--)
+                {
+                    Block block = blocks[i];
+                    if (!HeaderValidator.ValidateHash(block.Header))
+                    {
+                        throw new EthSyncException($"{bestPeer} sent an invalid block hash {block.ToString(Block.Format.Short)}.");
+                    }
+                    else
+                    {
+                        _invalidChainTracker.SetChildParent(block.Header.Hash!, block.Header.ParentHash!);
+                    }
                 }
 
                 for (int blockIndex = 0; blockIndex < blocks.Length; blockIndex++)
@@ -273,6 +318,36 @@ namespace Nethermind.Merge.Plugin.Synchronization
             }
 
             return blocksSynced;
+        }
+
+        private Dictionary<Keccak, Block> GetExistingBlocks(bool downloadReceipts, IReadOnlyList<BlockHeader> headers)
+        {
+            Dictionary<Keccak, Block> knownBlocks = new();
+
+            if (downloadReceipts)
+            {
+                _logger.Info("Download receipts is on! DAMMIT");
+                // If download receipt is turned on, we don't set known blocks, because it will skip downloading
+                // receipts. Maybe later we'll have knownReceipts also.
+                return knownBlocks;
+            }
+
+            for (int i = 0; i < headers.Count; i++)
+            {
+                if (_blockCacheService.BlockCache.TryGetValue(headers[i].Hash!, out Block? block))
+                {
+                    knownBlocks[block.Hash!] = block;
+                    continue;
+                }
+
+                block = _blockTree.FindBlock(headers[i].Hash!);
+                if (block != null)
+                {
+                    knownBlocks[block.Hash!] = block;
+                }
+            }
+
+            return knownBlocks;
         }
 
         protected override void TryUpdateTerminalBlock(BlockHeader header, bool shouldProcess)

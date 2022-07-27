@@ -143,7 +143,12 @@ namespace Nethermind.Synchronization.ParallelSync
         }
 
         public long FindBestHeader() => _blockTree.BestSuggestedHeader?.Number ?? 0;
-        public long FindBestFullBlock() => Math.Min(FindBestHeader(), _blockTree.BestSuggestedBody?.Number ?? 0); // avoiding any potential concurrency issue
+        public long FindBestFullBlock()
+        {
+            _logger.Info($"Best full block candidate {_blockTree.BestSuggestedHeader} B {_blockTree.BestSuggestedBody}");
+            return Math.Min(FindBestHeader(), _blockTree.BestSuggestedBody?.Number ?? 0);
+            // avoiding any potential concurrency issue
+        }
 
         public bool IsLoadingBlocksFromDb() => !_blockTree.CanAcceptNewBlocks;
 

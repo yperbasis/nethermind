@@ -766,28 +766,24 @@ namespace Nethermind.Blockchain
                 NewSuggestedBlock?.Invoke(this, new BlockEventArgs(block!));
             }
 
-            if (header.IsGenesis || BestSuggestedImprovementRequirementsSatisfied(header))
+            if (header.IsGenesis)
             {
-                if (header.IsGenesis)
-                {
-                    Genesis = header;
-                }
+                Genesis = header;
+            }
 
-                BestSuggestedHeader = header;
+            if (block is not null && BestSuggestedImprovementRequirementsSatisfied(header))
+            {
+                _logger.Trace($"Setting best {block.Header}");
+                BestSuggestedBody = block;
+                BestSuggestedHeader = block.Header;
+            }
 
-                if (block is not null && block.IsPostMerge)
-                {
-                    BestSuggestedBody = block;
-                }
-
-                if (block is not null && shouldProcess)
-                {
-                    if (_logger.IsTrace)
-                        _logger.Trace(
-                            $"New best suggested block. PreviousBestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}");
-                    BestSuggestedBody = block;
-                    NewBestSuggestedBlock?.Invoke(this, new BlockEventArgs(block));
-                }
+            if (block is not null && shouldProcess)
+            {
+                if (_logger.IsTrace)
+                    _logger.Trace(
+                        $"New best suggested block. PreviousBestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}");
+                NewBestSuggestedBlock?.Invoke(this, new BlockEventArgs(block));
             }
 
             return AddBlockResult.Added;
@@ -1514,10 +1510,13 @@ namespace Nethermind.Blockchain
         {
             bool reachedTtd = header.IsPostTTD(_specProvider);
             bool isPostMerge = header.IsPoS();
-            bool tdImproved = header.TotalDifficulty > (BestSuggestedBody?.TotalDifficulty ?? 0);
+            bool tdImproved = (header.TotalDifficulty == (BestSuggestedBody?.TotalDifficulty ?? 0) && header.Number >= BestSuggestedBody?.Number)
+                || header.TotalDifficulty > (BestSuggestedBody?.TotalDifficulty ?? 0);
             bool preMergeImprovementRequirementSatisfied = tdImproved && !reachedTtd;
             bool terminalBlockRequirementSatisfied = tdImproved && reachedTtd && header.IsTerminalBlock(_specProvider) && !Head.IsPoS();
             bool postMergeImprovementRequirementSatisfied = reachedTtd && (BestSuggestedBody?.Number ?? 0) <= header.Number && isPostMerge;
+
+            _logger.Info($"The best condition {reachedTtd} {(BestSuggestedBody?.Number ?? 0) <= header.Number} {isPostMerge}");
 
             return preMergeImprovementRequirementSatisfied || terminalBlockRequirementSatisfied || postMergeImprovementRequirementSatisfied;
         }

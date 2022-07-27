@@ -15,12 +15,14 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 //
 
+using System;
 using System.Collections.Generic;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Logging;
+using Nethermind.Merge.Plugin.Handlers;
 using Nethermind.Synchronization.Blocks;
 
 namespace Nethermind.Merge.Plugin.Synchronization;
@@ -37,13 +39,16 @@ public class ChainLevelHelper : IChainLevelHelper
     private readonly IBlockTree _blockTree;
     private readonly ISyncConfig _syncConfig;
     private readonly ILogger _logger;
+    private readonly IBlockCacheService _blockCacheService;
 
     public ChainLevelHelper(
         IBlockTree blockTree,
+        IBlockCacheService blockCacheService,
         ISyncConfig syncConfig,
         ILogManager logManager)
     {
         _blockTree = blockTree;
+        _blockCacheService = blockCacheService;
         _syncConfig = syncConfig;
         _logger = logManager.GetClassLogger();
     }
@@ -127,7 +132,7 @@ public class ChainLevelHelper : IChainLevelHelper
 
     private long? GetStartingPoint()
     {
-        long startingPoint = _blockTree.BestKnownNumber + 1;
+        long startingPoint = Math.Min(_blockTree.BestKnownNumber + 1, _blockCacheService.ProcessDestination?.Number ?? long.MaxValue);
         bool foundBeaconBlock;
 
         BlockInfo? beaconMainChainBlock = GetBeaconMainChainBlockInfo(startingPoint);
