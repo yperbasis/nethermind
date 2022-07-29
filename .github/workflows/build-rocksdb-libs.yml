@@ -9,21 +9,21 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macOS-latest, ubuntu-latest]
+        os: [windows-2019, macOS-latest, ubuntu-latest]
     steps:
     - name: Cloning rocksDB repository
       run: |
         git clone https://github.com/NethermindEth/rocksdb-sharp-1.git
     - name: Building rocksDB for Windows
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows-2019'
       run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         call "C:\Program Files\Git\bin\bash.exe"
         (bash /d/a/nethermind/nethermind/rocksdb-sharp-1/build-native/build-rocksdb.sh)
       shell: cmd
     - uses: actions/upload-artifact@v1
       name: Uploading Windows artifact
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows-2019'
       with:
         name: windows_artifact_rocksdb
         path: runtimes/win-x64/native/rocksdb.dll
