@@ -70,11 +70,8 @@ public class PostMergeBlocksSyncPeerAllocationStrategy : IPeerAllocationStrategy
             (this as IPeerAllocationStrategy).CheckAsyncState(info);
             peersCount++;
 
-            Console.Out.WriteLine($"Peer condition: {info.HeadNumber} {_beaconPivot.PivotNumber} {blockTree.BestSuggestedBody?.Number}");
-
             if (_beaconPivot.BeaconPivotExists())
             {
-                // This breaks Two Block Post-PoS Re-org
                 if (info.HeadNumber < _beaconPivot.PivotNumber - 1)
                 {
                     // we need to guarantee the peer can have all the block prior to beacon pivot

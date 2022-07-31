@@ -120,7 +120,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
             {
                 if (_logger.IsDebug)
                     _logger.Debug($"Continue full sync with {bestPeer} (our best {_blockTree.BestKnownNumber})");
-                _logger.Info($"Current number is {currentNumber}");
 
                 int headersToRequest = Math.Min(_syncBatchSize.Current, bestPeer.MaxHeadersPerRequest());
                 if (_logger.IsTrace)
@@ -129,7 +128,8 @@ namespace Nethermind.Merge.Plugin.Synchronization
                 BlockHeader[]? headers = _chainLevelHelper.GetNextHeaders(headersToRequest);
                 if (headers == null || headers.Length == 0)
                 {
-                    _logger.Info("Chain level helper got nothing else");
+                    if (_logger.IsTrace)
+                        _logger.Trace("Chain level helper got no headers suggestion");
                     break;
                 }
 
@@ -147,12 +147,9 @@ namespace Nethermind.Merge.Plugin.Synchronization
                 BlockDownloadContext context = new(_specProvider, bestPeer, headers, downloadReceipts,
                     _receiptsRecovery, knownBlocks);
 
-                _logger.Info("After context " + cancellation.IsCancellationRequested + " and " + context.NonEmptyBlockHashes.Count);
-
                 if (cancellation.IsCancellationRequested) return blocksSynced; // check before every heavy operation
 
                 await RequestBodies(bestPeer, cancellation, context);
-                _logger.Info("Bodies requested " + cancellation.IsCancellationRequested);
 
                 if (downloadReceipts)
                 {
@@ -169,7 +166,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
 
                 blocks = context.Blocks;
                 receipts = context.ReceiptsForBlocks;
-                _logger.Info($"Blocks " + blocks.Length);
 
                 if (!(blocks?.Length > 0))
                 {
@@ -293,7 +289,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
 
             if (downloadReceipts)
             {
-                _logger.Info("Download receipts is on! DAMMIT");
                 // If download receipt is turned on, we don't set known blocks, because it will skip downloading
                 // receipts. Maybe later we'll have knownReceipts also.
                 return knownBlocks;

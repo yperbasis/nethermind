@@ -64,7 +64,10 @@ public class MergeBetterPeerStrategy : IBetterPeerStrategy
             return _preMergeBetterPeerStrategy.IsDesiredPeer(bestPeerInfo, bestHeader);
         }
 
-        return _beaconPivot.BeaconPivotExists() && bestPeerInfo.Number >= _beaconPivot.PivotNumber - 1; // we need  to guarantee the peer can have all the block prior to beacon pivot
+        // Post-merge it depends on the beacon pivot.
+        // Some hive test sync to a lower number and have peer without the beacon pivot, but it has
+        // the pivot's parent. So we need to allow peer with the parent of the beacon pivot.
+        return _beaconPivot.BeaconPivotExists() && bestPeerInfo.Number >= _beaconPivot.PivotNumber - 1;
     }
 
     public bool IsLowerThanTerminalTotalDifficulty(UInt256 totalDifficulty) =>

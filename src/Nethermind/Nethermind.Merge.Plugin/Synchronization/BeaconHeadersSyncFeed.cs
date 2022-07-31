@@ -104,8 +104,6 @@ public sealed class BeaconHeadersSyncFeed : HeadersSyncFeed
             _nextHeaderDiff = lowestInserted.TotalDifficulty - lowestInserted.Difficulty;
         }
 
-        _logger.Info($"Start number is {startNumber}");
-
         // the base class with starts with _lowestRequestedHeaderNumber - 1, so we offset it here.
         _lowestRequestedHeaderNumber = startNumber + 1;
 

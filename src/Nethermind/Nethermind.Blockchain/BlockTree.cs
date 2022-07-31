@@ -1517,8 +1517,6 @@ namespace Nethermind.Blockchain
             bool terminalBlockRequirementSatisfied = tdImproved && reachedTtd && header.IsTerminalBlock(_specProvider) && !Head.IsPoS();
             bool postMergeImprovementRequirementSatisfied = reachedTtd && (BestSuggestedBody?.Number ?? 0) <= header.Number && isPostMerge;
 
-            _logger.Info($"The best condition {reachedTtd} {(BestSuggestedBody?.Number ?? 0) <= header.Number} {isPostMerge}");
-
             return preMergeImprovementRequirementSatisfied || terminalBlockRequirementSatisfied || postMergeImprovementRequirementSatisfied;
         }
 
