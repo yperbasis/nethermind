@@ -111,8 +111,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
                 _logger.Trace(
                     $"MergeBlockDownloader GetCurrentNumber: currentNumber {currentNumber}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody?.Number}, BestKnownNumber: {_blockTree.BestKnownNumber}, BestPeer: {bestPeer}, BestKnownBeaconNumber {_blockTree.BestKnownBeaconNumber}");
 
-            _logger.Trace($"Second condition {_blockTree.FindBlock(_beaconPivot.PivotHash!)}");
-
             bool HasMoreToSync()
                 => (currentNumber < _blockTree.BestKnownBeaconNumber &&
                     bestPeer.HeadNumber > _blockTree.BestKnownNumber)

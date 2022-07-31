@@ -170,7 +170,7 @@ public class BeaconHeadersSyncTests
         HeadersSyncBatch? result = await feed.PrepareRequest();
         result.Should().BeNull();
         feed.CurrentState.Should().Be(SyncFeedState.Dormant);
-        measuredProgress.CurrentValue.Should().Be(1000);
+        measuredProgress.CurrentValue.Should().Be(999);
     }
 
     [Test]
@@ -257,7 +257,7 @@ public class BeaconHeadersSyncTests
         HeadersSyncBatch result = await ctx.Feed.PrepareRequest();
         result.Should().BeNull();
         // check headers are inserted into block tree during sync
-        blockTree.FindHeader(pivot.PivotNumber, BlockTreeLookupOptions.TotalDifficultyNotNeeded).Should().NotBeNull();
+        blockTree.FindHeader(pivot.PivotNumber - 1, BlockTreeLookupOptions.TotalDifficultyNotNeeded).Should().NotBeNull();
         blockTree.LowestInsertedBeaconHeader?.Hash.Should().BeEquivalentTo(syncedBlockTree.FindHeader(endLowestBeaconHeader, BlockTreeLookupOptions.None)?.Hash);
         blockTree.BestKnownNumber.Should().Be(bestPointer);
         blockTree.BestSuggestedHeader.Should().BeEquivalentTo(startBestHeader);
@@ -273,7 +273,7 @@ public class BeaconHeadersSyncTests
         long endLowestBeaconHeader)
     {
         ctx.Feed.InitializeFeed();
-        long lowestHeaderNumber = pivot.PivotNumber + 1;
+        long lowestHeaderNumber = pivot.PivotNumber;
         while (lowestHeaderNumber > endLowestBeaconHeader)
         {
             HeadersSyncBatch batch = await ctx.Feed.PrepareRequest();
@@ -304,7 +304,6 @@ public class BeaconHeadersSyncTests
 
     private IBeaconPivot PreparePivot(long blockNumber, ISyncConfig syncConfig, IBlockTree blockTree, BlockHeader? pivotHeader = null)
     {
-        IPeerRefresher peerRefresher = Substitute.For<IPeerRefresher>();
         IBeaconPivot pivot = new BeaconPivot(syncConfig, new MemDb(), blockTree, LimboLogs.Instance);
         pivot.EnsurePivot(pivotHeader ?? Build.A.BlockHeader.WithNumber(blockNumber).TestObject);
         return pivot;

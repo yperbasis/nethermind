@@ -62,7 +62,8 @@ namespace Nethermind.Synchronization.Blocks
 
                 if (existingBlocks?.TryGetValue(header.Hash, out Block existingBlock) ?? false)
                 {
-                    Blocks[i - 1] = existingBlock;
+                    // Header have total difficulty, but the block may not.
+                    Blocks[i - 1] = existingBlock.WithReplacedHeader(header);
                 }
                 else if (header.HasBody)
                 {
