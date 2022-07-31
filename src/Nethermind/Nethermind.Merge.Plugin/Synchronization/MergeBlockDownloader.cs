@@ -146,19 +146,9 @@ namespace Nethermind.Merge.Plugin.Synchronization
                         $"Downloading blocks from peer. CurrentNumber: {currentNumber}, BeaconPivot: {_beaconPivot.PivotNumber}, BestPeer: {bestPeer}, HeaderToRequest: {headersToRequest}");
 
                 // Kind hacky way to forward process blocks that was sent via NewPayload but not available via sync.
+                // Needed by at least 10 "Invalid Ancestor Chain Re-Org.*sync" hive test.
                 // TODO: Probably should not do forward sync/processing in here in addition to having parallel download capability
                 Dictionary<Keccak, Block> knownBlocks = GetExistingBlocks(downloadReceipts, headers);
-                _logger.Info($"Known blocks {knownBlocks.Count}");
-                foreach (KeyValuePair<Keccak,Block> keyValuePair in knownBlocks)
-                {
-                    _logger.Info($"K {keyValuePair.Key}");
-                }
-                _logger.Info($"Headers");
-                foreach (BlockHeader blockHeader in headers)
-                {
-                    _logger.Info($"H {blockHeader.Hash}");
-                }
-
                 BlockDownloadContext context = new(_specProvider, bestPeer, headers, downloadReceipts,
                     _receiptsRecovery, knownBlocks);
 

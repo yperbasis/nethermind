@@ -778,11 +778,13 @@ namespace Nethermind.Blockchain
                 BestSuggestedHeader = block.Header;
             }
 
-            if (block is not null && shouldProcess)
+            if (block is not null && shouldProcess && BestSuggestedImprovementRequirementsSatisfied(header))
             {
                 if (_logger.IsTrace)
                     _logger.Trace(
                         $"New best suggested block. PreviousBestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}");
+                BestSuggestedBody = block;
+                BestSuggestedHeader = block.Header;
                 NewBestSuggestedBlock?.Invoke(this, new BlockEventArgs(block));
             }
 
@@ -1508,6 +1510,8 @@ namespace Nethermind.Blockchain
 
         private bool BestSuggestedImprovementRequirementsSatisfied(BlockHeader header)
         {
+            if (BestSuggestedHeader == null) return true;
+
             bool reachedTtd = header.IsPostTTD(_specProvider);
             bool isPostMerge = header.IsPoS();
             bool tdImproved = (header.TotalDifficulty == (BestSuggestedBody?.TotalDifficulty ?? 0) && header.Number >= BestSuggestedBody?.Number)

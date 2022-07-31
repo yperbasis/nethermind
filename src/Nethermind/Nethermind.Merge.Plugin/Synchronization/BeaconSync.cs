@@ -61,9 +61,12 @@ namespace Nethermind.Merge.Plugin.Synchronization
             _isInBeaconModeControl = true;
         }
 
-        public void InitBeaconHeaderSync(BlockHeader? blockHeader)
+        public void InitBeaconHeaderSync(BlockHeader blockHeader)
         {
             StopBeaconModeControl();
+            // Manually insert header here as the beacon header sync actually starts from the parent of the blockHeader
+            // due to a hive test which connect peers that does not actually have the head, but only the parent of the head
+            _blockTree.Insert(blockHeader, BlockTreeInsertOptions.BeaconHeaderInsert | BlockTreeInsertOptions.TotalDifficultyNotNeeded);
             _beaconPivot.EnsurePivot(blockHeader);
         }
 
@@ -116,7 +119,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
     {
         void StopSyncing();
 
-        void InitBeaconHeaderSync(BlockHeader? blockHeader);
+        void InitBeaconHeaderSync(BlockHeader blockHeader);
 
         void StopBeaconModeControl();
     }

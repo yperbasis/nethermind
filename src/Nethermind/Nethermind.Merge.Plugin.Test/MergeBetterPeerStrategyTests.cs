@@ -21,6 +21,7 @@ using Nethermind.Core;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Merge.Plugin.Synchronization;
 using Nethermind.Synchronization;
 using NSubstitute;
 using NUnit.Framework;
@@ -123,8 +124,11 @@ public class MergeBetterPeerStrategyTests
         const long ttd = 5;
         IPoSSwitcher poSSwitcher = Substitute.For<IPoSSwitcher>();
         poSSwitcher.TerminalTotalDifficulty.Returns((UInt256)ttd);
+
+        IBeaconPivot beaconPivot = Substitute.For<IBeaconPivot>();
+
         TotalDifficultyBetterPeerStrategy preMergeBetterPeerStrategy = new(LimboLogs.Instance);
-        MergeBetterPeerStrategy betterPeerStrategy = new(preMergeBetterPeerStrategy, poSSwitcher, LimboLogs.Instance);
+        MergeBetterPeerStrategy betterPeerStrategy = new(preMergeBetterPeerStrategy, poSSwitcher, beaconPivot, LimboLogs.Instance);
         return betterPeerStrategy;
     }
 }

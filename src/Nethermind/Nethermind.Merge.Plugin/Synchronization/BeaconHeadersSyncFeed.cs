@@ -95,7 +95,6 @@ public sealed class BeaconHeadersSyncFeed : HeadersSyncFeed
         // In case we already have beacon sync happened before
         BlockHeader? lowestInserted = LowestInsertedBlockHeader;
         if (lowestInserted != null && lowestInserted.Number <= _pivotNumber) {
-            _logger.Info("Using lowest inserted block header, which is beacon header");
             startNumber = lowestInserted.Number - 1;
             _nextHeaderHash = lowestInserted.ParentHash ?? Keccak.Zero;
             _nextHeaderDiff = lowestInserted.TotalDifficulty - lowestInserted.Difficulty;
@@ -103,7 +102,7 @@ public sealed class BeaconHeadersSyncFeed : HeadersSyncFeed
 
         _logger.Info($"Start number is {startNumber}");
 
-        // the base class with starts with _lowestRequestedHeaderNumber-1, so we offset it here.
+        // the base class with starts with _lowestRequestedHeaderNumber - 1, so we offset it here.
         _lowestRequestedHeaderNumber = startNumber + 1;
 
         _logger.Info($"Initialized beacon headers sync. lowestRequestedHeaderNumber: {_lowestRequestedHeaderNumber}," +
