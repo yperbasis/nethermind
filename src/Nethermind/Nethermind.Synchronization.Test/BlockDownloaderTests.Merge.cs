@@ -85,7 +85,6 @@ public partial class BlockDownloaderTests
             RopstenSpecProvider.Instance,
             CreateMergePeerChoiceStrategy(posSwitcher, beaconPivot),
             new ChainLevelHelper(notSyncedTree, blockCacheService,  new SyncConfig(),  LimboLogs.Instance),
-            new NoopInvalidChainTracker(),
             Substitute.For<ISyncProgressResolver>(),
             LimboLogs.Instance);
 
@@ -152,7 +151,6 @@ public partial class BlockDownloaderTests
             RopstenSpecProvider.Instance,
             CreateMergePeerChoiceStrategy(posSwitcher, beaconPivot),
             new ChainLevelHelper(notSyncedTree, blockCacheService, new SyncConfig(), LimboLogs.Instance),
-            new NoopInvalidChainTracker(),
             Substitute.For<ISyncProgressResolver>(),
             LimboLogs.Instance);
 
@@ -188,7 +186,6 @@ public partial class BlockDownloaderTests
             testSpecProvider,
             CreateMergePeerChoiceStrategy(posSwitcher, beaconPivot),
             new ChainLevelHelper(blockTree, blockCacheService, new SyncConfig(),  LimboLogs.Instance),
-            new NoopInvalidChainTracker(),
             Substitute.For<ISyncProgressResolver>(),
             LimboLogs.Instance);
     }

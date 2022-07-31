@@ -381,7 +381,6 @@ namespace Nethermind.Synchronization.Test
                         syncConfig,
                         bestPeerStrategy,
                         syncReport,
-                        invalidChainTracker,
                         syncProgressResolver,
                         _logManager
                     );
@@ -399,6 +398,7 @@ namespace Nethermind.Synchronization.Test
                         pivot,
                         poSSwitcher,
                         mergeConfig,
+                        invalidChainTracker,
                         _logManager,
                         syncReport);
                 }

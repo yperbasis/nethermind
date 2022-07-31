@@ -381,7 +381,6 @@ namespace Nethermind.Merge.Plugin
                     _syncConfig,
                     _api.BetterPeerStrategy!,
                     syncReport,
-                    _invalidChainTracker,
                     _api.SyncProgressResolver,
                     _api.LogManager);
                 _api.Synchronizer = new MergeSynchronizer(
@@ -398,6 +397,7 @@ namespace Nethermind.Merge.Plugin
                     _api.Pivot,
                     _poSSwitcher,
                     _mergeConfig,
+                    _invalidChainTracker,
                     _api.LogManager,
                     syncReport);
             }

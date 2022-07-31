@@ -24,6 +24,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Crypto;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Merge.Plugin.InvalidChainTracker;
 using Nethermind.Synchronization;
 using Nethermind.Synchronization.FastBlocks;
 using Nethermind.Synchronization.ParallelSync;
@@ -35,6 +36,7 @@ namespace Nethermind.Merge.Plugin.Synchronization;
 public sealed class BeaconHeadersSyncFeed : HeadersSyncFeed
 {
     private readonly IPoSSwitcher _poSSwitcher;
+    private readonly IInvalidChainTracker _invalidChainTracker;
     private readonly IPivot _pivot;
     private readonly IMergeConfig _mergeConfig;
     private readonly ILogger _logger;
@@ -56,6 +58,7 @@ public sealed class BeaconHeadersSyncFeed : HeadersSyncFeed
         ISyncReport? syncReport,
         IPivot? pivot,
         IMergeConfig? mergeConfig,
+        IInvalidChainTracker invalidChainTracker,
         ILogManager logManager)
         : base(syncModeSelector, blockTree, syncPeerPool, syncConfig, syncReport, logManager,
             true) // alwaysStartHeaderSync = true => for the merge we're forcing header sync start. It doesn't matter if it is archive sync or fast sync
@@ -63,6 +66,7 @@ public sealed class BeaconHeadersSyncFeed : HeadersSyncFeed
         _poSSwitcher = poSSwitcher ?? throw new ArgumentNullException(nameof(poSSwitcher));
         _pivot = pivot ?? throw new ArgumentNullException(nameof(pivot));
         _mergeConfig = mergeConfig ?? throw new ArgumentNullException(nameof(mergeConfig));
+        _invalidChainTracker = invalidChainTracker;
         _logger = logManager.GetClassLogger();
     }
 
@@ -156,6 +160,8 @@ public sealed class BeaconHeadersSyncFeed : HeadersSyncFeed
                     $"Found header to join dangling beacon chain {header.ToString(BlockHeader.Format.FullHashAndNumber)}");
             return AddBlockResult.AlreadyKnown;
         }
+
+        _invalidChainTracker.SetChildParent(header.Hash!, header.ParentHash!);
 
         AddBlockResult insertOutcome = _blockTree.Insert(header, options);
 

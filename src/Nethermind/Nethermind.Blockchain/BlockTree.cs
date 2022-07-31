@@ -773,18 +773,15 @@ namespace Nethermind.Blockchain
 
             if (block is not null && BestSuggestedImprovementRequirementsSatisfied(header))
             {
-                _logger.Trace($"Setting best {block.Header}");
+                if (_logger.IsTrace)
+                    _logger.Trace(
+                        $"New best suggested block. PreviousBestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}");
                 BestSuggestedBody = block;
                 BestSuggestedHeader = block.Header;
             }
 
             if (block is not null && shouldProcess && BestSuggestedImprovementRequirementsSatisfied(header))
             {
-                if (_logger.IsTrace)
-                    _logger.Trace(
-                        $"New best suggested block. PreviousBestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}");
-                BestSuggestedBody = block;
-                BestSuggestedHeader = block.Header;
                 NewBestSuggestedBlock?.Invoke(this, new BlockEventArgs(block));
             }
 

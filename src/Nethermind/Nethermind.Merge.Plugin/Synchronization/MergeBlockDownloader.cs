@@ -51,7 +51,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
         private readonly IReceiptStorage _receiptStorage;
         private readonly IChainLevelHelper _chainLevelHelper;
         private readonly IPoSSwitcher _poSSwitcher;
-        private readonly IInvalidChainTracker _invalidChainTracker;
         private readonly ISyncProgressResolver _syncProgressResolver;
 
         public MergeBlockDownloader(
@@ -68,7 +67,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
             ISpecProvider specProvider,
             IBetterPeerStrategy betterPeerStrategy,
             IChainLevelHelper chainLevelHelper,
-            IInvalidChainTracker invalidChainTracker,
             ISyncProgressResolver syncProgressResolver,
             ILogManager logManager)
             : base(feed, syncPeerPool, blockTree, blockValidator, sealValidator, syncReport, receiptStorage,
@@ -84,7 +82,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
             _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
             _beaconPivot = beaconPivot;
             _receiptsRecovery = new ReceiptsRecovery(new EthereumEcdsa(specProvider.ChainId, logManager), specProvider);
-            _invalidChainTracker = invalidChainTracker;
             _syncProgressResolver = syncProgressResolver ?? throw new ArgumentNullException(nameof(syncProgressResolver));
             _blockCacheService = blockCacheService;
             _logger = logManager.GetClassLogger();
@@ -183,19 +180,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
                     break;
                 }
 
-                for (int i = blocks.Length - 1; i >= 0; i--)
-                {
-                    Block block = blocks[i];
-                    if (!HeaderValidator.ValidateHash(block.Header))
-                    {
-                        throw new EthSyncException($"{bestPeer} sent an invalid block hash {block.ToString(Block.Format.Short)}.");
-                    }
-                    else
-                    {
-                        _invalidChainTracker.SetChildParent(block.Header.Hash!, block.Header.ParentHash!);
-                    }
-                }
-
                 for (int blockIndex = 0; blockIndex < blocks.Length; blockIndex++)
                 {
                     if (cancellation.IsCancellationRequested)
@@ -254,11 +238,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
                             $"MergeBlockDownloader - SuggestBlock {currentBlock}, IsKnownBeaconBlock {isKnownBeaconBlock} ShouldProcess: {shouldProcess}");
 
                     AddBlockResult addResult = _blockTree.SuggestBlock(currentBlock, suggestOptions);
-                    if (addResult == AddBlockResult.InvalidBlock)
-                    {
-                        _invalidChainTracker.OnInvalidBlock(currentBlock.GetOrCalculateHash(), currentBlock.ParentHash!);
-                    }
-
                     if (HandleAddResult(bestPeer, currentBlock.Header, blockIndex == 0, addResult))
                     {
                         if (shouldProcess == false)
