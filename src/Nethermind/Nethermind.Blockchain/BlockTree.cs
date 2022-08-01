@@ -781,7 +781,7 @@ namespace Nethermind.Blockchain
                 BestSuggestedHeader = block.Header;
             }
 
-            if (block is not null && shouldProcess && (BestSuggestedImprovementRequirementsSatisfied(header) || header.IsGenesis))
+            if (block is not null && shouldProcess && (BestSuggestedImprovementRequirementsSatisfied(header) || header.IsGenesis || fillBeaconBlock))
             {
                 NewBestSuggestedBlock?.Invoke(this, new BlockEventArgs(block));
             }

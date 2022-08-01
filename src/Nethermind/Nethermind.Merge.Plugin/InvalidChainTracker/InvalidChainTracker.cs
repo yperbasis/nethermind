@@ -137,6 +137,7 @@ public class InvalidChainTracker: IInvalidChainTracker
 
     public void OnInvalidBlock(Keccak failedBlock, Keccak? parent)
     {
+        if(_logger.IsDebug) _logger.Debug($"OnInvalidBlock: {failedBlock} {parent}");
         if (parent == null)
         {
             BlockHeader? failedBlockHeader = TryGetBlockHeader(failedBlock);
