@@ -769,6 +769,7 @@ namespace Nethermind.Blockchain
             if (header.IsGenesis)
             {
                 Genesis = header;
+                BestSuggestedHeader = header;
             }
 
             if (block is not null && BestSuggestedImprovementRequirementsSatisfied(header))
@@ -780,7 +781,7 @@ namespace Nethermind.Blockchain
                 BestSuggestedHeader = block.Header;
             }
 
-            if (block is not null && shouldProcess && BestSuggestedImprovementRequirementsSatisfied(header))
+            if (block is not null && shouldProcess && (BestSuggestedImprovementRequirementsSatisfied(header) || header.IsGenesis))
             {
                 NewBestSuggestedBlock?.Invoke(this, new BlockEventArgs(block));
             }
