@@ -103,32 +103,34 @@ namespace Nethermind.Merge.Plugin.Synchronization
             bool shouldMoveToMain = (options & DownloaderOptions.MoveToMain) == DownloaderOptions.MoveToMain;
 
             int blocksSynced = 0;
-            long currentNumber = _blockTree.BestKnownNumber; // ToDo Ashraf MIN(_blockTree.BestKnownNumber, _blockCache.ProcessDestination.Number ?? 0)
+            long currentNumber = _blockTree.BestKnownNumber;
             if (_logger.IsTrace)
                 _logger.Trace(
                     $"MergeBlockDownloader GetCurrentNumber: currentNumber {currentNumber}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody?.Number}, BestKnownNumber: {_blockTree.BestKnownNumber}, BestPeer: {bestPeer}, BestKnownBeaconNumber {_blockTree.BestKnownBeaconNumber}");
 
-            bool HasMoreToSync()
-                => (currentNumber < _blockTree.BestKnownBeaconNumber &&
-                    bestPeer.HeadNumber > _blockTree.BestKnownNumber)
-                   || _beaconPivot.BeaconPivotExists();
-
-            while (HasMoreToSync())
+            bool HasMoreToSync(out BlockHeader[]? headers, out int headersToRequest)
             {
                 if (_logger.IsDebug)
                     _logger.Debug($"Continue full sync with {bestPeer} (our best {_blockTree.BestKnownNumber})");
 
-                int headersToRequest = Math.Min(_syncBatchSize.Current, bestPeer.MaxHeadersPerRequest());
+                headersToRequest = Math.Min(_syncBatchSize.Current, bestPeer.MaxHeadersPerRequest());
                 if (_logger.IsTrace)
                     _logger.Trace(
                         $"Full sync request {currentNumber}+{headersToRequest} to peer {bestPeer} with {bestPeer.HeadNumber} blocks. Got {currentNumber} and asking for {headersToRequest} more.");
-                BlockHeader[]? headers = _chainLevelHelper.GetNextHeaders(headersToRequest);
+
+                headers = _chainLevelHelper.GetNextHeaders(headersToRequest, blocksRequest.NumberOfLatestBlocksToBeIgnored ?? 0);
                 if (headers == null || headers.Length == 0)
                 {
                     if (_logger.IsTrace)
                         _logger.Trace("Chain level helper got no headers suggestion");
-                    break;
+                    return false;
                 }
+
+                return true;
+            }
+
+            while (HasMoreToSync(out BlockHeader[]? headers, out int headersToRequest))
+            {
 
                 if (cancellation.IsCancellationRequested) return blocksSynced; // check before every heavy operation
                 Block[]? blocks = null;
@@ -137,7 +139,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
                     _logger.Trace(
                         $"Downloading blocks from peer. CurrentNumber: {currentNumber}, BeaconPivot: {_beaconPivot.PivotNumber}, BestPeer: {bestPeer}, HeaderToRequest: {headersToRequest}");
 
-                BlockDownloadContext context = new(_specProvider, bestPeer, headers, downloadReceipts, _receiptsRecovery);
+                BlockDownloadContext context = new(_specProvider, bestPeer, headers!, downloadReceipts, _receiptsRecovery);
 
                 if (cancellation.IsCancellationRequested) return blocksSynced; // check before every heavy operation
                 _logger.Info("NonBlockhash " + context.NonEmptyBlockHashes.Count);

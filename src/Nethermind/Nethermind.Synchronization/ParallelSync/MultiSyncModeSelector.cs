@@ -388,7 +388,7 @@ namespace Nethermind.Synchronization.ParallelSync
             bool notInBeaconModes = !best.IsInAnyBeaconMode;
             bool desiredPeerKnown = AnyDesiredPeerKnown(best);
             bool postPivotPeerAvailable = AnyPostPivotPeerKnown(best.Peer.Block);
-            bool hasFastSyncBeenActive = _syncConfig.FastSync == false || best.Header >= _pivotNumber;
+            bool hasFastSyncBeenActive = FastSyncEnabled == false || best.Header >= _pivotNumber;
             bool notInFastSync = !best.IsInFastSync;
             bool notInStateSync = !best.IsInStateSync;
             bool notNeedToWaitForHeaders = NotNeedToWaitForHeaders;
