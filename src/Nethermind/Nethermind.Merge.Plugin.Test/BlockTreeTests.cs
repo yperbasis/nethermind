@@ -434,19 +434,6 @@ public partial class BlockTreeTests
                 return this;
             }
 
-            public ScenarioBuilder InsertBlocksToCacheService(long low, long high)
-            {
-                BlockTreeInsertOptions insertOptions = BlockTreeInsertOptions.BeaconBlockInsert | BlockTreeInsertOptions.MoveToBeaconMainChain;
-                for (long i = high; i >= low; --i)
-                {
-                    Block? beaconBlock = SyncedTree!.FindBlock(i, BlockTreeLookupOptions.None);
-
-                    _blockCacheService.BlockCache.TryAdd(beaconBlock.Hash!, beaconBlock!);
-                }
-
-                return this;
-            }
-
             public ScenarioBuilder InsertFork(long low, long high, bool moveToBeaconMainChain = false)
             {
                 List<BlockInfo> blockInfos = new();
