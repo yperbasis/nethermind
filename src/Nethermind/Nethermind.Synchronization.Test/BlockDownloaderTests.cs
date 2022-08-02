@@ -269,30 +269,6 @@ namespace Nethermind.Synchronization.Test
                 .ContinueWith(t => Assert.True(t.IsCompletedSuccessfully));
         }
 
-        [TestCase(33L)]
-        [TestCase(65L)]
-        public async Task Peer_sends_just_one_item_when_advertising_more_blocks(long headNumber)
-        {
-            Context ctx = new();
-            BlockDownloader downloader = CreateBlockDownloader(ctx);
-
-            ISyncPeer syncPeer = Substitute.For<ISyncPeer>();
-            syncPeer.GetBlockHeaders(Arg.Any<long>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
-                .Returns(ci => ctx.ResponseBuilder.BuildHeaderResponse(ci.ArgAt<long>(0), ci.ArgAt<int>(1), Response.AllCorrect));
-
-            syncPeer.GetBlockBodies(Arg.Any<IReadOnlyList<Keccak>>(), Arg.Any<CancellationToken>())
-                .Returns(ci => ctx.ResponseBuilder.BuildBlocksResponse(ci.ArgAt<IList<Keccak>>(0), Response.AllCorrect | Response.JustFirst));
-
-            PeerInfo peerInfo = new(syncPeer);
-            syncPeer.TotalDifficulty.Returns(UInt256.MaxValue);
-            syncPeer.HeadNumber.Returns(headNumber);
-
-            Task task = downloader.DownloadBlocks(peerInfo, new BlocksRequest(), CancellationToken.None);
-            await task.ContinueWith(t => Assert.True(t.IsFaulted));
-
-            Assert.AreEqual(0, ctx.BlockTree.BestSuggestedHeader.Number);
-        }
-
         [Test]
         public async Task Peer_only_advertise_one_header()
         {

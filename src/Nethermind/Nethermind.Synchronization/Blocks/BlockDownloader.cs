@@ -341,6 +341,10 @@ namespace Nethermind.Synchronization.Blocks
 
                     Block currentBlock = blocks[blockIndex];
                     if (_logger.IsTrace) _logger.Trace($"Received {currentBlock} from {bestPeer}");
+                    if (currentBlock.Header.HasBody && currentBlock.Body == null)
+                    {
+                        throw new EthSyncException($"{bestPeer} didn't send body for block {currentBlock.ToString(Block.Format.Short)}.");
+                    }
 
                     // can move this to block tree now?
                     if (!_blockValidator.ValidateSuggestedBlock(currentBlock))
@@ -452,9 +456,22 @@ namespace Nethermind.Synchronization.Blocks
                 Task<BlockBody[]> getBodiesRequest = peer.SyncPeer.GetBlockBodies(hashesToRequest, cancellation);
                 await getBodiesRequest.ContinueWith(_ => DownloadFailHandler(getBodiesRequest, "bodies"), cancellation);
                 BlockBody[] result = getBodiesRequest.Result;
+                bool hasNull = false;
                 for (int i = 0; i < result.Length; i++)
                 {
-                    context.SetBody(i + offset, result[i]);
+                    if (result[i] != null)
+                    {
+                        context.SetBody(i + offset, result[i]);
+                    }
+                    else
+                    {
+                        hasNull = true;
+                    }
+                }
+
+                if (hasNull || result.Length < hashesToRequest.Count)
+                {
+                    return;
                 }
 
                 offset += result.Length;

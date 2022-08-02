@@ -40,7 +40,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
         private readonly IBeaconPivot _beaconPivot;
         private readonly ISpecProvider _specProvider;
         private readonly IBlockTree _blockTree;
-        private readonly IBlockCacheService _blockCacheService;
         private readonly IReceiptStorage _receiptStorage;
         private readonly IBlockValidator _blockValidator;
         private readonly ISealValidator _sealValidator;
@@ -77,14 +76,13 @@ namespace Nethermind.Merge.Plugin.Synchronization
             _betterPeerStrategy = betterPeerStrategy ?? throw new ArgumentNullException(nameof(betterPeerStrategy));
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             _syncReport = syncReport ?? throw new ArgumentNullException(nameof(syncReport));
-            _blockCacheService = blockCacheService;
-            _chainLevelHelper = new ChainLevelHelper(_blockTree, _blockCacheService, syncConfig, _logManager);
+            _chainLevelHelper = new ChainLevelHelper(_blockTree, blockCacheService, syncConfig, _logManager);
             _syncProgressResolver = syncProgressResolver ?? throw new ArgumentNullException(nameof(syncProgressResolver));;
         }
 
         public BlockDownloader Create(ISyncFeed<BlocksRequest?> syncFeed)
         {
-            return new MergeBlockDownloader(_poSSwitcher, _beaconPivot, syncFeed, _syncPeerPool, _blockTree, _blockCacheService, _blockValidator,
+            return new MergeBlockDownloader(_poSSwitcher, _beaconPivot, syncFeed, _syncPeerPool, _blockTree, _blockValidator,
                 _sealValidator, _syncReport, _receiptStorage, _specProvider, _betterPeerStrategy, _chainLevelHelper,
                 _syncProgressResolver, _logManager);
         }
