@@ -775,7 +775,7 @@ namespace Nethermind.Merge.Plugin.Test
             AssertExecutionStatusNotChangedV1(rpc, block.Hash!, startingHead, startingHead);
         }
 
-        [Test]
+        [Test, NonParallelizable]
         public async Task forkChoiceUpdatedV1_block_still_processing()
         {
             using MergeTestBlockchain chain = await CreateBlockChain();
@@ -785,16 +785,26 @@ namespace Nethermind.Merge.Plugin.Test
             Block blockTreeHead = chain.BlockTree.Head!;
             Block block = Build.A.Block.WithNumber(blockTreeHead.Number + 1).WithParent(blockTreeHead).WithNonce(0).WithDifficulty(0).TestObject;
 
+            TimeSpan originalTimeout = NewPayloadV1Handler.Timeout;
             NewPayloadV1Handler.Timeout = TimeSpan.FromMilliseconds(100);
-            chain.ThrottleBlockProcessor(200);
-            ResultWrapper<PayloadStatusV1> newPayloadV1 = await rpc.engine_newPayloadV1(new ExecutionPayloadV1(block));
-            newPayloadV1.Data.Status.Should().Be("SYNCING");
+            try
+            {
+                chain.ThrottleBlockProcessor(200);
+                ResultWrapper<PayloadStatusV1> newPayloadV1 =
+                    await rpc.engine_newPayloadV1(new ExecutionPayloadV1(block));
+                newPayloadV1.Data.Status.Should().Be("SYNCING");
 
-            ForkchoiceStateV1 forkchoiceStateV1 = new(block.Hash!, startingHead, startingHead);
-            ResultWrapper<ForkchoiceUpdatedV1Result> forkchoiceUpdatedResult = await rpc.engine_forkchoiceUpdatedV1(forkchoiceStateV1);
-            forkchoiceUpdatedResult.Data.PayloadStatus.Status.Should().Be("SYNCING");
+                ForkchoiceStateV1 forkchoiceStateV1 = new(block.Hash!, startingHead, startingHead);
+                ResultWrapper<ForkchoiceUpdatedV1Result> forkchoiceUpdatedResult =
+                    await rpc.engine_forkchoiceUpdatedV1(forkchoiceStateV1);
+                forkchoiceUpdatedResult.Data.PayloadStatus.Status.Should().Be("SYNCING");
 
-            AssertExecutionStatusNotChangedV1(rpc, block.Hash!, startingHead, startingHead);
+                AssertExecutionStatusNotChangedV1(rpc, block.Hash!, startingHead, startingHead);
+            }
+            finally
+            {
+                NewPayloadV1Handler.Timeout = originalTimeout;
+            }
         }
 
         [Test]
@@ -1013,7 +1023,8 @@ namespace Nethermind.Merge.Plugin.Test
         {
             using MergeTestBlockchain chain = await CreateBlockChain();
             IEngineRpcModule rpc = CreateEngineModule(chain);
-            Keccak lastHash = (await ProduceBranchV1(rpc, chain, count, CreateParentBlockRequestOnHead(chain.BlockTree), true)).LastOrDefault()?.BlockHash ?? Keccak.Zero;
+            Keccak lastHash = (await ProduceBranchV1(rpc, chain, count, CreateParentBlockRequestOnHead(chain.BlockTree), true))
+                .LastOrDefault()?.BlockHash ?? Keccak.Zero;
             chain.BlockTree.HeadHash.Should().Be(lastHash);
             Block? last = RunForAllBlocksInBranch(chain.BlockTree, chain.BlockTree.HeadHash, b => b.IsGenesis, true);
             last.Should().NotBeNull();
