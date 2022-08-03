@@ -17,6 +17,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Api;
 using Nethermind.Blockchain;
@@ -57,7 +58,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
         private readonly ILogger _logger;
         private readonly LruCache<Keccak, bool> _latestBlocks = new(50, "LatestBlocks");
         private readonly ProcessingOptions _processingOptions;
-        internal static TimeSpan Timeout = TimeSpan.FromSeconds(7);
+        private readonly TimeSpan _timeout;
 
         public NewPayloadV1Handler(
             IBlockValidator blockValidator,
@@ -71,7 +72,8 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             IBlockProcessingQueue processingQueue,
             IInvalidChainTracker invalidChainTracker,
             IMergeSyncController mergeSyncController,
-            ILogManager logManager)
+            ILogManager logManager,
+            TimeSpan? timeout = null)
         {
             _blockValidator = blockValidator ?? throw new ArgumentNullException(nameof(blockValidator));
             _blockTree = blockTree;
@@ -85,6 +87,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             _mergeSyncController = mergeSyncController;
             _logger = logManager.GetClassLogger();
             _processingOptions = initConfig.StoreReceipts ? ProcessingOptions.EthereumMerge | ProcessingOptions.StoreReceipts : ProcessingOptions.EthereumMerge;
+            _timeout = timeout ?? TimeSpan.FromSeconds(7);
         }
 
         public async Task<ResultWrapper<PayloadStatusV1>> HandleAsync(ExecutionPayloadV1 request)
@@ -289,7 +292,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             _processingQueue.BlockRemoved += GetProcessingQueueOnBlockRemoved;
             try
             {
-                Task timeoutTask = Task.Delay(Timeout);
+                Task timeoutTask = Task.Delay(_timeout);
                 AddBlockResult addResult = await _blockTree.SuggestBlockAsync(block, BlockTreeSuggestOptions.ForceDontSetAsMain)
                     .AsTask().TimeoutOn(timeoutTask);
 
