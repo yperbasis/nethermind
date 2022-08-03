@@ -772,23 +772,27 @@ namespace Nethermind.Blockchain
                 BestSuggestedHeader = header;
             }
 
-            if (block is not null && BestSuggestedImprovementRequirementsSatisfied(header))
+            if (block is not null)
             {
-                if (_logger.IsTrace)
-                    _logger.Trace(
-                        $"New best suggested block. PreviousBestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}");
-                BestSuggestedHeader = block.Header;
+                bool bestSuggestedImprovementSatisfied = BestSuggestedImprovementRequirementsSatisfied(header);
+                if (bestSuggestedImprovementSatisfied)
+                {
+                    if (_logger.IsTrace)
+                        _logger.Trace(
+                            $"New best suggested block. PreviousBestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}");
+                    BestSuggestedHeader = block.Header;
 
-                if (block.IsPostMerge)
+                    if (block.IsPostMerge)
+                    {
+                        BestSuggestedBody = block;
+                    }
+                }
+
+                if (shouldProcess && (bestSuggestedImprovementSatisfied || header.IsGenesis || fillBeaconBlock))
                 {
                     BestSuggestedBody = block;
+                    NewBestSuggestedBlock?.Invoke(this, new BlockEventArgs(block));
                 }
-            }
-
-            if (block is not null && shouldProcess && (BestSuggestedImprovementRequirementsSatisfied(header) || header.IsGenesis || fillBeaconBlock))
-            {
-                BestSuggestedBody = block;
-                NewBestSuggestedBlock?.Invoke(this, new BlockEventArgs(block));
             }
 
             return AddBlockResult.Added;

@@ -188,7 +188,7 @@ namespace Nethermind.Synchronization.ParallelSync
                         }
                         else
                         {
-                            if (ShouldBeInFullSyncMode(best))
+                            if (ShouldBeInFullSyncModeInArchiveMode(best))
                             {
                                 newModes = SyncMode.Full;
                             }
@@ -409,6 +409,30 @@ namespace Nethermind.Synchronization.ParallelSync
                     (nameof(postPivotPeerAvailable), postPivotPeerAvailable),
                     (nameof(hasFastSyncBeenActive), hasFastSyncBeenActive),
                     (nameof(notInFastSync), notInFastSync),
+                    (nameof(notInStateSync), notInStateSync),
+                    (nameof(notNeedToWaitForHeaders), notNeedToWaitForHeaders));
+            }
+
+            return result;
+        }
+
+        private bool ShouldBeInFullSyncModeInArchiveMode(Snapshot best)
+        {
+            bool notInBeaconModes = !best.IsInAnyBeaconMode;
+            bool desiredPeerKnown = AnyDesiredPeerKnown(best);
+            bool notInStateSync = !best.IsInStateSync;
+            bool notNeedToWaitForHeaders = NotNeedToWaitForHeaders;
+
+            bool result = notInBeaconModes &&
+                          desiredPeerKnown &&
+                          notInStateSync &&
+                          notNeedToWaitForHeaders;
+
+            if (_logger.IsTrace)
+            {
+                LogDetailedSyncModeChecks("FULL",
+                    (nameof(notInBeaconModes), notInBeaconModes),
+                    (nameof(desiredPeerKnown), desiredPeerKnown),
                     (nameof(notInStateSync), notInStateSync),
                     (nameof(notNeedToWaitForHeaders), notNeedToWaitForHeaders));
             }
