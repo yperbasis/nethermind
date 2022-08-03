@@ -139,7 +139,7 @@ public class BlockchainProcessor : IBlockchainProcessor, IBlockProcessingQueue
             catch (Exception e)
             {
                 Interlocked.Decrement(ref _queueCount);
-                BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockHash, ProcessingResult.QueueException));
+                BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockHash, ProcessingResult.QueueException, e));
                 if (e is not InvalidOperationException || !_recoveryQueue.IsAddingCompleted)
                 {
                     throw;
@@ -213,10 +213,10 @@ public class BlockchainProcessor : IBlockchainProcessor, IBlockProcessingQueue
 
     private void RunRecoveryLoop()
     {
-        void DecrementQueue(Keccak blockHash, ProcessingResult processingResult)
+        void DecrementQueue(Keccak blockHash, ProcessingResult processingResult, Exception? exception = null)
         {
             Interlocked.Decrement(ref _queueCount);
-            BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockHash, processingResult));
+            BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockHash, processingResult, exception));
             FireProcessingQueueEmpty();
         }
 
@@ -238,7 +238,7 @@ public class BlockchainProcessor : IBlockchainProcessor, IBlockProcessingQueue
                     }
                     catch (Exception e)
                     {
-                        DecrementQueue(blockRef.BlockHash, ProcessingResult.QueueException);
+                        DecrementQueue(blockRef.BlockHash, ProcessingResult.QueueException, e);
 
                         if (e is InvalidOperationException)
                         {
@@ -255,9 +255,9 @@ public class BlockchainProcessor : IBlockchainProcessor, IBlockProcessingQueue
                     if (_logger.IsTrace) _logger.Trace("Block was removed from the DB and cannot be recovered (it belonged to an invalid branch). Skipping.");
                 }
             }
-            catch
+            catch (Exception e)
             {
-                DecrementQueue(blockRef.BlockHash, ProcessingResult.Exception);
+                DecrementQueue(blockRef.BlockHash, ProcessingResult.Exception, e);
                 throw;
             }
         }
@@ -301,7 +301,7 @@ public class BlockchainProcessor : IBlockchainProcessor, IBlockProcessingQueue
             catch (Exception exception)
             {
                 if (_logger.IsWarn) _logger.Warn($"Processing loop threw an exception. Block: {blockRef}, Exception: {exception}");
-                BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.Exception));
+                BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.Exception, exception));
             }
             finally
             {
