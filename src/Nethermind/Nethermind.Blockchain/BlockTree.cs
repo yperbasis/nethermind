@@ -738,8 +738,7 @@ namespace Nethermind.Blockchain
                 return AddBlockResult.AlreadyKnown;
             }
 
-            bool parentExists = IsKnownBlock(header.Number - 1, header.ParentHash!) ||
-                                IsKnownBeaconBlock(header.Number - 1, header.ParentHash!);
+            bool parentExists = IsKnownBlock(header.Number - 1, header.ParentHash!);
             if (!header.IsGenesis && !parentExists)
             {
                 if (_logger.IsTrace) _logger.Trace($"Could not find parent ({header.ParentHash}) of block {header.Hash}");
