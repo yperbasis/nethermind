@@ -591,6 +591,16 @@ public partial class BlockTreeTests
     }
 
     [Test]
+    public void Should_not_be_able_suggest_block_with_unknown_parent()
+    {
+        BlockTreeTestScenario.ScenarioBuilder scenario = BlockTreeTestScenario.GoesLikeThis()
+            .WithBlockTrees(10, 20);
+
+        Block? block = scenario.SyncedTree.FindBlock(15, BlockTreeLookupOptions.None);
+        scenario.NotSyncedTree.SuggestBlock(block, BlockTreeSuggestOptions.FillBeaconBlock).Should().Be(AddBlockResult.UnknownParent);
+    }
+
+    [Test]
     public void BeaconBlockInsert_does_not_change_best_blocks()
     {
         BlockTreeTestScenario.ScenarioBuilder scenario = BlockTreeTestScenario.GoesLikeThis()
