@@ -352,7 +352,7 @@ public partial class BlockTreeTests
 
             public ScenarioBuilder SuggestBlocksUsingChainLevels(int maxCount = 2, long maxHeaderNumber = long.MaxValue)
             {
-                BlockHeader[] headers = _chainLevelHelper!.GetNextHeaders(maxCount, maxHeaderNumber);
+                BlockHeader[] headers = _chainLevelHelper!.GetNextHeaders(maxCount);
                 while (headers != null && headers.Length > 1)
                 {
                     BlockDownloadContext blockDownloadContext = new(
@@ -383,7 +383,7 @@ public partial class BlockTreeTests
                         Assert.True(AddBlockResult.Added == insertResult, $"BeaconBlock {beaconBlock!.ToString(Block.Format.FullHashAndNumber)}");
                     }
 
-                    headers = _chainLevelHelper!.GetNextHeaders(maxCount, maxHeaderNumber);
+                    headers = _chainLevelHelper!.GetNextHeaders(maxCount);
                 }
 
                 return this;

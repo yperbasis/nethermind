@@ -29,7 +29,7 @@ namespace Nethermind.Merge.Plugin.Synchronization;
 
 public interface IChainLevelHelper
 {
-    BlockHeader[]? GetNextHeaders(int maxCount, long maxHeaderNumber);
+    BlockHeader[]? GetNextHeaders(int maxCount);
 
     bool TrySetNextBlocks(int maxCount, BlockDownloadContext context);
 }
@@ -53,7 +53,7 @@ public class ChainLevelHelper : IChainLevelHelper
         _logger = logManager.GetClassLogger();
     }
 
-    public BlockHeader[]? GetNextHeaders(int maxCount, long maxHeaderNumber)
+    public BlockHeader[]? GetNextHeaders(int maxCount)
     {
         long? startingPoint = GetStartingPoint();
         if (startingPoint == null)
