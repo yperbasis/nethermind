@@ -74,6 +74,8 @@ namespace Nethermind.Hive
                 if (_logger.IsInfo) _logger.Info("Hive is starting");
 
                 await hiveRunner.Start(_disposeCancellationToken.Token);
+
+                if (_logger.IsInfo) _logger.Info("Hive init completed");
             }
             else
             {
