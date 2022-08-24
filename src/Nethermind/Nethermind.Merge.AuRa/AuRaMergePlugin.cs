@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
 using Nethermind.Consensus.AuRa.Transactions;
+using Nethermind.Merge.Plugin.BlockProduction;
 
 namespace Nethermind.Merge.AuRa
 {
@@ -61,6 +62,14 @@ namespace Nethermind.Merge.AuRa
             return new StartBlockProducerAuRa(_auraApi!)
                 .CreateStandardTxSourceForProducer(txProcessingEnv, constantContractsProcessingEnv);
         }
+
+        protected override PostMergeBlockProducerFactory CreateBlockProducerFactory()
+            => new AuRaPostMergeBlockProducerFactory(
+                _api.SpecProvider!,
+                _api.SealEngine,
+                _manualTimestamper!,
+                _miningConfig,
+                _api.LogManager);
 
         public bool ShouldRunSteps(INethermindApi api) => api.Config<IAuRaMergeConfig>().Enabled;
     }

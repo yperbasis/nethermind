@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -58,22 +58,14 @@ namespace Nethermind.Merge.Plugin.BlockProduction
         {
         }
         
-        public Block PrepareEmptyBlock(BlockHeader parent, PayloadAttributes? payloadAttributes = null)
+        public virtual Block PrepareEmptyBlock(BlockHeader parent, PayloadAttributes? payloadAttributes = null)
         {
             BlockHeader blockHeader = PrepareBlockHeader(parent, payloadAttributes);
             blockHeader.ReceiptsRoot = Keccak.EmptyTreeHash;
             blockHeader.TxRoot = Keccak.EmptyTreeHash;
             blockHeader.Bloom = Bloom.Empty;
             
-            Block block = new(blockHeader, Array.Empty<Transaction>(), Array.Empty<BlockHeader>());
-
-            // processing is only done here to apply block rewards in AuRa
-            if (TrySetState(parent.StateRoot))
-            {
-                block = ProcessPreparedBlock(block, null) ?? block;
-            }
-            
-            return block;
+            return  new(blockHeader, Array.Empty<Transaction>(), Array.Empty<BlockHeader>());
         }
         
         protected override Block PrepareBlock(BlockHeader parent, PayloadAttributes? payloadAttributes = null)
