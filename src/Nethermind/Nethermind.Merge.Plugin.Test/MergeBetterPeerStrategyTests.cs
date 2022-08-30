@@ -111,6 +111,7 @@ public class MergeBetterPeerStrategyTests
     [TestCase(9, 7,4,7,10, true)]
     [TestCase(9, 8,2,7,7, false)]
     [TestCase(null, 9,4,5,99, false)]
+    [TestCase(3, 5,1,3,4, true)]
     public void IsDesiredPeer_return_expected_results_post_ttd(long? pivotNumber, long chainDifficulty, long bestHeader, long peerTotalDifficulty, long peerNumber, bool expectedResult)
     {
         ISyncPeer syncPeer = Substitute.For<ISyncPeer>();
