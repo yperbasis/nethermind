@@ -21,7 +21,7 @@ ARG TARGETOS
 ARG TARGETARCH
 ARG BUILDPLATFORM
 
-RUN apt-get update && apt-get -y install libsnappy-dev libc6-dev libc6
+RUN apt-get update && apt-get -y install librocksdb-dev libsnappy-dev libc6-dev libc6
 
 # Fix rocksdb issue in ubuntu 22.04
 RUN if [ "$TARGETARCH" = "amd64" ] ; \
