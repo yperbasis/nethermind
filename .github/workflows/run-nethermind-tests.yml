@@ -27,7 +27,7 @@ jobs:
     - name: Installing Linux packages
       run: |
         sudo apt-get update
-        sudo apt-get install libsnappy-dev libc6-dev libc6
+        sudo apt-get install librocksdb-dev libsnappy-dev libc6-dev libc6
     - name: Nethermind.Blockchain.Test
       run: |
         dotnet test -c Release src/Nethermind/Nethermind.Blockchain.Test        
@@ -58,7 +58,7 @@ jobs:
     - name: Installing Linux packages
       run: |
         sudo apt-get update
-        sudo apt-get install libsnappy-dev libc6-dev libc6
+        sudo apt-get install librocksdb-dev libsnappy-dev libc6-dev libc6
     - name: Nethermind.Clique.Test
       run: |
         dotnet test -c Release src/Nethermind/Nethermind.Clique.Test
@@ -110,7 +110,7 @@ jobs:
     - name: Installing Linux packages
       run: |
         sudo apt-get update
-        sudo apt-get install libsnappy-dev libc6-dev libc6
+        sudo apt-get install librocksdb-dev libsnappy-dev libc6-dev libc6
     - name: Nethermind.HealthChecks.Test
       run: |
         dotnet test -c Release src/Nethermind/Nethermind.HealthChecks.Test
@@ -156,7 +156,7 @@ jobs:
     - name: Installing Linux packages
       run: |
         sudo apt-get update
-        sudo apt-get install libsnappy-dev libc6-dev libc6
+        sudo apt-get install librocksdb-dev libsnappy-dev libc6-dev libc6
     - name: Nethermind.Secp256k1.Test.Linux
       run: |
         dotnet test -c Release src/Nethermind/Nethermind.Secp256k1.Test
@@ -178,7 +178,7 @@ jobs:
     - name: Installing Linux packages
       run: |
         sudo apt-get update
-        sudo apt-get install libsnappy-dev libc6-dev libc6
+        sudo apt-get install librocksdb-dev libsnappy-dev libc6-dev libc6
     - name: Nethermind.TxPool.Test
       run: |
         dotnet test -c Release src/Nethermind/Nethermind.TxPool.Test   
@@ -215,7 +215,7 @@ jobs:
     - name: Installing Linux packages
       run: |
         sudo apt-get update
-        sudo apt-get install libsnappy-dev libc6-dev libc6
+        sudo apt-get install librocksdb-dev librocksdb-dev libsnappy-dev libc6-dev libc6
     - name: Nethermind.BeaconNode.Eth1Bridge.Test
       run: |
         dotnet test -c Release src/Nethermind/Nethermind.BeaconNode.Eth1Bridge.Test
@@ -249,7 +249,7 @@ jobs:
     - name: Installing Linux packages
       run: |
         sudo apt-get update
-        sudo apt-get install libsnappy-dev libc6-dev libc6
+        sudo apt-get install librocksdb-dev libsnappy-dev libc6-dev libc6
     - name: Nethermind.Runner.Test
       run: |
         dotnet test -c Release src/Nethermind/Nethermind.Runner.Test
@@ -334,4 +334,3 @@ jobs:
     - name: Ethereum.Transition.Test
       run: |
         dotnet test -c Release src/Nethermind/Ethereum.Transition.Test
-        
