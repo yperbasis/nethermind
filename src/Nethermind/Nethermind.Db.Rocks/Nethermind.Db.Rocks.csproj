@@ -21,6 +21,9 @@
       <None Update="runtimes\linux-arm64\native\librocksdb.so">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <None Update="runtimes\linux-x64\native\librocksdb.so">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
       <None Update="runtimes\osx-arm64\native\librocksdb.dylib">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
