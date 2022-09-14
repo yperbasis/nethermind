@@ -485,7 +485,7 @@ namespace Nethermind.Synchronization.Test.ParallelSync
         }
 
         [Test]
-        public void When_state_sync_does_not_finished_then_sync_mode_should_be_full()
+        public void When_state_sync_does_not_finished_then_sync_mode_should_not_be_full()
         {
             Scenario.GoesLikeThis(_needToWaitForHeaders)
                 .IfTheNodeDoesNotFinishStateSync()
