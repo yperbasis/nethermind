@@ -5,10 +5,12 @@
 #pragma warning disable 1591, 0612, 3021
 #region Designer generated code
 
+#pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
 using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
+#pragma warning restore CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
 namespace Nethermind.Grpc {
 
   /// <summary>Holder for reflection information generated from src/Nethermind/Nethermind.Grpc/Nethermind.proto</summary>

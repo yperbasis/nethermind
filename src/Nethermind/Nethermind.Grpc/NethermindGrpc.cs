@@ -5,7 +5,9 @@
 #pragma warning disable 0414, 1591
 #region Designer generated code
 
+#pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
 using grpc = global::Grpc.Core;
+#pragma warning restore CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
 
 namespace Nethermind.Grpc {
   public static partial class NethermindService

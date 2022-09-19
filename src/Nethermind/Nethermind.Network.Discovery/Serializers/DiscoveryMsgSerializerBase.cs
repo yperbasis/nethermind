@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -54,7 +54,7 @@ public abstract class DiscoveryMsgSerializerBase
             
         Span<byte> forMdc = resultSpan.Slice(32);
         ValueKeccak mdc = ValueKeccak.Compute(forMdc);
-        mdc.BytesAsSpan.CopyTo(resultSpan.Slice(0,32));
+        ValueKeccak.BytesAsSpan(ref mdc).CopyTo(resultSpan.Slice(0,32));
         return result;
     }
 
@@ -69,7 +69,8 @@ public abstract class DiscoveryMsgSerializerBase
         Span<byte> signature = msg.AsSpan(32, 65);
         // var type = new[] { msg[97] };
         byte[] data = msg.Slice(98, msg.Length - 98);
-        Span<byte> computedMdc = ValueKeccak.Compute(msg.AsSpan(32)).BytesAsSpan;
+        var keccakValue = ValueKeccak.Compute(msg.AsSpan(32));
+        Span<byte> computedMdc = ValueKeccak.BytesAsSpan(ref keccakValue);
         
         if (!Bytes.AreEqual(mdc, computedMdc))
         {

@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 //
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -185,7 +185,7 @@ namespace Nethermind.Merge.Plugin.BlockProduction
             payloadAttributes.PrevRandao.Bytes.CopyTo(inputSpan.Slice(64, 32));
             payloadAttributes.SuggestedFeeRecipient.Bytes.CopyTo(inputSpan.Slice(96, 20));
             ValueKeccak inputHash = ValueKeccak.Compute(inputSpan);
-            return inputHash.BytesAsSpan.Slice(0, 8).ToHexString(true);
+            return ValueKeccak.BytesAsSpan(ref inputHash).Slice(0, 8).ToHexString(true);
         }
     }
 }

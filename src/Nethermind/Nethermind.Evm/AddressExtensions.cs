@@ -32,7 +32,7 @@ namespace Nethermind.Evm
                         Rlp.Encode(deployingAddress),
                         Rlp.Encode(nonce)).Bytes);
 
-            return new Address(in contractAddressKeccak);
+            return new Address(ref contractAddressKeccak);
         }
         
         public static Address From(Address deployingAddress, Span<byte> salt, Span<byte> initCode)
@@ -42,10 +42,11 @@ namespace Nethermind.Evm
             bytes[0] = 0xff;
             deployingAddress.Bytes.CopyTo(bytes.Slice(1, 20));
             salt.CopyTo(bytes.Slice(21, salt.Length));
-            ValueKeccak.Compute(initCode).BytesAsSpan.CopyTo(bytes.Slice(21 + salt.Length, 32));
+            var keccakValue = ValueKeccak.Compute(initCode);
+            ValueKeccak.BytesAsSpan(ref keccakValue).CopyTo(bytes.Slice(21 + salt.Length, 32));
                 
             ValueKeccak contractAddressKeccak = ValueKeccak.Compute(bytes);
-            return new Address(in contractAddressKeccak);
+            return new Address(ref contractAddressKeccak);
         }
     }
 }

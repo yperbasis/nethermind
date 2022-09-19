@@ -69,7 +69,8 @@ namespace Nethermind.State
             index.ToBigEndian(span);
 
             // (1% allocations on archive sync) this ToArray can be pooled or just directly converted to nibbles
-            return ValueKeccak.Compute(span).BytesAsSpan.ToArray();
+            var keccakValue = ValueKeccak.Compute(span);
+            return ValueKeccak.BytesAsSpan(ref keccakValue).ToArray();
         }
 
         public byte[] Get(in UInt256 index, Keccak? storageRoot = null)

@@ -14,6 +14,7 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System;
 using System.Diagnostics;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -48,7 +49,9 @@ namespace Nethermind.State
         [DebuggerStepThrough]
         public Account? Get(Address address, Keccak? rootHash = null)
         {
-            byte[]? bytes = Get(ValueKeccak.Compute(address.Bytes).BytesAsSpan, rootHash);
+            var keccakValue = ValueKeccak.Compute(address.Bytes);
+            var keccakBytes = ValueKeccak.BytesAsSpan(ref keccakValue);
+            byte[]? bytes = Get(keccakBytes, rootHash);
             if (bytes is null)
             {
                 return null;
@@ -72,7 +75,8 @@ namespace Nethermind.State
         public void Set(Address address, Account? account)
         {
             ValueKeccak keccak = ValueKeccak.Compute(address.Bytes);
-            Set(keccak.BytesAsSpan, account is null ? null : account.IsTotallyEmpty ? EmptyAccountRlp : Rlp.Encode(account));
+            Span<byte> bytes  = ValueKeccak.BytesAsSpan(ref keccak);
+            Set(bytes, account is null ? null : account.IsTotallyEmpty ? EmptyAccountRlp : Rlp.Encode(account));
         }
         
         [DebuggerStepThrough]

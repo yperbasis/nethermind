@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -38,7 +38,7 @@ namespace Nethermind.Core
 
         public Address(Keccak keccak) : this(keccak.Bytes.Slice(12, ByteLength)) { }
         
-        public Address(in ValueKeccak keccak) : this(keccak.BytesAsSpan.Slice(12, ByteLength).ToArray()) { }
+        public Address(ref ValueKeccak keccak) : this(ValueKeccak.BytesAsSpan(ref keccak).Slice(12, ByteLength).ToArray()) { }
 
         public byte this[int index] => Bytes[index];
 
@@ -207,7 +207,7 @@ namespace Nethermind.Core
 
         public AddressStructRef(KeccakStructRef keccak) : this(keccak.Bytes.Slice(12, ByteLength)) { }
         
-        public AddressStructRef(in ValueKeccak keccak) : this(keccak.BytesAsSpan.Slice(12, ByteLength).ToArray()) { }
+        public AddressStructRef(ref ValueKeccak keccak) : this(ValueKeccak.BytesAsSpan(ref keccak).Slice(12, ByteLength).ToArray()) { }
 
         public byte this[int index] => Bytes[index];
 

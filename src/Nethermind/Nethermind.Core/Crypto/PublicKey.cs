@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -92,13 +92,15 @@ namespace Nethermind.Core.Crypto
 
         private Address ComputeAddress()
         {
-            Span<byte> hash = ValueKeccak.Compute(Bytes).BytesAsSpan;
+            ValueKeccak kekkac = ValueKeccak.Compute(Bytes);
+            Span<byte> hash = ValueKeccak.BytesAsSpan(ref kekkac);
             return new Address(hash.Slice(12).ToArray());
         }
 
         public static Address ComputeAddress(ReadOnlySpan<byte> publicKeyBytes)
         {
-            Span<byte> hash = ValueKeccak.Compute(publicKeyBytes).BytesAsSpan;
+            ValueKeccak kekkac = ValueKeccak.Compute(publicKeyBytes);
+            Span<byte> hash = ValueKeccak.BytesAsSpan(ref kekkac); 
             return new Address(hash.Slice(12).ToArray());
         }
 

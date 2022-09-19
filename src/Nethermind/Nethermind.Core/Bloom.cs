@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -195,7 +195,8 @@ namespace Nethermind.Core
                 return 2047 - ((bytes[index1] << 8) + bytes[index2]) % 2048;
             }
 
-            var keccakBytes = ValueKeccak.Compute(sequence).BytesAsSpan;
+            var keccakValue = ValueKeccak.Compute(sequence);
+            var keccakBytes = ValueKeccak.BytesAsSpan(ref keccakValue);
             var indexes = new BloomExtract(GetIndex(keccakBytes, 0, 1), GetIndex(keccakBytes, 2, 3), GetIndex(keccakBytes, 4, 5));
             return indexes;
         }
@@ -264,7 +265,7 @@ namespace Nethermind.Core
         public bool Matches(byte[] sequence)
         {
             Bloom.BloomExtract indexes = GetExtract(sequence);
-            return Matches(ref indexes);
+            return Matches(in indexes);
         }
 
         public override string ToString()
@@ -362,9 +363,12 @@ namespace Nethermind.Core
 
         public bool Matches(Keccak topic) => Matches(topic.Bytes);
 
-        public bool Matches(ref Bloom.BloomExtract extract) => Get(extract.Index1) && Get(extract.Index2) && Get(extract.Index3);
+        public bool Matches(in Bloom.BloomExtract extract) => Get(extract.Index1) && Get(extract.Index2) && Get(extract.Index3);
 
-        public bool Matches(Bloom.BloomExtract extract) => Matches(ref extract);
+        public bool Matches(Bloom.BloomExtract extract)
+        {
+            return Matches(in extract);
+        }
 
         public static Bloom.BloomExtract GetExtract(Address address) => GetExtract(address.Bytes);
 
@@ -377,7 +381,8 @@ namespace Nethermind.Core
                 return 2047 - ((bytes[index1] << 8) + bytes[index2]) % 2048;
             }
 
-            var keccakBytes = ValueKeccak.Compute(sequence).BytesAsSpan;
+            var keccakValue = ValueKeccak.Compute(sequence);
+            var keccakBytes = ValueKeccak.BytesAsSpan(ref keccakValue);
             var indexes = new Bloom.BloomExtract(GetIndex(keccakBytes, 0, 1), GetIndex(keccakBytes, 2, 3), GetIndex(keccakBytes, 4, 5));
             return indexes;
         }

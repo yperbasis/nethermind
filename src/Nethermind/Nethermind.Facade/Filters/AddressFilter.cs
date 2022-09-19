@@ -104,7 +104,7 @@ namespace Nethermind.Blockchain.Filters
                 for (var i = 0; i < indexes.Length; i++)
                 {
                     var index = indexes[i];
-                    result = bloom.Matches(ref index); 
+                    result = bloom.Matches(in index); 
                     if (result)
                     {
                         break;
