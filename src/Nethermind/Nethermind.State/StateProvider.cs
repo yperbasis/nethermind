@@ -51,6 +51,8 @@ namespace Nethermind.State
         private Change?[] _changes = new Change?[StartCapacity];
         private int _currentPosition = Resettable.EmptyPosition;
 
+        private bool _commitLogging = false;
+
         public StateProvider(ITrieStore? trieStore, IKeyValueStore? codeDb, ILogManager? logManager)
         {
             _logger = logManager?.GetClassLogger<StateProvider>() ?? throw new ArgumentNullException(nameof(logManager));
@@ -168,6 +170,10 @@ namespace Nethermind.State
                     PushTouch(address, account, releaseSpec, account.Balance.IsZero);
                 }
             }
+        }
+
+        public void SetCommitLogging(bool value) {
+            _commitLogging = value;
         }
 
         private void SetNewBalance(Address address, in UInt256 balanceChange, IReleaseSpec releaseSpec, bool isSubtracting)
@@ -442,11 +448,11 @@ namespace Nethermind.State
         {
             if (_currentPosition == -1)
             {
-                if (_logger.IsTrace) _logger.Trace("  no state changes to commit");
+                if (_commitLogging) _logger.Info("  no state changes to commit");
                 return;
             }
 
-            if (_logger.IsTrace) _logger.Trace($"Committing state changes (at {_currentPosition})");
+            if (_commitLogging) _logger.Info($"Committing state changes (at {_currentPosition})");
             if (_changes[_currentPosition] is null)
             {
                 throw new InvalidOperationException($"Change at current position {_currentPosition} was null when commiting {nameof(StateProvider)}");
@@ -508,7 +514,7 @@ namespace Nethermind.State
                         {
                             if (releaseSpec.IsEip158Enabled && change.Account.IsEmpty && !isGenesis)
                             {
-                                if (_logger.IsTrace) _logger.Trace($"  Commit remove empty {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce}");
+                                if (_commitLogging) _logger.Info($"  Commit remove empty {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce}");
                                 SetState(change.Address, null);
                                 if (isTracing)
                                 {
@@ -517,7 +523,7 @@ namespace Nethermind.State
                             }
                             else
                             {
-                                if (_logger.IsTrace) _logger.Trace($"  Commit update {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce} C = {change.Account.CodeHash}");
+                                if (_commitLogging) _logger.Info($"  Commit update {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce} C = {change.Account.CodeHash}");
                                 SetState(change.Address, change.Account);
                                 if (isTracing)
                                 {
@@ -531,7 +537,7 @@ namespace Nethermind.State
                         {
                             if (!releaseSpec.IsEip158Enabled || !change.Account.IsEmpty || isGenesis)
                             {
-                                if (_logger.IsTrace) _logger.Trace($"  Commit create {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce}");
+                                if (_commitLogging) _logger.Info($"  Commit create {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce}");
                                 SetState(change.Address, change.Account);
                                 if (isTracing)
                                 {
@@ -543,7 +549,7 @@ namespace Nethermind.State
                         }
                     case ChangeType.Delete:
                         {
-                            if (_logger.IsTrace) _logger.Trace($"  Commit remove {change.Address}");
+                            if (_commitLogging) _logger.Info($"  Commit remove {change.Address}");
                             bool wasItCreatedNow = false;
                             while (_intraBlockCache[change.Address].Count > 0)
                             {

@@ -200,7 +200,7 @@ namespace Nethermind.Consensus.Processing
         // TODO: block processor pipeline
         private (Block Block, TxReceipt[] Receipts) ProcessOne(Block suggestedBlock, ProcessingOptions options, IBlockTracer blockTracer)
         {
-            if (_logger.IsTrace) _logger.Trace($"Processing block {suggestedBlock.ToString(Block.Format.Short)} ({options})");
+            if (_logger.IsInfo) _logger.Info($"Processing block {suggestedBlock.ToString(Block.Format.Short)} ({options})");
 
             ApplyDaoTransition(suggestedBlock);
             Block block = PrepareBlockForProcessing(suggestedBlock);
@@ -231,12 +231,17 @@ namespace Nethermind.Consensus.Processing
             IBlockTracer blockTracer,
             ProcessingOptions options)
         {
+            _stateProvider.SetCommitLogging(block.Number == 8050022 || block.Number == 9186425);
+
             IReleaseSpec spec = _specProvider.GetSpec(block.Number);
 
             _receiptsTracer.SetOtherTracer(blockTracer);
             _receiptsTracer.StartNewBlockTrace(block);
             TxReceipt[] receipts = _blockTransactionsExecutor.ProcessTransactions(block, options, _receiptsTracer, spec);
             _receiptsTracer.EndBlockTrace();
+
+            // string receiptsStr = JsonConvert.SerializeObject(receipts);
+            // if (_logger.IsInfo) _logger.Info($"ProcessBlock receipts: {receiptsStr}");
 
             block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
             ApplyMinerRewards(block, blockTracer, spec);
