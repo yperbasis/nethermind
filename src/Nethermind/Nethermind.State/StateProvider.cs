@@ -158,13 +158,13 @@ namespace Nethermind.State
 
             if (account.CodeHash != codeHash)
             {
-                if (_logger.IsTrace) _logger.Trace($"  Update {address} C {account.CodeHash} -> {codeHash}");
+                if (_commitLogging) _logger.Info($"  Update {address} C {account.CodeHash} -> {codeHash}");
                 Account changedAccount = account.WithChangedCodeHash(codeHash);
                 PushUpdate(address, changedAccount);
             }
             else if (releaseSpec.IsEip158Enabled && !isGenesis)
             {
-                if (_logger.IsTrace) _logger.Trace($"  Touch {address} (code hash)");
+                if (_commitLogging) _logger.Info($"  Touch {address} (code hash)");
                 if (account.IsEmpty)
                 {
                     PushTouch(address, account, releaseSpec, account.Balance.IsZero);
@@ -198,7 +198,7 @@ namespace Nethermind.State
                 if (releaseSpec.IsEip158Enabled)
                 {
                     Account touched = GetThroughCacheCheckExists();
-                    if (_logger.IsTrace) _logger.Trace($"  Touch {address} (balance)");
+                    if (_commitLogging) _logger.Info($"  Touch {address} (balance)");
                     if (touched.IsEmpty)
                     {
                         PushTouch(address, touched, releaseSpec, true);
@@ -218,7 +218,7 @@ namespace Nethermind.State
             UInt256 newBalance = isSubtracting ? account.Balance - balanceChange : account.Balance + balanceChange;
 
             Account changedAccount = account.WithChangedBalance(newBalance);
-            if (_logger.IsTrace) _logger.Trace($"  Update {address} B {account.Balance} -> {newBalance} ({(isSubtracting ? "-" : "+")}{balanceChange})");
+            if (_commitLogging) _logger.Info($"  Update {address} B {account.Balance} -> {newBalance} ({(isSubtracting ? "-" : "+")}{balanceChange})");
             PushUpdate(address, changedAccount);
         }
 
@@ -251,7 +251,7 @@ namespace Nethermind.State
 
             if (account.StorageRoot != storageRoot)
             {
-                if (_logger.IsTrace) _logger.Trace($"  Update {address} S {account.StorageRoot} -> {storageRoot}");
+                if (_commitLogging) _logger.Info($"  Update {address} S {account.StorageRoot} -> {storageRoot}");
                 Account changedAccount = account.WithChangedStorageRoot(storageRoot);
                 PushUpdate(address, changedAccount);
             }
@@ -267,7 +267,7 @@ namespace Nethermind.State
             }
 
             Account changedAccount = account.WithChangedNonce(account.Nonce + 1);
-            if (_logger.IsTrace) _logger.Trace($"  Update {address} N {account.Nonce} -> {changedAccount.Nonce}");
+            if (_commitLogging) _logger.Info($"  Update {address} N {account.Nonce} -> {changedAccount.Nonce}");
             PushUpdate(address, changedAccount);
         }
 
@@ -281,7 +281,7 @@ namespace Nethermind.State
             }
 
             Account changedAccount = account.WithChangedNonce(account.Nonce - 1);
-            if (_logger.IsTrace) _logger.Trace($"  Update {address} N {account.Nonce} -> {changedAccount.Nonce}");
+            if (_commitLogging) _logger.Info($"  Update {address} N {account.Nonce} -> {changedAccount.Nonce}");
             PushUpdate(address, changedAccount);
         }
 
@@ -344,7 +344,7 @@ namespace Nethermind.State
 
         int IJournal<int>.TakeSnapshot()
         {
-            if (_logger.IsTrace) _logger.Trace($"State snapshot {_currentPosition}");
+            if (_commitLogging) _logger.Info($"State snapshot {_currentPosition}");
             return _currentPosition;
         }
 
@@ -355,7 +355,7 @@ namespace Nethermind.State
                 throw new InvalidOperationException($"{nameof(StateProvider)} tried to restore snapshot {snapshot} beyond current position {_currentPosition}");
             }
 
-            if (_logger.IsTrace) _logger.Trace($"Restoring state snapshot {snapshot}");
+            if (_commitLogging) _logger.Info($"Restoring state snapshot {snapshot}");
             if (snapshot == _currentPosition)
             {
                 return;
@@ -407,7 +407,7 @@ namespace Nethermind.State
         public void CreateAccount(Address address, in UInt256 balance)
         {
             _needsStateRootUpdate = true;
-            if (_logger.IsTrace) _logger.Trace($"Creating account: {address} with balance {balance}");
+            if (_commitLogging) _logger.Info($"Creating account: {address} with balance {balance}");
             Account account = balance.IsZero ? Account.TotallyEmpty : new Account(balance);
             PushNew(address, account);
         }
@@ -416,7 +416,7 @@ namespace Nethermind.State
         public void CreateAccount(Address address, in UInt256 balance, in UInt256 nonce)
         {
             _needsStateRootUpdate = true;
-            if (_logger.IsTrace) _logger.Trace($"Creating account: {address} with balance {balance} and nonce {nonce}");
+            if (_commitLogging) _logger.Info($"Creating account: {address} with balance {balance} and nonce {nonce}");
             Account account = (balance.IsZero && nonce.IsZero) ? Account.TotallyEmpty : new Account(nonce, balance, Keccak.EmptyTreeHash, Keccak.OfAnEmptyString);
             PushNew(address, account);
         }
@@ -779,7 +779,7 @@ namespace Nethermind.State
 
         public void Reset()
         {
-            if (_logger.IsTrace) _logger.Trace("Clearing state provider caches");
+            if (_commitLogging) _logger.Info("Clearing state provider caches");
             _intraBlockCache.Reset();
             _committedThisRound.Reset();
             _readsForTracing.Clear();
@@ -814,7 +814,7 @@ namespace Nethermind.State
             }
 
             Account changedAccount = account.WithChangedNonce(nonce);
-            if (_logger.IsTrace) _logger.Trace($"  Update {address} N {account.Nonce} -> {changedAccount.Nonce}");
+            if (_commitLogging) _logger.Info($"  Update {address} N {account.Nonce} -> {changedAccount.Nonce}");
             PushUpdate(address, changedAccount);
         }
     }

@@ -231,7 +231,7 @@ namespace Nethermind.Consensus.Processing
             IBlockTracer blockTracer,
             ProcessingOptions options)
         {
-            _stateProvider.SetCommitLogging(block.Number == 8050022 || block.Number == 9186425);
+            _stateProvider.SetCommitLogging(block.Number == 19040016);
 
             IReleaseSpec spec = _specProvider.GetSpec(block.Number);
 
@@ -240,8 +240,10 @@ namespace Nethermind.Consensus.Processing
             TxReceipt[] receipts = _blockTransactionsExecutor.ProcessTransactions(block, options, _receiptsTracer, spec);
             _receiptsTracer.EndBlockTrace();
 
-            // string receiptsStr = JsonConvert.SerializeObject(receipts);
-            // if (_logger.IsInfo) _logger.Info($"ProcessBlock receipts: {receiptsStr}");
+            if (block.Number == 19040016) {
+                string receiptsStr = JsonConvert.SerializeObject(receipts);
+                _logger.Info($"ProcessBlock receipts: {receiptsStr}");
+            }
 
             block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
             ApplyMinerRewards(block, blockTracer, spec);

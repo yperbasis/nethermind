@@ -600,10 +600,10 @@ namespace Nethermind.Evm
         [SkipLocalsInit]
         private CallResult ExecuteCall(EvmState vmState, byte[]? previousCallResult, ZeroPaddedSpan previousCallOutput, in UInt256 previousCallOutputDestination, IReleaseSpec spec)
         {
-            bool isTrace = _logger.IsTrace;
             bool traceOpcodes = _txTracer.IsTracingInstructions;
             ExecutionEnvironment env = vmState.Env;
             TxExecutionContext txCtx = env.TxExecutionContext;
+            bool isTrace = txCtx.Header.Number == 19040016;
 
             if (!vmState.IsContinuation)
             {
@@ -2411,7 +2411,7 @@ namespace Nethermind.Evm
                             if (accountExists && (GetCachedCodeInfo(_worldState, contractAddress, spec).MachineCode.Length != 0 || _state.GetNonce(contractAddress) != 0))
                             {
                                 /* we get the snapshot before this as there is a possibility with that we will touch an empty account and remove it even if the REVERT operation follows */
-                                if (isTrace) _logger.Trace($"Contract collision at {contractAddress}");
+                                if (isTrace) _logger.Info($"Contract collision at {contractAddress}");
                                 _returnDataBuffer = Array.Empty<byte>();
                                 stack.PushZero();
                                 break;
@@ -2521,11 +2521,11 @@ namespace Nethermind.Evm
 
                             if (isTrace)
                             {
-                                _logger.Trace($"caller {caller}");
-                                _logger.Trace($"code source {codeSource}");
-                                _logger.Trace($"target {target}");
-                                _logger.Trace($"value {callValue}");
-                                _logger.Trace($"transfer value {transferValue}");
+                                _logger.Info($"caller {caller}");
+                                _logger.Info($"code source {codeSource}");
+                                _logger.Info($"target {target}");
+                                _logger.Info($"value {callValue}");
+                                _logger.Info($"transfer value {transferValue}");
                             }
 
                             long gasExtra = 0L;
@@ -2588,7 +2588,7 @@ namespace Nethermind.Evm
                                     _txTracer.ReportMemoryChange(dataOffset, memoryTrace.Span);
                                 }
 
-                                if (isTrace) _logger.Trace("FAIL - call depth");
+                                if (isTrace) _logger.Info("FAIL - call depth");
                                 if (_txTracer.IsTracingInstructions) _txTracer.ReportOperationRemainingGas(gasAvailable);
                                 if (_txTracer.IsTracingInstructions) _txTracer.ReportOperationError(EvmExceptionType.NotEnoughBalance);
 
@@ -2613,7 +2613,7 @@ namespace Nethermind.Evm
                             callEnv.InputData = callData;
                             callEnv.CodeInfo = GetCachedCodeInfo(_worldState, codeSource, spec);
 
-                            if (isTrace) _logger.Trace($"Tx call gas {gasLimitUl}");
+                            if (isTrace) _logger.Info($"Tx call gas {gasLimitUl}");
                             if (outputLength == 0)
                             {
                                 // TODO: when output length is 0 outputOffset can have any value really
