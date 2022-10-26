@@ -30,6 +30,7 @@ using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
+using Newtonsoft.Json;
 
 namespace Nethermind.Consensus.Processing
 {
