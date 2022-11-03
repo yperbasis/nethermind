@@ -205,6 +205,11 @@ namespace Nethermind.Consensus.Processing
 
             ApplyDaoTransition(suggestedBlock);
             Block block = PrepareBlockForProcessing(suggestedBlock);
+
+            // if (block.Number == 19040000) {
+            //    System.Environment.Exit(1);
+            // }
+
             TxReceipt[] receipts = ProcessBlock(block, blockTracer, options);
             ValidateProcessedBlock(suggestedBlock, options, block, receipts);
             if (options.ContainsFlag(ProcessingOptions.StoreReceipts))
@@ -232,7 +237,7 @@ namespace Nethermind.Consensus.Processing
             IBlockTracer blockTracer,
             ProcessingOptions options)
         {
-            _stateProvider.SetCommitLogging(block.Number == 19040016);
+            _stateProvider.SetCommitLogging(block.Number == 19040895);
 
             IReleaseSpec spec = _specProvider.GetSpec(block.Number);
 
@@ -241,7 +246,7 @@ namespace Nethermind.Consensus.Processing
             TxReceipt[] receipts = _blockTransactionsExecutor.ProcessTransactions(block, options, _receiptsTracer, spec);
             _receiptsTracer.EndBlockTrace();
 
-            if (block.Number == 19040016) {
+            if (block.Number == 19040895) {
                 string receiptsStr = JsonConvert.SerializeObject(receipts);
                 _logger.Info($"ProcessBlock receipts: {receiptsStr}");
             }

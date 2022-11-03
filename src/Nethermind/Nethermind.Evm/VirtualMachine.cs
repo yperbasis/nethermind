@@ -603,7 +603,7 @@ namespace Nethermind.Evm
             bool traceOpcodes = _txTracer.IsTracingInstructions;
             ExecutionEnvironment env = vmState.Env;
             TxExecutionContext txCtx = env.TxExecutionContext;
-            bool isTrace = txCtx.Header.Number == 19040016;
+            bool isTrace = txCtx.Header.Number == 19040895;
 
             if (!vmState.IsContinuation)
             {
