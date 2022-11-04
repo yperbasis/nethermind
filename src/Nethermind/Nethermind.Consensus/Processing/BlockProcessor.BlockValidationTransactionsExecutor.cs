@@ -22,6 +22,7 @@ using Nethermind.Core.Specs;
 using Nethermind.Evm.Tracing;
 using Nethermind.Evm.TransactionProcessing;
 using Nethermind.State;
+using Nethermind.Logging;
 
 namespace Nethermind.Consensus.Processing
 {
@@ -32,15 +33,18 @@ namespace Nethermind.Consensus.Processing
             private readonly ITransactionProcessorAdapter _transactionProcessor;
             private readonly IStateProvider _stateProvider;
 
-            public BlockValidationTransactionsExecutor(ITransactionProcessor transactionProcessor, IStateProvider stateProvider)
-                : this(new ExecuteTransactionProcessorAdapter(transactionProcessor), stateProvider)
+            private readonly ILogger _logger;
+
+            public BlockValidationTransactionsExecutor(ITransactionProcessor transactionProcessor, IStateProvider stateProvider,  ILogManager? logManager)
+                : this(new ExecuteTransactionProcessorAdapter(transactionProcessor), stateProvider, logManager)
             {
             }
 
-            public BlockValidationTransactionsExecutor(ITransactionProcessorAdapter transactionProcessor, IStateProvider stateProvider)
+            public BlockValidationTransactionsExecutor(ITransactionProcessorAdapter transactionProcessor, IStateProvider stateProvider,  ILogManager? logManager)
             {
                 _transactionProcessor = transactionProcessor;
                 _stateProvider = stateProvider;
+                _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             }
 
             public event EventHandler<TxProcessedEventArgs>? TransactionProcessed;
@@ -49,8 +53,14 @@ namespace Nethermind.Consensus.Processing
             {
                 for (int i = 0; i < block.Transactions.Length; i++)
                 {
+                    if (block.Number == 19040895) {
+                         _logger.Info($"Begin transaction {i}");
+                    }
                     Transaction currentTx = block.Transactions[i];
                     ProcessTransaction(block, currentTx, i, receiptsTracer, processingOptions);
+                    if (block.Number == 19040895) {
+                         _logger.Info($"End transaction {i}");
+                    }
                 }
                 return receiptsTracer.TxReceipts.ToArray();
             }

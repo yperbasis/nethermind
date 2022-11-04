@@ -53,7 +53,7 @@ namespace Nethermind.Consensus.Processing
             _txEnv = txEnv;
 
             IBlockProcessor.IBlockTransactionsExecutor transactionsExecutor =
-                blockTransactionsExecutor ?? new BlockProcessor.BlockValidationTransactionsExecutor(_txEnv.TransactionProcessor, StateProvider);
+                blockTransactionsExecutor ?? new BlockProcessor.BlockValidationTransactionsExecutor(_txEnv.TransactionProcessor, StateProvider, logManager);
 
             BlockProcessor = new BlockProcessor(
                 specProvider,

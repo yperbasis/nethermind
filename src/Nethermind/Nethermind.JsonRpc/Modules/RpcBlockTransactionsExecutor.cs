@@ -18,13 +18,14 @@
 using Nethermind.Consensus.Processing;
 using Nethermind.Evm.TransactionProcessing;
 using Nethermind.State;
+using Nethermind.Logging;
 
 namespace Nethermind.JsonRpc.Modules
 {
     public class RpcBlockTransactionsExecutor : BlockProcessor.BlockValidationTransactionsExecutor
     {
-        public RpcBlockTransactionsExecutor(ITransactionProcessor transactionProcessor, IStateProvider stateProvider)
-            : base(new TraceTransactionProcessorAdapter(transactionProcessor), stateProvider)
+        public RpcBlockTransactionsExecutor(ITransactionProcessor transactionProcessor, IStateProvider stateProvider, ILogManager? logManager)
+            : base(new TraceTransactionProcessorAdapter(transactionProcessor), stateProvider, logManager)
         {
         }
     }
